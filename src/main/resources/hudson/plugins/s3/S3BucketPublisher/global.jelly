@@ -1,8 +1,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <!-- nothing to configure -->
   <f:section title="Amazon S3 profiles">
-    <f:entry title="S3 profiles"
-      description="Profiles for publishing to S3 buckets">
+    <f:entry title="S3 profiles" description="Profiles for publishing to S3 buckets">
       <f:repeatable var="profile" items="${descriptor.profiles}">
         <table width="100%">
           <f:entry title="Profile name" help="/plugin/s3/help-profile.html">

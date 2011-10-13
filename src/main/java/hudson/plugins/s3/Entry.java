@@ -1,4 +1,4 @@
-package com.hyperic.hudson.plugin;
+package hudson.plugins.s3;
 
 public final class Entry {
     /**

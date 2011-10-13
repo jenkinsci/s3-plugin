@@ -1,2 +1,4 @@
+/.settings/
 target
-.settings
+work
+*.i*
