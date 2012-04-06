@@ -1,0 +1,30 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <l:layout>
+    <st:include it="${it.build}" page="sidepanel.jelly" />
+    <l:main-panel>
+      <h1>
+        <img src="${imagesURL}/48x48/fingerprint.png" alt="" height="48" width="48"/>
+        S3 Artifacts
+      </h1>
+      <table class="fingerprint-in-build sortable bigtable">
+        <tr>
+          <th initialSortDir="down">Artifacts</th>
+          <th/>
+        </tr>
+        <j:forEach var="e" items="${it.artifacts}">
+          <tr>
+            <td>
+							<a href="download/${e.name}">${h.escape(e.name)}</a>
+            </td>
+            <td>
+              <a href="${rootURL}/fingerprint/${e.fingerprint}/">
+                <img src="${imagesURL}/16x16/fingerprint.png" alt="" height="16" width="16"/> ${%more details}
+              </a>
+            </td>
+          </tr>
+        </j:forEach>
+      </table>
+    </l:main-panel>
+  </l:layout>
+</j:jelly>

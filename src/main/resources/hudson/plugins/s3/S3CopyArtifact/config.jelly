@@ -1,0 +1,21 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:ca="/hudson/plugins/copyartifact">
+  <f:entry title="Project name" field="projectName">
+    <f:editableComboBox items="${app.topLevelItemNames}" clazz="setting-input"/>
+  </f:entry>
+  <ca:selectorList currentSelector="${instance.buildSelector}"
+      name="selector" title="Which build"/>
+  <f:entry title="Artifacts to copy" field="filter">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Target directory" field="target">
+    <f:textbox/>
+  </f:entry>
+  <f:entry help="/plugin/copyartifact/help-flatten-optional.html">
+    <f:checkbox field="flatten"/>
+    <label class="attach-previous">Flatten directories</label>
+    <st:nbsp/> <st:nbsp/> <st:nbsp/> <st:nbsp/> <st:nbsp/>
+    <f:checkbox field="optional"/>
+    <label class="attach-previous">Optional</label>
+  </f:entry>
+</j:jelly>

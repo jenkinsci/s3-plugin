@@ -1,0 +1,21 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+  <j:set var="latestDeployedArtifacts" value="${it.latestDeployedArtifacts}"/>
+  <j:if test="${latestDeployedArtifacts != null}">
+      <table style="margin-top: 1em; margin-left:1em;">
+        <t:summary icon="package.gif">
+            ${%Last Successful Deployed Artifacts}
+            <ul>
+               <j:set var="lastSuccessfulNumber" value="${it.lastSuccessfulNumber}"/>
+               <j:forEach var="artifact" items="${latestDeployedArtifacts.artifacts}" >
+                   <li>
+                       <a href="${lastSuccessfulNumber}/s3/download/${artifact.name}">${h.escape(artifact.name)}</a>
+                       <br />
+                   </li>
+               </j:forEach>
+            </ul>
+        </t:summary>
+      </table>
+  </j:if>
+
+</j:jelly>

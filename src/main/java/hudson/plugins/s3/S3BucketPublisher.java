@@ -4,29 +4,46 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
+import hudson.matrix.MatrixProject;
 import hudson.model.*;
+import hudson.model.listeners.ItemListener;
+import hudson.model.listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
+import hudson.tasks.Builder;
+import hudson.tasks.Messages;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
+import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.CopyOnWriteList;
+import hudson.util.DescribableList;
 import hudson.util.FormValidation;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jenkins.model.Jenkins;
+
 public final class S3BucketPublisher extends Recorder implements Describable<Publisher> {
 
+    private static final Logger log = Logger.getLogger(S3BucketPublisher.class.getName());
+  
     private String profileName;
     @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
@@ -55,17 +72,21 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
     }
 
     public S3Profile getProfile() {
-        S3Profile[] profiles = DESCRIPTOR.getProfiles();
+        return getProfile(profileName);
+    }
 
-        if (profileName == null && profiles.length > 0)
-            // default
-            return profiles[0];
+    public static S3Profile getProfile(String profileName) {
+      S3Profile[] profiles = DESCRIPTOR.getProfiles();
 
-        for (S3Profile profile : profiles) {
-            if (profile.getName().equals(profileName))
-                return profile;
-        }
-        return null;
+      if (profileName == null && profiles.length > 0)
+          // default
+          return profiles[0];
+
+      for (S3Profile profile : profiles) {
+          if (profile.getName().equals(profileName))
+              return profile;
+      }
+      return null;
     }
 
     public String getName() {
@@ -74,6 +95,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
 
     public void setName(String profileName) {
         this.profileName = profileName;
+    }
+
+    @Override
+    public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
+        return ImmutableList.of(new S3ArtifactsProjectAction(project));
     }
 
     protected void log(final PrintStream logger, final String message) {
@@ -100,7 +126,9 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
         log(listener.getLogger(), "Using S3 profile: " + profile.getName());
         try {
             Map<String, String> envVars = build.getEnvironment(listener);
-
+            Map<String,String> record = new HashMap<String,String>();
+            List<FingerprintRecord> artifacts = Lists.newArrayList();
+            
             for (Entry entry : entries) {
                 String expanded = Util.replaceMacro(entry.sourceFile, envVars);
                 FilePath ws = build.getWorkspace();
@@ -113,12 +141,28 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                     if (error != null)
                         log(listener.getLogger(), error);
                 }
+                
+                List<FingerprintRecord> records = new ArrayList<FingerprintRecord>();
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
                 for (FilePath src : paths) {
-                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName());
-                    profile.upload(bucket, src);
+                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + ", upload from slave=" + entry.uploadFromSlave);
+                    records.add(profile.upload(build, listener, bucket, src, entry.uploadFromSlave));
                 }
+
+                artifacts.addAll(records);
+                
+                for (FingerprintRecord r : records) {
+                  Fingerprint fp = r.addRecord(build);
+                  if(fp==null) {
+                      listener.error("Fingerprinting failed for "+r.getName());
+                      continue;
+                  }
+                  fp.add(build);
+                  record.put(r.getName(),fp.getHashString());
+              }
             }
+            build.getActions().add(new S3ArtifactsAction(build, profile, artifacts ));
+            build.getActions().add(new FingerprintAction(build,record));
         } catch (IOException e) {
             e.printStackTrace(listener.error("Failed to upload files"));
             build.setResult(Result.UNSTABLE);
@@ -130,6 +174,22 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
         return BuildStepMonitor.STEP;
     }
 
+    // Listen for project renames and update property here if needed.
+    @Extension
+    public static final class S3DeletedJobListener extends RunListener<Run> {
+        @Override
+        public void onDeleted(Run run) {
+            S3ArtifactsAction artifacts = run.getAction(S3ArtifactsAction.class);
+            if (artifacts != null) {
+                S3Profile profile = S3BucketPublisher.getProfile(artifacts.getProfile());
+                for (FingerprintRecord record : artifacts.getArtifacts()) {
+                    profile.delete(run, record);
+                } 
+            }
+        }
+    }
+    
+    
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();

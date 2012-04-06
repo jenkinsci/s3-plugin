@@ -11,4 +11,9 @@ public final class Entry {
      * <p>
      */
     public String sourceFile;
+    
+    /**
+     * Upload either from the slave or the master
+     */
+    public boolean uploadFromSlave;
 }

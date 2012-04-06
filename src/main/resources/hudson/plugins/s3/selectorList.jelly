@@ -1,0 +1,67 @@
+<!--
+The MIT License
+
+Copyright (c) 2004-2010, Sun Microsystems, Inc., Alan Harder
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:f="/lib/form">
+  <st:documentation>
+    Generates a dropdown list with the available BuildSelectors.
+    <st:attribute name="currentSelector" use="required">
+      BuildSelector that is currently configured; form is populated showing this object.
+    </st:attribute>
+    <st:attribute name="name" use="required">
+      Name for the form element.
+    </st:attribute>
+    <st:attribute name="title" use="required">
+      Title for the form section.
+    </st:attribute>
+    <st:attribute name="description">
+      Optional description for form section.
+    </st:attribute>
+    <st:attribute name="descriptor">
+      Provide the descriptor that has getBuildSelectors(), if not already in ${descriptor}.
+    </st:attribute>
+    <st:attribute name="omit">
+      Optional name of a selector type to omit from the list.
+    </st:attribute>
+  </st:documentation>
+  <f:dropdownList name="${attrs.name}" title="${attrs.title}" description="${attrs.description}"
+                  help="/plugin/copyartifact/help-buildSelector.html">
+    <j:if test="${dropdownListMode=='generateEntries'}">
+      <d:invokeBody/>
+    </j:if>
+    <j:forEach var="bsDescriptor" items="${descriptor.buildSelectors.iterator()}" varStatus="loop">
+      <j:if test="${bsDescriptor.clazz.simpleName!=attrs.omit}">
+        <j:set var="selector"
+               value="${bsDescriptor==currentSelector.descriptor ? currentSelector : null}"/>
+        <f:dropdownListBlock title="${bsDescriptor.displayName}" value="${loop.index}"
+                             selected="${selector!=null}" staplerClass="${bsDescriptor.clazz.name}">
+          <j:scope>
+            <j:set var="descriptor" value="${bsDescriptor}" />
+            <j:set var="instance" value="${selector}" />
+            <st:include page="config.jelly" class="${bsDescriptor.clazz}" optional="${true}"/>
+          </j:scope>
+        </f:dropdownListBlock>
+      </j:if>
+    </j:forEach>
+  </f:dropdownList>
+</j:jelly>

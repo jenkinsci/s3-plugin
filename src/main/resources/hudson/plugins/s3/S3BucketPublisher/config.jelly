@@ -21,6 +21,9 @@
           <input class="setting-input" name="s3.entry.bucket"
             type="text" value="${e.bucket}" />
         </f:entry>
+        <f:entry field="uploadFromSlave" help="${helpURL}/help-publish-slave.html">
+		      <f:checkbox title="Upload from slave" name="s3.entry.uploadFromSlave" checked="${e.uploadFromSlave}"/>
+        </f:entry>
         <f:entry title="">
           <div align="right">
             <f:repeatableDeleteButton />
