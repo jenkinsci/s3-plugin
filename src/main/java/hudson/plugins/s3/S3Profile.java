@@ -9,6 +9,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.internal.Mimetypes;
 
 public class S3Profile {
     private String name;
@@ -71,13 +73,13 @@ public class S3Profile {
         
         final Destination dest = new Destination(bucketName,filePath.getName());
         
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentType(Mimetypes.getInstance().getMimetype(filePath.getName()));
+                
         try {
-            getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), /*metadata=*/null);
+            getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
         } catch (Exception e) {
             throw new IOException("put " + dest + ": " + e);
         }
     }
-    
- 
-    
 }
