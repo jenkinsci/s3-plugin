@@ -10,7 +10,7 @@
           <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
             <f:textbox name="s3.accessKey" value="${profile.accessKey}"
                        checkMethod="post"
-                       checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+escape(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+escape(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+escape(this.value)"
+                       checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)"
             />
           </f:entry>
           <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
