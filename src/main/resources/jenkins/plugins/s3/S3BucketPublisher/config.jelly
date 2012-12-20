@@ -1,0 +1,27 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+  <j:set var="helpURL" value="/plugin/s3" />
+  <f:entry title="S3 profile">
+    <select class="setting-input" name="s3.profileName" description="Select configured S3 profile.Check global hudson config for defining access properties for this profile">
+      <j:forEach var="s" items="${descriptor.profiles}">
+        <f:option selected="${s.name==instance.profileName}" >${s.name}</f:option>
+      </j:forEach>
+    </select>
+  </f:entry>
+
+  <f:entry title="Publishing Rules">
+    <f:repeatable field="rules" minimum="1" noAddButton="false">
+      <table width="100%">
+        <f:entry>
+          <span style="vertical-align: middle;">
+          	Working Dir <f:textbox style="width:15%;" field="workingDir" />
+            Include <f:textbox style="width:15%;" field="include" />
+            Exclude <f:textbox style="width:15%;" field="exclude" />
+            To <f:textbox style="width:15%;" field="to" />
+            <input type="button" value="Delete Rule" class="repeatable-delete" style="margin-left: 1em; vertical-align:middle;"/>
+          </span>
+        </f:entry>
+      </table>
+    </f:repeatable>
+  </f:entry>
+</j:jelly>

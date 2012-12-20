@@ -1,52 +1,48 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>plugin</artifactId>
-        <version>1.434</version>
-    </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jenkins-ci.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>1.479</version><!-- which version of Jenkins is this plugin built against? -->
+  </parent>
 
-    <artifactId>s3</artifactId>
-    <packaging>hpi</packaging>
-    <version>0.3.3-SNAPSHOT</version>
-    <name>Hudson S3 publisher plugin</name>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/S3+Plugin</url>
+  <groupId>jenkins.plugins.s3</groupId>
+  <artifactId>s3</artifactId>
+  <version>0.3.3-SNAPSHOT</version>
+  <packaging>hpi</packaging>
 
-    <developers>
-        <developer> <id>dougm</id> <name>Doug MacEachern</name> </developer>
-        <developer> <id>d6y</id> <name>Richard Dallaway</name> </developer>
-        <developer> <id>longlho</id> <name>Long Ho</name> </developer>
-        <developer> <id>mikewatt</id> <name>Michael Watt</name> </developer>
-    </developers>
+  <dependencies>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk</artifactId>
+      <version>1.3.20</version>
+    </dependency>
+  </dependencies>
 
-    <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/s3-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/s3-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/s3-plugin</url>
-    </scm>
+  <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.3.20</version>
-        </dependency>
-    </dependencies>
-
-
-    <repositories>
-        <repository>
-            <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
-        </pluginRepository>
-    </pluginRepositories>
-</project>  
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
   
+  <dependencyManagement>
+  	<dependencies>
+  		<dependency>
+  			<groupId>commons-codec</groupId>
+  			<artifactId>commons-codec</artifactId>
+  			<version>1.4</version>
+  		</dependency>
+  	</dependencies>
+  </dependencyManagement>
+</project>
+
 

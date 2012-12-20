@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers class="vector"/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>mkdir -p ./test/data/1/11
+mkdir -p ./test/data/1/12
+mkdir -p ./test/data/2/21
+
+touch ./test/data/1/a.txt
+touch ./test/data/1/b.txt
+touch ./test/data/1/11/a.txt
+touch ./test/data/1/11/b.txt
+touch ./test/data/1/12/a.txt
+touch ./test/data/2/21/b.txt</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <jenkins.plugins.s3.S3BucketPublisher>
+      <profileName>lfaws</profileName>
+      <rules>
+        <jenkins.plugins.s3.PublishRule>
+          <workingDir>./test</workingDir>
+          <include>**/*</include>
+          <exclude></exclude>
+          <to>livefyre-build/gene-test</to>
+        </jenkins.plugins.s3.PublishRule>
+        <jenkins.plugins.s3.PublishRule>
+          <workingDir>./test</workingDir>
+          <include>**/*</include>
+          <exclude></exclude>
+          <to>livefyre-build/gene-test2</to>
+        </jenkins.plugins.s3.PublishRule>
+      </rules>
+      
+    </jenkins.plugins.s3.S3BucketPublisher>
+  </publishers>
+  <buildWrappers/>
+</project>
