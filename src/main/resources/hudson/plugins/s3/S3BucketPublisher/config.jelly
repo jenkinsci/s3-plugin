@@ -29,4 +29,22 @@
       </table>
     </f:repeatable>
   </f:entry>
+
+  <f:entry title="Metadata tags">
+    <f:repeatable var="m" items="${instance.userMetadata}">
+      <table width="100%">
+        <f:entry title="Metadata key" help="${helpURL}/help-key.html">
+          <f:textbox name="s3.metadataPair.key" value="${m.key}" />
+        </f:entry>
+        <f:entry title="Metadata value" help="${helpURL}/help-value.html">
+          <f:textbox name="s3.metadataPair.value" value="${m.value}" />
+        </f:entry>
+          <f:entry title="">
+          <div align="right">
+            <f:repeatableDeleteButton />
+          </div>
+        </f:entry>
+      </table>
+    </f:repeatable>
+  </f:entry>
 </j:jelly>

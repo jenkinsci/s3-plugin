@@ -3,6 +3,7 @@ package hudson.plugins.s3;
 import hudson.FilePath;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -66,7 +67,8 @@ public class S3Profile {
     
     
    
-    public void upload(String bucketName, FilePath filePath) throws IOException, InterruptedException {
+    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata)
+            throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
@@ -76,6 +78,9 @@ public class S3Profile {
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(Mimetypes.getInstance().getMimetype(filePath.getName()));
         metadata.setContentLength(filePath.length());
+        for (MetadataPair metadataPair : userMetadata) {
+            metadata.addUserMetadata(metadataPair.key, metadataPair.value);
+        }
         try {
             getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
         } catch (Exception e) {
