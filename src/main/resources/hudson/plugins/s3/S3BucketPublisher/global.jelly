@@ -7,18 +7,22 @@
           <f:entry title="Profile name" help="/plugin/s3/help-profile.html">
             <f:textbox name="s3.name" value="${profile.name}"/>
           </f:entry>
-          <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
-            <f:textbox name="s3.accessKey" value="${profile.accessKey}"
-                       checkMethod="post"
-                       checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)"
-            />
-          </f:entry>
-          <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
-            <input class="setting-input" name="s3.secretKey"
-                   type="password" value="${profile.secretKey}"
-                   onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
-             />
-          </f:entry>
+          <f:optionalBlock title="Use IAM Role" help="/plugin/s3/help-role.html"
+                           checked="${profile.useRole}"
+                           inline="true" negative="true" name="s3.useRole">
+            <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
+              <f:textbox name="s3.accessKey" value="${profile.accessKey}"
+                         checkMethod="post"
+                         checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)"
+              />
+            </f:entry>
+            <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
+              <input class="setting-input" name="s3.secretKey"
+                    type="password" value="${profile.secretKey}"
+                    onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
+              />
+            </f:entry>
+          </f:optionalBlock>
           <f:entry title="">
             <div align="right">
               <f:repeatableDeleteButton />

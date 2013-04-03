@@ -16,17 +16,23 @@ public class S3Profile {
     private String name;
     private String accessKey;
     private String secretKey;
+    private boolean useRole;
     private static final AtomicReference<AmazonS3Client> client = new AtomicReference<AmazonS3Client>(null);
 
     public S3Profile() {
     }
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole) {
         this.name = name;
         this.accessKey = accessKey;
         this.secretKey = secretKey;
-        client.set(new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey)));
+        this.useRole = useRole;
+        if (useRole) {
+            client.set(new AmazonS3Client());
+        } else {
+            client.set(new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey)));
+        }
     }
 
     public final String getAccessKey() {
@@ -53,9 +59,21 @@ public class S3Profile {
         this.name = name;
     }
 
+    public final boolean getUseRole() {
+        return this.useRole;
+    }
+
+    public void setUseRole(boolean useRole) {
+        this.useRole = useRole;
+    }
+
     public AmazonS3Client getClient() {
         if (client.get() == null) {
-            client.set(new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey)));
+            if (useRole) {
+                client.set(new AmazonS3Client());
+            } else {
+                client.set(new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey)));
+            }
         }
         return client.get();
     }
