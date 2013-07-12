@@ -16,7 +16,7 @@ public class S3Profile {
     private String name;
     private String accessKey;
     private String secretKey;
-    private static final AtomicReference<AmazonS3Client> client = new AtomicReference<AmazonS3Client>(null);
+    private final AtomicReference<AmazonS3Client> client = new AtomicReference<AmazonS3Client>(null);
 
     public S3Profile() {
     }
