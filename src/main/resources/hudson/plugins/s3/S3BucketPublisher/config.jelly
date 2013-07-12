@@ -2,7 +2,7 @@
 
   <j:set var="helpURL" value="/plugin/s3" />
     <f:entry title="S3 profile">
-      <select class="setting-input" name="s3.name" description="Select configured S3 profile.Check global hudson config for defining access properties for this profile">
+      <select class="setting-input" name="s3.name" description="Select configured S3 profile. Check global Jenkins config for defining access properties for this profile.">
         <j:forEach var="s" items="${descriptor.profiles}">
           <f:option selected="${s.name==instance.name}">${s.name}</f:option>
         </j:forEach>
@@ -10,7 +10,6 @@
     </f:entry>
 
   <f:entry title="Files to upload">
-		
     <f:repeatable var="e" items="${instance.entries}">
       <table width="100%">
         <f:entry title="Source" help="${helpURL}/help-source.html">
@@ -20,6 +19,13 @@
         <f:entry title="Destination bucket" help="${helpURL}/help-destination.html">
           <input class="setting-input" name="s3.entry.bucket"
             type="text" value="${e.bucket}" />
+        </f:entry>
+        <f:entry title="Storage class" help="${helpURL}/help-storageclass.html">
+          <select class="setting-input" name="s3.entry.storageClass">
+            <j:forEach var="storageOpt" items="${e.storageClasses}">
+              <f:option selected="${storageOpt==e.storageClass}">${storageOpt}</f:option>
+            </j:forEach>
+          </select>
         </f:entry>
         <f:entry title="">
           <div align="right">

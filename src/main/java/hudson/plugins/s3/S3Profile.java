@@ -62,19 +62,22 @@ public class S3Profile {
     public void check() throws Exception {
         getClient().listBuckets();
     }
-    
-    
-   
-    public void upload(String bucketName, FilePath filePath) throws IOException, InterruptedException {
+
+
+
+    public void upload(String bucketName, FilePath filePath, String storageClass) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
-        
+
         final Destination dest = new Destination(bucketName,filePath.getName());
-        
+
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(Mimetypes.getInstance().getMimetype(filePath.getName()));
         metadata.setContentLength(filePath.length());
+        if ((storageClass != null) && !"".equals(storageClass)) {
+            metadata.setHeader("x-amz-storage-class", storageClass);
+        }
         try {
             getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
         } catch (Exception e) {

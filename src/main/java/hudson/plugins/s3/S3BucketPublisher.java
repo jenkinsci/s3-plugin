@@ -114,9 +114,10 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                         log(listener.getLogger(), error);
                 }
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
+                String storageClass = Util.replaceMacro(entry.storageClass, envVars);
                 for (FilePath src : paths) {
                     log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName());
-                    profile.upload(bucket, src);
+                    profile.upload(bucket, src, storageClass);
                 }
             }
         } catch (IOException e) {
