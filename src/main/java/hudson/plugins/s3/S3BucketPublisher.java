@@ -86,10 +86,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                            BuildListener listener)
             throws InterruptedException, IOException {
 
-        if (build.getResult() == Result.FAILURE) {
+        //TODO: implement a checkbox or dropdown to save a preference for uploading after a failure
+        //if (build.getResult() == Result.FAILURE) {
             // build failed. don't post
-            return true;
-        }
+            //return true;
+        //}
 
         S3Profile profile = getProfile();
         if (profile == null) {
