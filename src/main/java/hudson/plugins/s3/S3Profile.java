@@ -1,7 +1,11 @@
 package hudson.plugins.s3;
 
+import static hudson.Util.deleteFile;
 import hudson.FilePath;
+import hudson.util.IOUtils;
+import hudson.util.Secret;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -9,9 +13,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.internal.Mimetypes;
-import hudson.util.Secret;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class S3Profile {
     private String name;
@@ -79,10 +83,27 @@ public class S3Profile {
         for (MetadataPair metadataPair : userMetadata) {
             metadata.addUserMetadata(metadataPair.key, metadataPair.value);
         }
+
+        File localFile, tempFile = null;
         try {
-            getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
+        	if (filePath.isRemote()) {
+        		tempFile = File.createTempFile("s3plugin", "");
+        		IOUtils.copy(filePath.read(), tempFile);
+        		localFile = tempFile;
+        	} else {
+        		localFile = new File(filePath.getRemote());
+        	}
+
+        	PutObjectRequest putObject = new PutObjectRequest(dest.bucketName, dest.objectName, localFile).
+        			withMetadata(metadata);
+    		getClient().putObject(putObject);
         } catch (Exception e) {
             throw new IOException("put " + dest + ": " + e);
+        } finally {
+        	if (tempFile != null)
+        	{
+        		deleteFile(tempFile);
+        	}
         }
     }
 }
