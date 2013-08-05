@@ -61,7 +61,7 @@ public class S3Profile {
 
 
 
-    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata, String storageClass) throws IOException, InterruptedException {
+    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata, String storageClass, String endpoint) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
@@ -78,7 +78,9 @@ public class S3Profile {
             metadata.addUserMetadata(metadataPair.key, metadataPair.value);
         }
         try {
-            getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
+            getClient();
+            client.setEndpoint(endpoint);
+            client.putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
         } catch (Exception e) {
             throw new IOException("put " + dest + ": " + e);
         }
