@@ -1,17 +1,15 @@
 package hudson.plugins.s3;
 
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.internal.Mimetypes;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import hudson.FilePath;
+import hudson.util.Secret;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
 import java.util.List;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.internal.Mimetypes;
-import hudson.util.Secret;
 
 public class S3Profile {
     private String name;
@@ -63,7 +61,7 @@ public class S3Profile {
 
 
 
-    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata, String storageClass) throws IOException, InterruptedException {
+    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata, String storageClass, String endpoint) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
@@ -80,7 +78,9 @@ public class S3Profile {
             metadata.addUserMetadata(metadataPair.key, metadataPair.value);
         }
         try {
-            getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
+            getClient();
+            client.setEndpoint(endpoint);
+            client.putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
         } catch (Exception e) {
             throw new IOException("put " + dest + ": " + e);
         }
