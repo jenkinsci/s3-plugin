@@ -2,6 +2,8 @@ package hudson.plugins.s3;
 
 import org.apache.commons.lang.StringUtils;
 
+import javax.annotation.Nullable;
+
 public final class Entry {
 
     /**
@@ -27,6 +29,7 @@ public final class Entry {
 
     public String locationConstraint = Region.REGIONS[0].locationConstraint;
 
+    @Nullable
     public Region getRegion() {
         for (Region region : Region.REGIONS) {
             if (StringUtils.equals(locationConstraint, region.locationConstraint))
