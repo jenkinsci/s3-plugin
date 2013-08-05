@@ -166,7 +166,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
         public final String[] storageClasses = Entry.STORAGE_CLASSES;
-        public final Region[] regions = Entry.REGIONS;
+        public final Region[] regions = Region.REGIONS;
 
         public DescriptorImpl(Class<? extends Publisher> clazz) {
             super(clazz);
