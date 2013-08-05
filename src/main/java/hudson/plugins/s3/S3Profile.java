@@ -1,17 +1,15 @@
 package hudson.plugins.s3;
 
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.internal.Mimetypes;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import hudson.FilePath;
+import hudson.util.Secret;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
 import java.util.List;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.internal.Mimetypes;
-import hudson.util.Secret;
 
 public class S3Profile {
     private String name;
