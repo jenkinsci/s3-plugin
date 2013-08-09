@@ -27,6 +27,13 @@
             </j:forEach>
           </select>
         </f:entry>
+        <f:entry title="Bucket Region" help="${helpURL}/help-region.html">
+            <select class="setting-input" name="s3.entry.selectedRegion">
+                <j:forEach var="regionOpt" items="${e.regions}">
+                    <f:option selected="${regionOpt==e.selectedRegion}">${regionOpt}</f:option>
+                </j:forEach>
+            </select>
+        </f:entry>
         <f:entry title="">
           <div align="right">
             <f:repeatableDeleteButton />

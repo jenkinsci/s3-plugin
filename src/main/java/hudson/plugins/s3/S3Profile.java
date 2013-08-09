@@ -8,6 +8,9 @@ import java.util.List;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.internal.Mimetypes;
@@ -63,7 +66,7 @@ public class S3Profile {
 
 
 
-    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata, String storageClass) throws IOException, InterruptedException {
+    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata, String storageClass, String selregion) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
@@ -80,6 +83,8 @@ public class S3Profile {
             metadata.addUserMetadata(metadataPair.key, metadataPair.value);
         }
         try {
+            Region region = RegionUtils.getRegion(Regions.valueOf(selregion).getName());
+            getClient().setRegion(region);
             getClient().putObject(dest.bucketName, dest.objectName, filePath.read(), metadata);
         } catch (Exception e) {
             throw new IOException("put " + dest + ": " + e);

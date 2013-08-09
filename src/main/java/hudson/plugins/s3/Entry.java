@@ -1,5 +1,7 @@
 package hudson.plugins.s3;
 
+import com.amazonaws.regions.Regions;
+
 public final class Entry {
     /**
      * Destination bucket for the copy. Can contain macros.
@@ -18,4 +20,12 @@ public final class Entry {
      * what x-amz-storage-class is currently set
      */
     public String storageClass;
+    /**
+     * Regions Values
+     */
+    public static final Regions[] regions = Regions.values();
+    /**
+     * Stores the Region Value
+     */
+    public String selectedRegion;
 }

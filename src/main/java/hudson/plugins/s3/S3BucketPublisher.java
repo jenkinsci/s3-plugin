@@ -131,6 +131,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 }
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
                 String storageClass = Util.replaceMacro(entry.storageClass, envVars);
+                String selRegion = entry.selectedRegion;
                 List<MetadataPair> escapedUserMetadata = new ArrayList<MetadataPair>();
                 for (MetadataPair metadataPair : userMetadata) {
                     MetadataPair escapedMetadataPair = new MetadataPair();
@@ -139,8 +140,8 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                     escapedUserMetadata.add(escapedMetadataPair);
                 }
                 for (FilePath src : paths) {
-                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName());
-                    profile.upload(bucket, src, escapedUserMetadata, storageClass);
+                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region = " + selRegion);
+                    profile.upload(bucket, src, escapedUserMetadata, storageClass, selRegion);
                 }
             }
         } catch (IOException e) {
