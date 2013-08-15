@@ -66,12 +66,15 @@ public class S3Profile {
 
 
 
-    public void upload(String bucketName, FilePath filePath, List<MetadataPair> userMetadata, String storageClass, String selregion) throws IOException, InterruptedException {
+    public void upload(String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata, String storageClass, String selregion) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
 
-        final Destination dest = new Destination(bucketName,filePath.getName());
+        String relativeFileName = filePath.getRemote();
+        relativeFileName = relativeFileName.substring(searchPathLength);
+
+        final Destination dest = new Destination(bucketName,relativeFileName);
 
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(Mimetypes.getInstance().getMimetype(filePath.getName()));
