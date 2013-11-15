@@ -1,5 +1,6 @@
 package hudson.plugins.s3;
 
+import com.amazonaws.regions.Regions;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -11,6 +12,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.CopyOnWriteList;
 import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
@@ -180,6 +182,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
     }
 
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+        private final String[] storageClasses = {"STANDARD", "REDUCED_REDUNDANCY"};
 
         private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
@@ -219,8 +222,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             return true;
         }
 
-
-
         public S3Profile[] getProfiles() {
             return profiles.toArray(new S3Profile[0]);
         }
@@ -240,6 +241,22 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 return FormValidation.error("Can't connect to S3 service: " + e.getMessage());
             }
             return FormValidation.ok();
+        }
+
+        public ListBoxModel doFillStorageClassItems() {
+            ListBoxModel items = new ListBoxModel();
+            for (String clazz : storageClasses) {
+                items.add(clazz);
+            }
+            return items;
+        }
+
+        public ListBoxModel doFillBucketRegionItems() {
+            ListBoxModel items = new ListBoxModel();
+            for (Regions region : Regions.values()) {
+                items.add(region.name());
+            }
+            return items;
         }
 
         @Override

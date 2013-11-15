@@ -20,19 +20,11 @@
           <input class="setting-input" name="s3.entry.bucket"
             type="text" value="${e.bucket}" />
         </f:entry>
-        <f:entry title="Storage class" help="${helpURL}/help-storageclass.html">
-          <select class="setting-input" name="s3.entry.storageClass">
-            <j:forEach var="storageOpt" items="${e.storageClasses}">
-              <f:option selected="${storageOpt==e.storageClass}">${storageOpt}</f:option>
-            </j:forEach>
-          </select>
+        <f:entry title="Storage class" field="storageClass" help="${helpURL}/help-storageclass.html">
+            <f:select />
         </f:entry>
-        <f:entry title="Bucket Region" help="${helpURL}/help-region.html">
-            <select class="setting-input" name="s3.entry.selectedRegion">
-                <j:forEach var="regionOpt" items="${e.regions}">
-                    <f:option selected="${regionOpt==e.selectedRegion}">${regionOpt}</f:option>
-                </j:forEach>
-            </select>
+        <f:entry title="Bucket Region" field="bucketRegion" help="${helpURL}/help-region.html">
+            <f:select />
         </f:entry>
         <f:entry title="">
           <div align="right">
