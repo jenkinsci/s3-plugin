@@ -1,5 +1,6 @@
 package hudson.plugins.s3;
 
+import com.amazonaws.ClientConfiguration;
 import hudson.FilePath;
 
 import java.io.File;
@@ -34,17 +35,21 @@ public class S3Profile {
     private String name;
     private String accessKey;
     private Secret secretKey;
+    private String proxyHost;
+    private String proxyPort;
     private transient volatile AmazonS3Client client = null;
+    private ClientConfiguration clientConfiguration = null;
 
     public S3Profile() {
     }
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey) {
+    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort) {
         this.name = name;
         this.accessKey = accessKey;
         this.secretKey = Secret.fromString(secretKey);
-        client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
+        this.proxyHost = proxyHost;
+        this.proxyPort = proxyPort;
     }
 
     public final String getAccessKey() {
@@ -69,9 +74,20 @@ public class S3Profile {
 
     public AmazonS3Client getClient() {
         if (client == null) {
-            client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()));
+            client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration());
         }
         return client;
+    }
+
+    private ClientConfiguration getClientConfiguration(){
+        if (clientConfiguration == null) {
+            clientConfiguration = new ClientConfiguration();
+            if(proxyHost != null && proxyHost.length() > 0) {
+                clientConfiguration.setProxyHost(proxyHost);
+                clientConfiguration.setProxyPort(Integer.parseInt(proxyPort));
+            }
+        }
+        return clientConfiguration;
     }
 
     public void check() throws Exception {
