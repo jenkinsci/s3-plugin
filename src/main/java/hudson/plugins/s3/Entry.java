@@ -76,7 +76,7 @@ public final class Entry  extends AbstractDescribableImpl <Entry> {
         public ListBoxModel doFillSelectedRegionItems() {
             ListBoxModel items = new ListBoxModel();
             for (Regions region : Entry.regions) {
-                items.add(region.getName());
+                items.add(region.toString());
             }
             return items;
         }
