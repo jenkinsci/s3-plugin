@@ -63,8 +63,12 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 profileName = sites[0].getName();
         }
         this.profileName = profileName;
-        this.entries = entries;
-        this.userMetadata = userMetadata;
+        if (entries != null) {
+            this.entries = entries;
+        }
+        if (userMetadata != null) {
+            this.userMetadata = userMetadata;
+        }
     }
 
     protected Object readResolve() {
