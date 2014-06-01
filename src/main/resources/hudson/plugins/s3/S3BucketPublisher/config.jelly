@@ -10,38 +10,28 @@
     </f:entry>
 
   <f:entry title="Files to upload">
-    <f:repeatable var="e" items="${instance.entries}">
+    <f:repeatable field="entries">
       <table width="100%">
-        <f:entry title="Source" help="${helpURL}/help-source.html">
-          <input class="setting-input" name="s3.entry.sourceFile"
-            type="text" value="${e.sourceFile}" />
+        <f:entry field="sourceFile" title="Source" help="${helpURL}/help-source.html">
+          <f:textbox/>
         </f:entry>
-        <f:entry title="Destination bucket" help="${helpURL}/help-destination.html">
-          <input class="setting-input" name="s3.entry.bucket"
-            type="text" value="${e.bucket}" />
+        <f:entry field="bucket" title="Destination bucket" help="${helpURL}/help-destination.html">
+          <f:textbox/>
         </f:entry>
-        <f:entry title="Storage class" help="${helpURL}/help-storageclass.html">
-          <select class="setting-input" name="s3.entry.storageClass">
-            <j:forEach var="storageOpt" items="${e.storageClasses}">
-              <f:option selected="${storageOpt==e.storageClass}">${storageOpt}</f:option>
-            </j:forEach>
-          </select>
+        <f:entry field="storageClass" title="Storage class" help="${helpURL}/help-storageclass.html">
+          <f:select/>
         </f:entry>
-        <f:entry title="Bucket Region" help="${helpURL}/help-region.html">
-            <select class="setting-input" name="s3.entry.selectedRegion">
-                <j:forEach var="regionOpt" items="${e.regions}">
-                    <f:option selected="${regionOpt==e.selectedRegion}">${regionOpt}</f:option>
-                </j:forEach>
-            </select>
+        <f:entry field="selectedRegion" title="Bucket Region" help="${helpURL}/help-region.html">
+          <f:select/>
         </f:entry>
         <f:entry field="noUploadOnFailure" title="No upload on build failure" help="${helpURL}/help-no-upload-on-failure.html">
-		    <f:checkbox name="s3.entry.noUploadOnFailure" checked="${e.noUploadOnFailure}"/>
+		      <f:checkbox/>
         </f:entry>
         <f:entry field="uploadFromSlave" title="Publish from Slave" help="${helpURL}/help-publish-slave.html">
-		    <f:checkbox name="s3.entry.uploadFromSlave" checked="${e.uploadFromSlave}"/>
+		      <f:checkbox/>
         </f:entry>
         <f:entry field="managedArtifacts" title="Manage artifacts" help="${helpURL}/help-manage-artifacts.html">
-		    <f:checkbox name="s3.entry.managedArtifacts" checked="${e.managedArtifacts}"/>
+		      <f:checkbox/>
         </f:entry>
         <f:entry title="">
           <div align="right">
@@ -53,13 +43,13 @@
   </f:entry>
 
   <f:entry title="Metadata tags">
-    <f:repeatable var="m" items="${instance.userMetadata}">
+    <f:repeatable field="userMetadata">
       <table width="100%">
-        <f:entry title="Metadata key" help="${helpURL}/help-key.html">
-          <f:textbox name="s3.metadataPair.key" value="${m.key}" />
+        <f:entry field="key" title="Metadata key" help="${helpURL}/help-key.html">
+          <f:textbox/>
         </f:entry>
-        <f:entry title="Metadata value" help="${helpURL}/help-value.html">
-          <f:textbox name="s3.metadataPair.value" value="${m.value}" />
+        <f:entry field="value" title="Metadata value" help="${helpURL}/help-value.html">
+          <f:textbox/>
         </f:entry>
           <f:entry title="">
           <div align="right">
