@@ -48,4 +48,20 @@ public final class Entry {
      * Use S3 server side encryption when uploading the artifacts
      */
     public boolean useServerSideEncryption;
+	
+	/**
+	 * Content-Encoding HTTP header
+	 **/
+	public String encoding;
+	
+	/**
+	 * Cache-Control HTTP header
+	 **/
+	public String cacheControl;
+		
+	/**
+	 * BucketLifecycleConfiguration rule ID for the objects' expiration
+	 **/
+	public String expirationTimeRuleId;
+	
 }

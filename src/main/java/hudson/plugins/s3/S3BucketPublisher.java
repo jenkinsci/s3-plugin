@@ -170,8 +170,8 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 List<FingerprintRecord> records = Lists.newArrayList();
                 
                 for (FilePath src : paths) {
-                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
-                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts,entry.useServerSideEncryption ));
+                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption " + entry.useServerSideEncryption + " , encoding=" + entry.encoding + " , cacheControl=" + entry.cacheControl + " , expirationTimeRuleId=" + entry.expirationTimeRuleId);
+                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.encoding, entry.cacheControl, entry.expirationTimeRuleId ));
                 }
                 if (entry.managedArtifacts) {
                     artifacts.addAll(records);
