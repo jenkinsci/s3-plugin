@@ -23,14 +23,17 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 public class S3UploadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord> {
     private static final long serialVersionUID = 1L;
     private final Destination dest;
-    private final String storageClass;
+    private final String storageClass;	
     private final List<MetadataPair> userMetadata;
     private final String selregion;
     private final boolean produced;
     private final boolean useServerSideEncryption;
+	private final String encoding;
+	private final String cacheControl;
+	private final String expirationTimeRuleId;
 
     public S3UploadCallable(boolean produced, String accessKey, Secret secretKey, boolean useRole, Destination dest, List<MetadataPair> userMetadata, String storageClass,
-            String selregion, boolean useServerSideEncryption) {
+            String selregion, boolean useServerSideEncryption, String encoding, String cacheControl, String expirationTimeRuleId) {
         super(accessKey, secretKey, useRole);
         this.dest = dest;
         this.storageClass = storageClass;
@@ -38,6 +41,9 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
         this.selregion = selregion;
         this.produced = produced;
         this.useServerSideEncryption = useServerSideEncryption;
+		this.encoding = encoding;
+		this.cacheControl = cacheControl;
+		this.expirationTimeRuleId = expirationTimeRuleId;
     }
 
     public ObjectMetadata buildMetadata(FilePath filePath) throws IOException, InterruptedException {
@@ -55,6 +61,19 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
         for (MetadataPair metadataPair : userMetadata) {
             metadata.addUserMetadata(metadataPair.key, metadataPair.value);
         }
+		
+		if ((encoding != null) && !"".equals(encoding)) {
+			metadata.setContentEncoding(encoding);
+		}
+		
+		if ((cacheControl != null) && !"".equals(cacheControl)) {
+			metadata.setCacheControl(cacheControl);
+		}
+				
+		if ((expirationTimeRuleId != null) && !"".equals(expirationTimeRuleId)) {
+			metadata.setExpirationTimeRuleId(expirationTimeRuleId);
+		}
+	
         return metadata;
     }
 

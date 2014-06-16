@@ -46,6 +46,22 @@
         <f:entry field="useServerSideEncryption" title="Server side encryption" help="${helpURL}/help-server-encryption.html">
 		    <f:checkbox name="s3.entry.useServerSideEncryption" checked="${e.useServerSideEncryption}"/>
         </f:entry>
+		
+		<f:entry title="Content Encoding" help="${helpURL}/help-content-encoding.html">
+          <input class="setting-input" name="s3.entry.encoding"
+            type="text" value="${e.encoding}" />
+        </f:entry>
+		
+		<f:entry title="Cache Control" help="${helpURL}/help-cache-control.html">
+          <input class="setting-input" name="s3.entry.cacheControl"
+            type="text" value="${e.cacheControl}" />
+        </f:entry>
+				
+		<f:entry title="Expiration time rule" help="${helpURL}/help-expiration-time-rule.html">
+          <input class="setting-input" name="s3.entry.expirationTimeRuleId"
+            type="text" value="${e.expirationTimeRuleId}" />
+        </f:entry>
+		
         <f:entry title="">
           <div align="right">
             <f:repeatableDeleteButton />
