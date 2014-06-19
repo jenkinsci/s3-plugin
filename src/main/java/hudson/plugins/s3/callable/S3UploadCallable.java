@@ -1,5 +1,7 @@
 package hudson.plugins.s3.callable;
 
+import java.io.BufferedInputStream;
+
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
 import hudson.plugins.s3.Destination;
@@ -70,8 +72,12 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
      */
     public FingerprintRecord invoke(FilePath file) throws IOException, InterruptedException {
         setRegion();
-        PutObjectResult result = getClient().putObject(dest.bucketName, dest.objectName, file.read(), buildMetadata(file));
-        return new FingerprintRecord(produced, dest.bucketName, file.getName(), result.getETag());
+        // TODO: The entire file to be uploaded will ultimately end up in memory.
+        final ObjectMetadata metadata = buildMetadata(file);
+        final String fileName = file.getName();
+        final BufferedInputStream rewindableFile = new BufferedInputStream(file.read());
+        PutObjectResult result = getClient().putObject(dest.bucketName, dest.objectName, rewindableFile, metadata);
+        return new FingerprintRecord(produced, dest.bucketName, fileName, result.getETag());
     }
 
     private void setRegion() {
