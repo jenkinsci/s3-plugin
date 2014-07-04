@@ -9,6 +9,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
@@ -150,7 +151,7 @@ public class S3Profile {
         getClient().listBuckets();
     }
 
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
+    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata, Set<Redirect> redirects,
             String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts,boolean useServerSideEncryption, boolean flatten) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
@@ -174,7 +175,7 @@ public class S3Profile {
 
         while (true) {
             try {
-                S3UploadCallable callable = new S3UploadCallable(produced, getClient(), dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+                S3UploadCallable callable = new S3UploadCallable(produced, getClient(), dest, userMetadata, redirects, storageClass, selregion, useServerSideEncryption);
                 if (uploadFromSlave) {
                     return filePath.act(callable);
                 } else {

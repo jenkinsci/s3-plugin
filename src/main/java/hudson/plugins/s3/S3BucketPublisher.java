@@ -30,8 +30,10 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,8 +46,10 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     private final List<Entry> entries;
-
+    
     private boolean dontWaitForConcurrentBuildCompletion;
+    
+    private List<Redirect> redirects = new ArrayList<Redirect>();
 
     /**
      * User metadata key/value pairs to tag the upload with.
@@ -112,6 +116,14 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
         return null;
     }
 
+    public List<Redirect> getRedirects() {
+        return redirects;
+    }
+
+    public void setRedirects(List<Redirect> redirects) {
+        this.redirects = redirects;
+    }
+
     @Override
     public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
         return ImmutableList.of(new S3ArtifactsProjectAction(project));
@@ -174,12 +186,20 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                             Util.replaceMacro(metadataPair.value, envVars))
                     );
                 }
+                Set<Redirect> escapedRedirects = new HashSet<Redirect>();
+                for (Redirect redirect : redirects) {
+                    Redirect escapedRedirect = new Redirect();
+                    escapedRedirect.bucket = Util.replaceMacro(redirect.bucket, envVars);
+                    escapedRedirect.source = Util.replaceMacro(redirect.source, envVars);
+                    escapedRedirect.destination = Util.replaceMacro(redirect.destination, envVars);
+                    escapedRedirects.add(escapedRedirect);
+                }
                 
                 List<FingerprintRecord> records = Lists.newArrayList();
                 
                 for (FilePath src : paths) {
-                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
-                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten));
+                    log(listener.getLogger(), String.format("bucket=%s, file=%s region=%s, upload from slave=%s managed=%s , server encryption %s", bucket, src.getName(), selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption));
+                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, escapedRedirects, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten));
                 }
                 if (entry.managedArtifacts) {
                     artifacts.addAll(records);

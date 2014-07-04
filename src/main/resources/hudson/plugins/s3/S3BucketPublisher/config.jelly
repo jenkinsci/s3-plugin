@@ -28,4 +28,25 @@
   <f:entry field="dontWaitForConcurrentBuildCompletion" title="">
     <f:checkbox title="Don't wait for completion of concurrent builds before publishing to S3" />
   </f:entry>
+
+  <f:entry title="Redirects">
+    <f:repeatable var="r" items="${instance.redirects}">
+      <table width="100%">
+        <f:entry title="Bucket" help="${helpURL}/help-redirect-bucket.html">
+          <f:textbox name="s3.redirect.bucket" value="${r.bucket}" />
+        </f:entry>
+        <f:entry title="Object to redirect" help="${helpURL}/help-redirect-source.html">
+          <f:textbox name="s3.redirect.source" value="${r.source}" />
+        </f:entry>
+        <f:entry title="Target" help="${helpURL}/help-redirect-destination.html">
+          <f:textbox name="s3.redirect.destination" value="${r.destination}" />
+        </f:entry>
+        <f:entry title="">
+          <div align="right">
+            <f:repeatableDeleteButton />
+          </div>
+        </f:entry>
+      </table>
+    </f:repeatable>
+  </f:entry>
 </j:jelly>
