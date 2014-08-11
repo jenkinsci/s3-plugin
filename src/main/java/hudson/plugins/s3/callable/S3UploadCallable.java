@@ -51,14 +51,14 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
             metadata.setHeader("x-amz-storage-class", storageClass);
         }
         if (useServerSideEncryption) {
-            metadata.setServerSideEncryption(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);	
+            metadata.setServerSideEncryption(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
         }
         
         for (MetadataPair metadataPair : userMetadata) {
             String key = metadataPair.key.toLowerCase();
-            if (key == "cache-control") {
+            if (key.equals("cache-control")) {
                 metadata.setCacheControl(metadataPair.value);
-            } else if (key == "expires") {
+            } else if (key.equals("expires")) {
                 try {
                     Date expires = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z").parse(metadataPair.value);
                     metadata.setHttpExpiresDate(expires);
