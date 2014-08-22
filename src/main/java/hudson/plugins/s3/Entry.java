@@ -62,7 +62,7 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
 
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String storageClass, String selectedRegion, boolean noUploadOnFailure,
-            boolean uploadFromSlave, boolean managedArtifacts) {
+            boolean uploadFromSlave, boolean managedArtifacts, boolean useServerSideEncryption, boolean flatten) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
         this.storageClass = storageClass;
@@ -70,6 +70,8 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
         this.noUploadOnFailure = noUploadOnFailure;
         this.uploadFromSlave = uploadFromSlave;
         this.managedArtifacts = managedArtifacts;
+        this.useServerSideEncryption = useServerSideEncryption;
+        this.flatten = flatten;
     }
 
     @Extension
