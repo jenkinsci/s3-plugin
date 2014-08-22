@@ -10,7 +10,7 @@
     </f:entry>
 
   <f:entry title="Files to upload">
-    <f:repeatable var="e" items="${instance.entries}">
+    <f:repeatable var="e" items="${instance.entries}" name="entries">
       <table width="100%">
         <f:entry title="Source" help="${helpURL}/help-source.html">
           <input class="setting-input" name="s3.entry.sourceFile"
@@ -59,7 +59,7 @@
   </f:entry>
 
   <f:entry title="Metadata tags">
-    <f:repeatable var="m" items="${instance.userMetadata}">
+    <f:repeatable var="m" items="${instance.userMetadata}" name="userMetadata">
       <table width="100%">
         <f:entry title="Metadata key" help="${helpURL}/help-key.html">
           <f:textbox name="s3.metadataPair.key" value="${m.key}" />
