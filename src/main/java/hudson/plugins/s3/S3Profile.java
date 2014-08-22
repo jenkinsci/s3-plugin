@@ -1,7 +1,19 @@
 package hudson.plugins.s3;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.*;
+import com.google.common.collect.Lists;
 import hudson.FilePath;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.model.Run;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.util.Secret;
+import org.apache.tools.ant.types.selectors.FilenameSelector;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,27 +21,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
-
-import org.apache.tools.ant.types.selectors.FilenameSelector;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.collect.Lists;
-
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
-import hudson.model.Run;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.util.Secret;
+import java.util.Set;
 
 public class S3Profile {
     private String name;
@@ -113,7 +105,7 @@ public class S3Profile {
         getClient().listBuckets();
     }
 
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
+    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata, Set<Redirect> redirects,
             String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts,boolean useServerSideEncryption, boolean flatten) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
@@ -135,7 +127,7 @@ public class S3Profile {
         }
 
         try {
-            S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+            S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, dest, userMetadata, redirects, storageClass, selregion,useServerSideEncryption);
             if (uploadFromSlave) {
                 return filePath.act(callable);
             } else {
