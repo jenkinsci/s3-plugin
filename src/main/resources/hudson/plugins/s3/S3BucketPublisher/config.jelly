@@ -37,6 +37,9 @@
         <f:entry field="noUploadOnFailure" title="No upload on build failure" help="${helpURL}/help-no-upload-on-failure.html">
 		    <f:checkbox name="s3.entry.noUploadOnFailure" checked="${e.noUploadOnFailure}"/>
         </f:entry>
+        <f:entry field="failNoFilesToUpload" title="Mark unstable when no files were uploaded" help="${helpURL}/help-no-files-upload-failure.html">
+          <f:checkbox name="s3.entry.failNoFilesToUpload" checked="${e.failNoFilesToUpload}"/>
+        </f:entry>
         <f:entry field="uploadFromSlave" title="Publish from Slave" help="${helpURL}/help-upload-from-slave.html">
 		    <f:checkbox name="s3.entry.uploadFromSlave" checked="${e.uploadFromSlave}"/>
         </f:entry>

@@ -35,6 +35,11 @@ public final class Entry {
     public boolean noUploadOnFailure;
 
     /**
+     * Fail the build if no files were uploaded.
+     */
+    public boolean failNoFilesToUpload;
+
+    /**
      * Upload either from the slave or the master
      */
     public boolean uploadFromSlave;
