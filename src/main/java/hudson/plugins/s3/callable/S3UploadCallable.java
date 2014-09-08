@@ -29,9 +29,9 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
     private final boolean produced;
     private final boolean useServerSideEncryption;
 
-    public S3UploadCallable(boolean produced, String accessKey, Secret secretKey, boolean useRole, Destination dest, List<MetadataPair> userMetadata, String storageClass,
+    public S3UploadCallable(boolean produced, String accessKey, Secret secretKey, String proxyHost, String proxyPort, boolean useRole, Destination dest, List<MetadataPair> userMetadata, String storageClass,
             String selregion, boolean useServerSideEncryption) {
-        super(accessKey, secretKey, useRole);
+        super(accessKey, secretKey, proxyHost, proxyPort, useRole);
         this.dest = dest;
         this.storageClass = storageClass;
         this.userMetadata = userMetadata;
