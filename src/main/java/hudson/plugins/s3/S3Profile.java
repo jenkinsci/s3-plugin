@@ -79,6 +79,14 @@ public class S3Profile {
         this.name = name;
     }
 
+    public final String getProxyHost() {
+        return this.proxyHost;
+    }
+
+    public final String getProxyPort() {
+        return this.proxyPort;
+    }
+
     public final boolean getUseRole() {
         return this.useRole;
     }
