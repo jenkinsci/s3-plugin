@@ -92,7 +92,9 @@ public class S3Profile {
             if (useRole) {
                 client = new AmazonS3Client(getClientConfiguration());
             } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration());
+                client = new AmazonS3Client(
+                        new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration()
+                );
             }
         }
         return client;
@@ -113,8 +115,11 @@ public class S3Profile {
         getClient().listBuckets();
     }
 
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
-            String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts,boolean useServerSideEncryption, boolean flatten) throws IOException, InterruptedException {
+    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName,
+                                    FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
+                                    String storageClass, String selregion, boolean uploadFromSlave,
+                                    boolean managedArtifacts, boolean useServerSideEncryption, boolean flatten)
+            throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
@@ -135,7 +140,10 @@ public class S3Profile {
         }
 
         try {
-            S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+            S3UploadCallable callable = new S3UploadCallable(
+                    produced, accessKey, secretKey, useRole, dest, userMetadata,
+                    storageClass, selregion,useServerSideEncryption
+            );
             if (uploadFromSlave) {
                 return filePath.act(callable);
             } else {
@@ -146,12 +154,9 @@ public class S3Profile {
         }
     }
 
-    public List<String> list(Run build, String bucket, String expandedFilter) {
-        AmazonS3Client s3client = getClient();        
-
-        String buildName = build.getDisplayName();
-        int buildID = build.getNumber();
-        Destination dest = new Destination(bucket, "jobs/" + buildName + "/" + buildID + "/" + name);
+    public List<String> list(Run build, String bucket, String folder, String expandedFilter) {
+        AmazonS3Client s3client = getClient();
+        Destination dest = Destination.newFromRun(build, bucket, name);
 
         ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
         .withBucketName(dest.bucketName)
@@ -200,7 +205,7 @@ public class S3Profile {
       /**
        * Delete some artifacts of a given run
        * @param build
-       * @param artifact
+       * @param record
        */
       public void delete(Run build, FingerprintRecord record) {
           Destination dest = Destination.newFromRun(build, record.artifact);

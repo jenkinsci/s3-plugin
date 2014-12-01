@@ -57,7 +57,7 @@
             <artifactId>jna</artifactId>
             <version>3.2.2</version>
         </dependency>
-        <dependency>
+         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
             <version>1.21</version>
@@ -65,6 +65,7 @@
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
+            <!--version>1.526</version-->
         </dependency>
         <dependency>
             <groupId>com.github.jnr</groupId>
