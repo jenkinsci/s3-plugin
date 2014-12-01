@@ -18,10 +18,11 @@ import java.io.Serializable;
 public class Destination implements Serializable {
     private static final long serialVersionUID = 1L;
     private final String bucketName;
-    private final String objectName;
     private final String userBucketName;
+    private final String fileName;
+    private final String objectName;
 
-    public Destination(final String userBucketName, final String fileName) {
+    public Destination(final String userBucketName, final String fileName, final String managedPrefix) {
 
         if (userBucketName == null || fileName == null)
             throw new IllegalArgumentException("Not defined for null parameters: "+userBucketName+","+fileName);
@@ -30,12 +31,17 @@ public class Destination implements Serializable {
 
         bucketName = bucketNameArray[0];
         this.userBucketName = userBucketName;
+        this.fileName = fileName;
 
         if (bucketNameArray.length > 1) {
-            objectName = bucketNameArray[1] + "/" + fileName;
+            this.objectName = bucketNameArray[1] + "/" + managedPrefix + fileName;
         } else {
-            objectName = fileName;
+            this.objectName = managedPrefix + fileName;
         }
+    }
+
+    public Destination(final String userBucketName, final String fileName) {
+        this(userBucketName, fileName, "");
     }
 
     public String getUserBucketName() { return userBucketName; }
@@ -44,21 +50,23 @@ public class Destination implements Serializable {
 
     public String getObjectName() { return objectName; }
 
+    public String getFileName() { return fileName; }
+
     @Override
     public String toString() {
         return "Destination [bucketName="+bucketName+", objectName="+objectName+"]";
     }
 
-    private static String getFilename(String fileName, String projectName, int buildID)
+    private static String getManagedPrefix(String projectName, int buildID)
     {
-        return "jobs/" + projectName + "/" + buildID + "/" + fileName;
+        return "jobs/" + projectName + "/" + buildID + "/";
     }
 
     public static Destination newFromRun(Run run, String bucketName, String fileName)
     {
         String projectName = run.getParent().getName();
         int buildID = run.getNumber();
-        return new Destination(bucketName, getFilename(fileName, projectName, buildID));
+        return new Destination(bucketName, fileName, getManagedPrefix(projectName, buildID));
     }
 
     public static Destination newFromRun(Run run, S3Artifact artifact)
@@ -70,6 +78,6 @@ public class Destination implements Serializable {
     {
         String projectName = build.getParent().getName();
         int buildID = build.getNumber();
-        return new Destination(bucketName, getFilename(fileName, projectName, buildID));
+        return new Destination(bucketName, fileName, getManagedPrefix(projectName, buildID));
     }
 }

@@ -32,6 +32,7 @@ public class S3DownloadCallable extends AbstractS3Callable implements FileCallab
         ObjectMetadata md = getClient().getObject(req, file);
 
         return new FingerprintRecord(true, dest.getUserBucketName(), file.getName(), md.getETag());
+        //TODO return new FingerprintRecord(true, dest.getUserBucketName(), dest.getFileName(), md.getETag());
     }
 
 }

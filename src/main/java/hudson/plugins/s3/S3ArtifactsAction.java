@@ -67,7 +67,7 @@ public class S3ArtifactsAction implements RunAction {
       // skip the leading /
       String artifact = restOfPath.substring(1);
       for (FingerprintRecord record : getArtifacts()) {
-          if (record.artifact.getName().equals(artifact)) {
+          if (record.getArtifact().getName().equals(artifact)) {
               S3Profile s3 = S3BucketPublisher.getProfile(profile);
               String url = s3.getDownloadURL(build, record);
               response.sendRedirect2(url);

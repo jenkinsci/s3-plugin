@@ -15,7 +15,6 @@ import java.util.List;
 
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
@@ -76,10 +75,10 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
                 dest.getBucketName(), dest.getObjectName(), file.read(), buildMetadata(file)
         );
         return new FingerprintRecord(produced, dest.getUserBucketName(), file.getName(), result.getETag());
+        //TODO return new FingerprintRecord(produced, dest.getUserBucketName(), dest.getFileName(), result.getETag());
     }
 
     private void setRegion() {
-        //Region region = RegionUtils.getRegion(Regions.valueOf(selregion).getName());
         Region region = RegionUtils.getRegion(selregion);
         getClient().setRegion(region);
     }
