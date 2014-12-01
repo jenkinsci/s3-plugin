@@ -73,9 +73,9 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
     public FingerprintRecord invoke(FilePath file) throws IOException, InterruptedException {
         setRegion();
         PutObjectResult result = getClient().putObject(
-                dest.bucketName, dest.objectName, file.read(), buildMetadata(file)
+                dest.getBucketName(), dest.getObjectName(), file.read(), buildMetadata(file)
         );
-        return new FingerprintRecord(produced, dest.bucketName, file.getName(), result.getETag());
+        return new FingerprintRecord(produced, dest.getBucketName(), file.getName(), result.getETag());
     }
 
     private void setRegion() {

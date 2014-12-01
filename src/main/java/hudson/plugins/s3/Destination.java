@@ -16,25 +16,33 @@ import java.io.Serializable;
  * 
  */
 public class Destination implements Serializable {
-  private static final long serialVersionUID = 1L;
-  public final String bucketName;
-  public final String objectName;
+    private static final long serialVersionUID = 1L;
+    private final String bucketName;
+    private final String objectName;
+    private final String userBucketName;
 
-  public Destination(final String userBucketName, final String fileName) {
+    public Destination(final String userBucketName, final String fileName) {
 
-    if (userBucketName == null || fileName == null)
-      throw new IllegalArgumentException("Not defined for null parameters: "+userBucketName+","+fileName);
+        if (userBucketName == null || fileName == null)
+            throw new IllegalArgumentException("Not defined for null parameters: "+userBucketName+","+fileName);
 
-    final String[] bucketNameArray = userBucketName.split("/", 2);
+        final String[] bucketNameArray = userBucketName.split("/", 2);
 
-    bucketName = bucketNameArray[0];
+        bucketName = bucketNameArray[0];
+        this.userBucketName = userBucketName;
 
-    if (bucketNameArray.length > 1) {
-        objectName = bucketNameArray[1] + "/" + fileName;
-    } else {
-        objectName = fileName;
+        if (bucketNameArray.length > 1) {
+            objectName = bucketNameArray[1] + "/" + fileName;
+        } else {
+            objectName = fileName;
+        }
     }
-  }
+
+    public String getUserBucketName() { return userBucketName; }
+
+    public String getBucketName() { return bucketName; }
+
+    public String getObjectName() { return objectName; }
 
     @Override
     public String toString() {
