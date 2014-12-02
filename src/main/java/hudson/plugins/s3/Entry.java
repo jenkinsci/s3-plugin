@@ -48,12 +48,12 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
     /**
      * Let Jenkins manage the S3 uploaded artifacts
      */
-    private static final String[] managedArtifacts = {
-            "Unmanaged-flattened",
-            "Unmanaged-structured",
-            "Managed-flattened",
-            "Managed-structured"
-    };
+    public enum managedArtifactsEnum {
+        UNMANAGED_FLATTENED,
+        UNMANAGED_STRUCTURED,
+        MANAGED_FLATTENED,
+        MANAGED_STRUCTURED
+    }
 
     /**
      * Currently selected artifact management style
@@ -85,7 +85,8 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
     }
 
     public static boolean isManaged(final String management) {
-        return management.startsWith("Managed");
+        return ( managedArtifactsEnum.MANAGED_FLATTENED.name().equals(management) ||
+                 managedArtifactsEnum.MANAGED_STRUCTURED.name().equals(management) );
     }
 
     public boolean isStructured() {
@@ -93,7 +94,8 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
     }
 
     public static boolean isStructured(final String management) {
-        return management.endsWith("structured");
+        return ( managedArtifactsEnum.UNMANAGED_STRUCTURED.name().equals(management) ||
+                managedArtifactsEnum.MANAGED_STRUCTURED.name().equals(management) );
     }
 
     @Extension
@@ -122,8 +124,8 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
 
         public ListBoxModel doFillArtifactManagementItems() {
             ListBoxModel model = new ListBoxModel();
-            for (String s : managedArtifacts) {
-                model.add(s, s);
+            for (managedArtifactsEnum a : managedArtifactsEnum.values()) {
+                model.add(a.name(), a.name());
             }
             return model;
         }

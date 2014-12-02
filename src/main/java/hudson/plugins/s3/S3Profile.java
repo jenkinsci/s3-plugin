@@ -128,7 +128,10 @@ public class S3Profile {
         boolean produced = Entry.isManaged(artifactManagement)
                 && (build.getTimeInMillis() <= filePath.lastModified() + 2000);
 
-        Destination dest = Destination.newFromBuild(build, bucketName, filePath, searchPathLength, artifactManagement);
+        Destination dest = new Destination(
+                build.getParent().getName(), build.getNumber(), bucketName,
+                filePath, searchPathLength, artifactManagement
+        );
 
         try {
             S3UploadCallable callable = new S3UploadCallable(
@@ -147,7 +150,7 @@ public class S3Profile {
 
     public List<String> list(Run build, String bucket, String expandedFilter) {
         AmazonS3Client s3client = getClient();
-        Destination dest = Destination.newFromRun(build, bucket, name);
+        Destination dest = new Destination(build.getParent().getName(), build.getNumber(), bucket, name);
 
         ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
         .withBucketName(dest.getBucketName())
@@ -180,7 +183,9 @@ public class S3Profile {
           for(FingerprintRecord record : artifacts) {
               S3Artifact artifact = record.getArtifact();
               if (selector.isSelected(new File("/"), artifact.getName(), null)) {
-                  Destination dest = Destination.newFromRun(build, artifact);
+                  Destination dest = new Destination(
+                          build.getParent().getName(), build.getNumber(), artifact.getBucket(), artifact.getName()
+                  );
                   FilePath target = new FilePath(targetDir, artifact.getName());
                   try {
                       fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, console)));
@@ -200,13 +205,19 @@ public class S3Profile {
        * @param record
        */
       public void delete(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.getArtifact());
+          S3Artifact artifact = record.getArtifact();
+          Destination dest = new Destination(
+                  build.getParent().getName(), build.getNumber(), artifact.getBucket(), artifact.getName()
+          );
           DeleteObjectRequest req = new DeleteObjectRequest(dest.getBucketName(), dest.getObjectName());
           getClient().deleteObject(req);
       }
 
       public String getDownloadURL(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.getArtifact());
+          S3Artifact artifact = record.getArtifact();
+          Destination dest = new Destination(
+                  build.getParent().getName(), build.getNumber(), artifact.getBucket(), artifact.getName()
+          );
           GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.getBucketName(), dest.getObjectName());
           request.setExpiration(new Date(System.currentTimeMillis() + 4000));
           ResponseHeaderOverrides headers = new ResponseHeaderOverrides();

@@ -1,8 +1,5 @@
 package hudson.plugins.s3;
 
-import hudson.model.AbstractBuild;
-import hudson.model.Run;
-
 import java.io.Serializable;
 import hudson.FilePath;
 
@@ -17,15 +14,68 @@ import hudson.FilePath;
  */
 public class Destination implements Serializable {
     private static final long serialVersionUID = 1L;
-    private final String bucketName;
-    private final String userBucketName;
-    private final String fileName;
-    private final String objectName;
+    private String bucketName;
+    private String userBucketName;
+    private String fileName;
+    private String objectName;
 
-    private Destination(final String userBucketName, final String fileName, String pathPrefix) {
+    /*
+     * Create a Destination with unmanaged artifacts
+     * @param userBucketName
+     * @param fileName
+     */
+    public Destination(String userBucketName, String fileName) {
+        initialize(userBucketName, fileName, "");
+    }
+
+    /*
+     * Create a Destination with managed artifacts
+     * @param projectName
+     * @param buildId
+     * @param bucketName
+     * @param fileName
+     */
+    public Destination(String projectName, int buildId, String bucketName, String fileName) {
+        initialize(bucketName, fileName, getManagedPrefix(projectName, buildId));
+    }
+
+    /*
+     * Create a Destination with conditionally managed artifacts
+     * @param projectName
+     * @param buildId
+     * @param bucketName
+     * @param filePath
+     * @param searchPathLength
+     * @param artifactManagement
+     */
+    public Destination(String projectName, int buildId, String bucketName, FilePath filePath,
+                       int searchPathLength, String artifactManagement) {
+
+        String fileName;
+        if (Entry.isStructured(artifactManagement)) {
+            String relativeFileName = filePath.getRemote();
+            fileName = relativeFileName.substring(searchPathLength);
+        }
+        else {
+            fileName = filePath.getName();
+        }
+
+        if (Entry.isManaged(artifactManagement)) {
+            initialize(bucketName, fileName, getManagedPrefix(projectName, buildId));
+        }
+        else {
+            initialize(bucketName, fileName, "");
+        }
+    }
+
+    private static String getManagedPrefix(String projectName, int buildID) {
+        return "jobs/" + projectName + "/" + buildID + "/";
+    }
+
+    private void initialize(final String userBucketName, final String fileName, String pathPrefix) {
 
         if (userBucketName == null || fileName == null)
-            throw new IllegalArgumentException("Not defined for null parameters: "+userBucketName+","+fileName);
+            throw new IllegalArgumentException("Not defined for null parameters: " + userBucketName + "," + fileName);
 
         final String[] bucketNameArray = userBucketName.split("/", 2);
 
@@ -40,59 +90,24 @@ public class Destination implements Serializable {
         }
     }
 
-    public Destination(final String userBucketName, final String fileName) {
-        this(userBucketName, fileName, "");
-    }
-
-    public String getUserBucketName() { return userBucketName; }
-
-    public String getBucketName() { return bucketName; }
-
-    public String getObjectName() { return objectName; }
-
-    public String getFileName() { return fileName; }
-
     @Override
     public String toString() {
-        return "Destination [bucketName="+bucketName+", objectName="+objectName+"]";
+        return "Destination [bucketName=" + bucketName + ", objectName=" + objectName + "]";
     }
 
-    private static String getManagedPrefix(String projectName, int buildID)
-    {
-        return "jobs/" + projectName + "/" + buildID + "/";
+    public String getUserBucketName() {
+        return userBucketName;
     }
 
-    public static Destination newFromRun(Run run, String bucketName, String fileName)
-    {
-        String projectName = run.getParent().getName();
-        int buildID = run.getNumber();
-        return new Destination(bucketName, fileName, getManagedPrefix(projectName, buildID));
+    public String getBucketName() {
+        return bucketName;
     }
 
-    public static Destination newFromRun(Run run, S3Artifact artifact)
-    {
-        return newFromRun(run, artifact.getBucket(), artifact.getName());
+    public String getObjectName() {
+        return objectName;
     }
 
-    public static Destination newFromBuild(AbstractBuild<?, ?> build, String bucketName,
-                                           FilePath filePath, int searchPathLength, String artifactManagement)
-    {
-        String fileName;
-        if (Entry.isStructured(artifactManagement)) {
-            String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
-        }
-        else {
-            fileName = filePath.getName();
-        }
-
-        if (Entry.isManaged(artifactManagement)) {
-            int buildID = build.getNumber();
-            String projectName = build.getParent().getName();
-            return new Destination(bucketName, fileName, getManagedPrefix(projectName, buildID));
-        }
-        else {
-            return new Destination(bucketName, fileName);
-        }
+    public String getFileName() {
+        return fileName;
     }
 }
