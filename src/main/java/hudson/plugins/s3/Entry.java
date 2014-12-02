@@ -48,21 +48,27 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
     /**
      * Let Jenkins manage the S3 uploaded artifacts
      */
-    public boolean managedArtifacts;
-    
+    private static final String[] managedArtifacts = {
+            "Unmanaged-flattened",
+            "Unmanaged-structured",
+            "Managed-flattened",
+            "Managed-structured"
+    };
+
+    /**
+     * Currently selected artifact management style
+     */
+    public String artifactManagement;
+
     /**
      * Use S3 server side encryption when uploading the artifacts
      */
     public boolean useServerSideEncryption;
 
-    /**
-     * Flatten directories
-     */
-    public boolean flatten;
 
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String storageClass, String selectedRegion,
-                 boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
+                 boolean noUploadOnFailure, boolean uploadFromSlave, String artifactManagement,
                  boolean useServerSideEncryption, boolean flatten) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
@@ -70,9 +76,24 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
         this.selectedRegion = selectedRegion;
         this.noUploadOnFailure = noUploadOnFailure;
         this.uploadFromSlave = uploadFromSlave;
-        this.managedArtifacts = managedArtifacts;
+        this.artifactManagement = artifactManagement;
         this.useServerSideEncryption = useServerSideEncryption;
-        this.flatten = flatten;
+    }
+
+    public boolean isManaged() {
+        return isManaged(artifactManagement);
+    }
+
+    public static boolean isManaged(final String management) {
+        return management.startsWith("Managed");
+    }
+
+    public boolean isStructured() {
+        return isStructured(artifactManagement);
+    }
+
+    public static boolean isStructured(final String management) {
+        return management.endsWith("Structured");
     }
 
     @Extension
@@ -99,6 +120,13 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
             return model;
         }
 
+        public ListBoxModel doFillArtifactManagementItems() {
+            ListBoxModel model = new ListBoxModel();
+            for (String s : managedArtifacts) {
+                model.add(s, s);
+            }
+            return model;
+        }
     }
 
 }

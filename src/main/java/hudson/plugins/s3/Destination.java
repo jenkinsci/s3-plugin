@@ -4,7 +4,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Run;
 
 import java.io.Serializable;
-
+import hudson.FilePath;
 
 /**
  * Provides a way to construct a destination bucket name and object name based
@@ -22,7 +22,7 @@ public class Destination implements Serializable {
     private final String fileName;
     private final String objectName;
 
-    public Destination(final String userBucketName, final String fileName, final String managedPrefix) {
+    private Destination(final String userBucketName, final String fileName, String pathPrefix) {
 
         if (userBucketName == null || fileName == null)
             throw new IllegalArgumentException("Not defined for null parameters: "+userBucketName+","+fileName);
@@ -34,9 +34,9 @@ public class Destination implements Serializable {
         this.fileName = fileName;
 
         if (bucketNameArray.length > 1) {
-            this.objectName = bucketNameArray[1] + "/" + managedPrefix + fileName;
+            this.objectName = bucketNameArray[1] + "/" + pathPrefix + fileName;
         } else {
-            this.objectName = managedPrefix + fileName;
+            this.objectName = pathPrefix + fileName;
         }
     }
 
@@ -74,10 +74,25 @@ public class Destination implements Serializable {
         return newFromRun(run, artifact.getBucket(), artifact.getName());
     }
 
-    public static Destination newFromBuild(AbstractBuild<?, ?> build, String bucketName, String fileName)
+    public static Destination newFromBuild(AbstractBuild<?, ?> build, String bucketName,
+                                           FilePath filePath, int searchPathLength, String artifactManagement)
     {
-        String projectName = build.getParent().getName();
-        int buildID = build.getNumber();
-        return new Destination(bucketName, fileName, getManagedPrefix(projectName, buildID));
+        String fileName;
+        if (Entry.isStructured(artifactManagement)) {
+            String relativeFileName = filePath.getRemote();
+            fileName = relativeFileName.substring(searchPathLength);
+        }
+        else {
+            fileName = filePath.getName();
+        }
+
+        if (Entry.isManaged(artifactManagement)) {
+            int buildID = build.getNumber();
+            String projectName = build.getParent().getName();
+            return new Destination(bucketName, fileName, getManagedPrefix(projectName, buildID));
+        }
+        else {
+            return new Destination(bucketName, fileName);
+        }
     }
 }

@@ -118,32 +118,22 @@ public class S3Profile {
     public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName,
                                     FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
                                     String storageClass, String selregion, boolean uploadFromSlave,
-                                    boolean managedArtifacts, boolean useServerSideEncryption, boolean flatten)
-            throws IOException, InterruptedException {
+                                    String artifactManagement, boolean useServerSideEncryption)
+            throws IOException, InterruptedException
+    {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
 
-        String fileName = null;
-        if (flatten) {
-            fileName = filePath.getName();
-        } else {
-            String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
-        }
+        boolean produced = Entry.isManaged(artifactManagement)
+                && (build.getTimeInMillis() <= filePath.lastModified() + 2000);
 
-        Destination dest = new Destination(bucketName, fileName);
-        boolean produced = false;
-        if (managedArtifacts) {
-            //TODO dest = Destination.newFromBuild(build, bucketName, fileName);
-            dest = Destination.newFromBuild(build, bucketName, filePath.getName());
-            produced = build.getTimeInMillis() <= filePath.lastModified()+2000;
-        }
+        Destination dest = Destination.newFromBuild(build, bucketName, filePath, searchPathLength, artifactManagement);
 
         try {
             S3UploadCallable callable = new S3UploadCallable(
                     produced, accessKey, secretKey, useRole, dest, userMetadata,
-                    storageClass, selregion,useServerSideEncryption
+                    storageClass, selregion, useServerSideEncryption
             );
             if (uploadFromSlave) {
                 return filePath.act(callable);

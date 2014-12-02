@@ -1,0 +1,24 @@
+<div>
+    This lets Jenkins manage the artifacts, exactly like it does when the artifacts are published to the master.
+    There are four options:
+    <ul>
+        <li><B>Unmanaged-flattened</B> stores the artifacts in the selected bucket,
+            discarding the directory structure of the artifacts in the source project.</li>
+        <li><B>Unmanaged-structured</B> stores the artifacts in the selected bucket
+            while maintaining the directory structure.</li>
+        <li><B>Managed-flattened</B> stores the artifacts in "jobs/[job]/[build-number]/" in the
+            selected bucket, discarding the directory structure.</li>
+        <li><B>Managed-structured</B> stores the artifacts in "jobs/[job]/[build-number]/" in the selected bucket
+            while maintaining the directory structure.</li>
+    </ul>
+
+    When using one of the managed options, the following features are enabled:
+    <ul>
+        <li>artifacts are finger printed and linked to the build</li>
+        <li>artifacts can be downloaded directly from the build page in the
+            S3 Artifact section</li>
+        <li>artifacts are automatically deleted when the build is deleted</li>
+        <li>the <em>S3 Copy Artifact</em> build step can be used to download artifacts from S3
+            automatically, helping build complex pipelines</li>
+    </ul>
+</div>

@@ -74,8 +74,7 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
         PutObjectResult result = getClient().putObject(
                 dest.getBucketName(), dest.getObjectName(), file.read(), buildMetadata(file)
         );
-        return new FingerprintRecord(produced, dest.getUserBucketName(), file.getName(), result.getETag());
-        //TODO return new FingerprintRecord(produced, dest.getUserBucketName(), dest.getFileName(), result.getETag());
+        return new FingerprintRecord(produced, dest.getUserBucketName(), dest.getFileName(), result.getETag());
     }
 
     private void setRegion() {
