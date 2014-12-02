@@ -93,7 +93,7 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
     }
 
     public static boolean isStructured(final String management) {
-        return management.endsWith("Structured");
+        return management.endsWith("structured");
     }
 
     @Extension
