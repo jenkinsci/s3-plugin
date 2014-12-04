@@ -2,12 +2,12 @@ package hudson.plugins.s3;
 
 import com.amazonaws.regions.Regions;
 import hudson.Extension;
-import hudson.model.AbstractDescribableImpl;
+import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public final class Entry extends AbstractDescribableImpl<Entry> {
+public final class Entry implements Describable<Entry> {
 
     /**
      * Destination bucket for the copy. Can contain macros.
@@ -98,8 +98,14 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
                 managedArtifactsEnum.MANAGED_STRUCTURED.name().equals(management) );
     }
 
+    public Descriptor<Entry> getDescriptor() {
+        return DESCRIPOR;
+    }
+
     @Extension
-    public static class DescriptorImpl extends Descriptor<Entry> {
+    public final static DescriptorImpl DESCRIPOR = new DescriptorImpl();
+
+    public static class DescriptorImpl extends  Descriptor<Entry> {
 
         @Override
         public String getDisplayName() {
