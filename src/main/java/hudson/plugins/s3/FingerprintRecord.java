@@ -10,10 +10,10 @@ import java.io.Serializable;
 import jenkins.model.Jenkins;
 
 public class FingerprintRecord implements Serializable {
-  private static final long serialVersionUID = 1L;
-  final boolean produced;
-  final String md5sum;
-  final S3Artifact artifact;
+    private static final long serialVersionUID = 1L;
+    private final boolean produced;
+    private final String md5sum;
+    private final S3Artifact artifact;
 
 
   public FingerprintRecord(boolean produced, String bucket, String name, String md5sum) {
@@ -27,16 +27,18 @@ public class FingerprintRecord implements Serializable {
       return map.getOrCreate(produced?build:null, artifact.getName(), md5sum);
   }
 
-  public String getName() {
+    public S3Artifact getArtifact() { return artifact; }
+
+    public String getName() {
     return artifact.getName();
-  }
+    }
 
-  public String getBucket() {
+    public String getBucket() {
     return artifact.getBucket();
-  }
+    }
 
-  public String getFingerprint() {
+    public String getFingerprint() {
     return md5sum;
-  }
+    }
 
 }

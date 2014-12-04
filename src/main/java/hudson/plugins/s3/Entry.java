@@ -46,23 +46,29 @@ public final class Entry implements Describable<Entry> {
     public boolean uploadFromSlave;
 
     /**
-     * Let Jenkins manage the S3 uploaded artifacts
+     * Artifact management options. Managed by Jenkins or by owner.
      */
-    public boolean managedArtifacts;
-    
+    public enum managedArtifactsEnum {
+        UNMANAGED_FLATTENED,
+        UNMANAGED_STRUCTURED,
+        MANAGED_FLATTENED,
+        MANAGED_STRUCTURED
+    }
+
+    /**
+     * Currently selected artifact management style
+     */
+    public String artifactManagement;
+
     /**
      * Use S3 server side encryption when uploading the artifacts
      */
     public boolean useServerSideEncryption;
 
-    /**
-     * Flatten directories
-     */
-    public boolean flatten;
 
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String storageClass, String selectedRegion,
-                 boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
+                 boolean noUploadOnFailure, boolean uploadFromSlave, String artifactManagement,
                  boolean useServerSideEncryption, boolean flatten) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
@@ -70,9 +76,26 @@ public final class Entry implements Describable<Entry> {
         this.selectedRegion = selectedRegion;
         this.noUploadOnFailure = noUploadOnFailure;
         this.uploadFromSlave = uploadFromSlave;
-        this.managedArtifacts = managedArtifacts;
+        this.artifactManagement = artifactManagement;
         this.useServerSideEncryption = useServerSideEncryption;
-        this.flatten = flatten;
+    }
+
+    public boolean isManaged() {
+        return isManaged(artifactManagement);
+    }
+
+    public static boolean isManaged(final String management) {
+        return ( managedArtifactsEnum.MANAGED_FLATTENED.name().equals(management) ||
+                 managedArtifactsEnum.MANAGED_STRUCTURED.name().equals(management) );
+    }
+
+    public boolean isStructured() {
+        return isStructured(artifactManagement);
+    }
+
+    public static boolean isStructured(final String management) {
+        return ( managedArtifactsEnum.UNMANAGED_STRUCTURED.name().equals(management) ||
+                managedArtifactsEnum.MANAGED_STRUCTURED.name().equals(management) );
     }
 
     public Descriptor<Entry> getDescriptor() {
@@ -105,6 +128,13 @@ public final class Entry implements Describable<Entry> {
             return model;
         }
 
-    };
+        public ListBoxModel doFillArtifactManagementItems() {
+            ListBoxModel model = new ListBoxModel();
+            for (managedArtifactsEnum a : managedArtifactsEnum.values()) {
+                model.add(a.name(), a.name());
+            }
+            return model;
+        }
+    }
 
 }

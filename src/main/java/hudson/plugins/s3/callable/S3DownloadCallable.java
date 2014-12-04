@@ -28,10 +28,10 @@ public class S3DownloadCallable extends AbstractS3Callable implements FileCallab
 
     public FingerprintRecord invoke(File file, VirtualChannel channel) throws IOException, InterruptedException 
     {
-        GetObjectRequest req = new GetObjectRequest(dest.bucketName, dest.objectName);
+        GetObjectRequest req = new GetObjectRequest(dest.getBucketName(), dest.getObjectName());
         ObjectMetadata md = getClient().getObject(req, file);
 
-        return new FingerprintRecord(true, dest.bucketName, file.getName(), md.getETag());
+        return new FingerprintRecord(true, dest.getUserBucketName(), dest.getFileName(), md.getETag());
     }
 
 }

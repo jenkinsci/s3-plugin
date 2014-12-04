@@ -18,13 +18,10 @@
         <f:entry field="uploadFromSlave" title="Publish from Slave">
 		    <f:checkbox />
         </f:entry>
-        <f:entry field="managedArtifacts" title="Manage artifacts">
-		    <f:checkbox />
+        <f:entry title="Manage artifacts" field="artifactManagement">
+		    <f:select />
         </f:entry>
         <f:entry field="useServerSideEncryption" title="Server side encryption">
-		    <f:checkbox />
-        </f:entry>
-        <f:entry field="flatten" title="Flatten directories">
 		    <f:checkbox />
         </f:entry>
 
