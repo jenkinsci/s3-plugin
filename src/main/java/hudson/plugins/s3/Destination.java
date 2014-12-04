@@ -25,6 +25,7 @@ public class Destination implements Serializable {
      * @param fileName
      */
     public Destination(String userBucketName, String fileName) {
+
         initialize(userBucketName, fileName, "");
     }
 
@@ -36,6 +37,7 @@ public class Destination implements Serializable {
      * @param fileName
      */
     public Destination(String projectName, int buildId, String bucketName, String fileName) {
+
         initialize(bucketName, fileName, getManagedPrefix(projectName, buildId));
     }
 
@@ -53,8 +55,7 @@ public class Destination implements Serializable {
 
         String fileName;
         if (Entry.isStructured(artifactManagement)) {
-            String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
+            fileName = filePath.getRemote().substring(searchPathLength);
         }
         else {
             fileName = filePath.getName();
@@ -68,7 +69,8 @@ public class Destination implements Serializable {
         }
     }
 
-    private static String getManagedPrefix(String projectName, int buildID) {
+    private String getManagedPrefix(String projectName, int buildID) {
+
         return "jobs/" + projectName + "/" + buildID + "/";
     }
 

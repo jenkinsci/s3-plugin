@@ -46,7 +46,7 @@ public final class Entry extends AbstractDescribableImpl<Entry> {
     public boolean uploadFromSlave;
 
     /**
-     * Let Jenkins manage the S3 uploaded artifacts
+     * Artifact management options. Managed by Jenkins or by owner.
      */
     public enum managedArtifactsEnum {
         UNMANAGED_FLATTENED,

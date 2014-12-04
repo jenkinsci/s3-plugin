@@ -178,8 +178,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                     records.add(
                             profile.upload(
                                     build, listener, bucket, src, searchPathLength, escapedUserMetadata,
-                                    storageClass, selRegion, entry.uploadFromSlave, entry.artifactManagement,
-                                    entry.useServerSideEncryption
+                                    storageClass, selRegion, entry
                             )
                     );
                 }

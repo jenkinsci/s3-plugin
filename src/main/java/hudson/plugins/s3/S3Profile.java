@@ -117,28 +117,26 @@ public class S3Profile {
 
     public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName,
                                     FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
-                                    String storageClass, String selregion, boolean uploadFromSlave,
-                                    String artifactManagement, boolean useServerSideEncryption)
+                                    String storageClass, String selregion, Entry entry)
             throws IOException, InterruptedException
     {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
 
-        boolean produced = Entry.isManaged(artifactManagement)
-                && (build.getTimeInMillis() <= filePath.lastModified() + 2000);
+        boolean produced = entry.isManaged() && (build.getTimeInMillis() <= filePath.lastModified() + 2000);
 
         Destination dest = new Destination(
                 build.getParent().getName(), build.getNumber(), bucketName,
-                filePath, searchPathLength, artifactManagement
+                filePath, searchPathLength, entry.artifactManagement
         );
 
         try {
             S3UploadCallable callable = new S3UploadCallable(
                     produced, accessKey, secretKey, useRole, dest, userMetadata,
-                    storageClass, selregion, useServerSideEncryption
+                    storageClass, selregion, entry.useServerSideEncryption
             );
-            if (uploadFromSlave) {
+            if (entry.uploadFromSlave) {
                 return filePath.act(callable);
             } else {
                 return callable.invoke(filePath);
