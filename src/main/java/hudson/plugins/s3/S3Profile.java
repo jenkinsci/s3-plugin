@@ -86,6 +86,14 @@ public class S3Profile {
         this.name = name;
     }
 
+    public final String getProxyHost() {
+        return this.proxyHost;
+    }
+
+    public final String getProxyPort() {
+        return this.proxyPort;
+    }
+
     public final boolean getUseRole() {
         return this.useRole;
     }
@@ -142,7 +150,7 @@ public class S3Profile {
         }
 
         try {
-            S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+            S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, proxyHost, proxyPort, useRole, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
             if (uploadFromSlave) {
                 return filePath.act(callable);
             } else {
@@ -193,7 +201,7 @@ public class S3Profile {
                   Destination dest = Destination.newFromRun(build, artifact);
                   FilePath target = new FilePath(targetDir, artifact.getName());
                   try {
-                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, console)));
+                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, proxyHost, proxyPort, useRole, dest, console)));
                   } catch (IOException e) {
                       e.printStackTrace();
                   } catch (InterruptedException e) {

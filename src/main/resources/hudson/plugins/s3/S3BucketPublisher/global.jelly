@@ -13,7 +13,7 @@
             <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
               <f:textbox name="s3.accessKey" value="${profile.accessKey}"
                          checkMethod="post"
-                         checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)"
+                         checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;proxyHost='+encodeURIComponent(Form.findMatchingInput(this,'s3.proxyHost').value)+'&amp;proxyPort='+encodeURIComponent(Form.findMatchingInput(this,'s3.proxyPort').value)"
               />
             </f:entry>
             <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
@@ -26,11 +26,13 @@
           <f:entry title="Proxy Host" help="/plugin/s3/help-proxyHost.html">
             <input class="setting-input" name="s3.proxyHost"
                    value="${profile.proxyHost}"
+                   onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
             />
           </f:entry>
           <f:entry title="Proxy Port" help="/plugin/s3/help-proxyPort.html">
             <input class="setting-input" name="s3.proxyPort"
                    value="${profile.proxyPort}"
+                   onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
             />
           </f:entry>
           <f:entry title="">
