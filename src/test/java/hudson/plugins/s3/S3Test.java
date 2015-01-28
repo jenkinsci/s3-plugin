@@ -14,7 +14,6 @@ public class S3Test {
 
     @Test
     public void testConfig() throws Exception {
-
         HtmlPage page = j.createWebClient().goTo("configure");
         WebAssert.assertTextPresent(page, "S3 profiles");
     }
