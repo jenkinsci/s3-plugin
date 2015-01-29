@@ -1,57 +1,59 @@
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <!-- nothing to configure -->
-  <f:section title="Amazon S3 profiles">
-    <f:entry title="S3 profiles" description="Profiles for publishing to S3 buckets">
-      <f:repeatable var="profile" items="${descriptor.profiles}">
-        <table width="100%">
-          <f:entry title="Profile name" help="/plugin/s3/help-profile.html">
-            <f:textbox name="s3.name" value="${profile.name}"/>
-          </f:entry>
-          <f:entry title="Max upload retries">
-            <f:number name="s3.maxUploadRetries" value="${profile.maxUploadRetries}"/>
-          </f:entry>
-          <f:entry title="Retry wait time (seconds)" >
-            <f:number name="s3.retryWaitTime" value="${profile.retryWaitTime}"/>
-          </f:entry>
-          <f:optionalBlock title="Use IAM Role" help="/plugin/s3/help-role.html"
-                           checked="${profile.useRole}"
-                           inline="true" negative="true" name="s3.useRole">
-            <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
-              <f:textbox name="s3.accessKey" value="${profile.accessKey}"
-                         checkMethod="post"
-                         checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)"
-              />
-            </f:entry>
-            <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
-              <input class="setting-input" name="s3.secretKey"
-                     type="password" value="${profile.secretKey}"
-                     onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
-               />
-            </f:entry>
-          </f:optionalBlock>
-          <f:entry title="Proxy Host" help="/plugin/s3/help-proxyHost.html">
-            <input class="setting-input" name="s3.proxyHost"
-                   value="${profile.proxyHost}"
-            />
-          </f:entry>
-          <f:entry title="Proxy Port" help="/plugin/s3/help-proxyPort.html">
-            <input class="setting-input" name="s3.proxyPort"
-                   value="${profile.proxyPort}"
-            />
-          </f:entry>
-          <f:entry title="">
-            <div align="right">
-              <f:repeatableDeleteButton />
-            </div>
-          </f:entry>
-          <f:advanced>
-            <f:entry title="Download URL expiry (seconds)" help="/plugin/s3/help-signedUrlExpirySeconds.html">
-              <f:number clazz="positive-number" name="s3.signedUrlExpirySeconds"
-                        value="${profile.signedUrlExpirySeconds}" default="60" />
-            </f:entry>
-          </f:advanced>
-        </table>
-      </f:repeatable>
-    </f:entry>
-  </f:section>
+<j:jelly xmlns:j="jelly:core"
+         xmlns:f="/lib/form">
+    <!-- nothing to configure -->
+    <f:section title="Amazon S3 profiles">
+        <f:entry title="S3 profiles" description="Profiles for publishing to S3 buckets">
+            <f:repeatable var="profile" items="${descriptor.profiles}">
+                <table width="100%">
+                    <f:entry title="Profile name" help="/plugin/s3/help-profile.html">
+                        <f:textbox name="s3.name" value="${profile.name}"/>
+                    </f:entry>
+                    <f:entry title="Max upload retries">
+                        <f:number name="s3.maxUploadRetries" value="${profile.maxUploadRetries}"/>
+                    </f:entry>
+                    <f:entry title="Retry wait time (seconds)">
+                        <f:number name="s3.retryWaitTime" value="${profile.retryWaitTime}"/>
+                    </f:entry>
+                    <f:optionalBlock title="Use IAM Role" help="/plugin/s3/help-role.html"
+                                     checked="${profile.useRole}"
+                                     inline="true" negative="true" name="s3.useRole">
+                        <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
+                            <f:textbox name="s3.accessKey" value="${profile.accessKey}"
+                                       checkMethod="post"
+                                       checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)"
+                                    />
+                        </f:entry>
+                        <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
+                            <input class="setting-input" name="s3.secretKey"
+                                   type="password" value="${profile.secretKey}"
+                                   onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
+                                    />
+                        </f:entry>
+                    </f:optionalBlock>
+                    <f:entry title="Proxy Host" help="/plugin/s3/help-proxyHost.html">
+                        <input class="setting-input" name="s3.proxyHost"
+                               value="${profile.proxyHost}"
+                                />
+                    </f:entry>
+                    <f:entry title="Proxy Port" help="/plugin/s3/help-proxyPort.html">
+                        <input class="setting-input" name="s3.proxyPort"
+                               value="${profile.proxyPort}"
+                                />
+                    </f:entry>
+                    <f:entry title="">
+                        <div align="right">
+                            <f:repeatableDeleteButton/>
+                        </div>
+                    </f:entry>
+                    <f:advanced>
+                        <f:entry title="Download URL expiry (seconds)"
+                                 help="/plugin/s3/help-signedUrlExpirySeconds.html">
+                            <f:number clazz="positive-number" name="s3.signedUrlExpirySeconds"
+                                      value="${profile.signedUrlExpirySeconds}" default="60"/>
+                        </f:entry>
+                    </f:advanced>
+                </table>
+            </f:repeatable>
+        </f:entry>
+    </f:section>
 </j:jelly>

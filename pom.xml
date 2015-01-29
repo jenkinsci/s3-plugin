@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
@@ -13,28 +14,28 @@
     <url>https://wiki.jenkins-ci.org/display/JENKINS/S3+Plugin</url>
 
     <developers>
-        <developer> 
-            <id>dougm</id> 
-            <name>Doug MacEachern</name> 
+        <developer>
+            <id>dougm</id>
+            <name>Doug MacEachern</name>
         </developer>
-        <developer> 
-            <id>d6y</id> 
-            <name>Richard Dallaway</name> 
+        <developer>
+            <id>d6y</id>
+            <name>Richard Dallaway</name>
         </developer>
-        <developer> 
-            <id>longlho</id> 
-            <name>Long Ho</name> 
+        <developer>
+            <id>longlho</id>
+            <name>Long Ho</name>
         </developer>
-        <developer> 
-            <id>mikewatt</id> 
-            <name>Michael Watt</name> 
+        <developer>
+            <id>mikewatt</id>
+            <name>Michael Watt</name>
         </developer>
-        <developer> 
-            <id>dmbeer</id> 
+        <developer>
+            <id>dmbeer</id>
             <name>David Beer</name>
         </developer>
-        <developer> 
-            <id>mattias</id> 
+        <developer>
+            <id>mattias</id>
             <name>Mattias Appelgren</name>
         </developer>
     </developers>

@@ -1,10 +1,10 @@
 package hudson.plugins.s3;
 
-import java.util.List;
-
-import hudson.model.Action;
 import hudson.model.AbstractProject;
+import hudson.model.Action;
 import hudson.model.Run;
+
+import java.util.List;
 
 public class S3ArtifactsProjectAction implements Action {
 
@@ -24,7 +24,7 @@ public class S3ArtifactsProjectAction implements Action {
         if (latestSuccessfulBuild == null) {
             return null;
         }
-         List<S3ArtifactsAction> actions = latestSuccessfulBuild.getActions(S3ArtifactsAction.class);
+        List<S3ArtifactsAction> actions = latestSuccessfulBuild.getActions(S3ArtifactsAction.class);
         if (actions == null || actions.size() == 0) {
             return null;
         }

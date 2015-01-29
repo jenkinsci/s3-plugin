@@ -7,12 +7,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 public final class MetadataPair implements Describable<MetadataPair> {
 
+    @Extension
+    public final static DescriptorImpl DESCRIPOR = new DescriptorImpl();
     /**
      * The key of the user metadata pair to tag an upload with.
      * Can contain macros.
      */
     public String key;
-
     /**
      * The key of the user metadata pair to tag an upload with.
      * Can contain macros.
@@ -29,14 +30,11 @@ public final class MetadataPair implements Describable<MetadataPair> {
         return DESCRIPOR;
     }
 
-    @Extension
-    public final static DescriptorImpl DESCRIPOR = new DescriptorImpl();
-
     public static class DescriptorImpl extends Descriptor<MetadataPair> {
 
         @Override
         public String getDisplayName() {
             return "Metadata";
         }
-    };
+    }
 }

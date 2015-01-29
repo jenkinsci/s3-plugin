@@ -10,6 +10,16 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public final class Entry implements Describable<Entry> {
 
     /**
+     * options for x-amz-storage-class can be STANDARD or REDUCED_REDUNDANCY
+     */
+    public static final String[] storageClasses = {"STANDARD", "REDUCED_REDUNDANCY"};
+    /**
+     * Regions Values
+     */
+    public static final Regions[] regions = Regions.values();
+    @Extension
+    public final static DescriptorImpl DESCRIPOR = new DescriptorImpl();
+    /**
      * Destination bucket for the copy. Can contain macros.
      */
     public String bucket;
@@ -19,42 +29,29 @@ public final class Entry implements Describable<Entry> {
      */
     public String sourceFile;
     /**
-     * options for x-amz-storage-class can be STANDARD or REDUCED_REDUNDANCY
-     */
-    public static final String[] storageClasses = {"STANDARD", "REDUCED_REDUNDANCY"};
-    /**
      * what x-amz-storage-class is currently set
      */
     public String storageClass;
     /**
-     * Regions Values
-     */
-    public static final Regions[] regions = Regions.values();
-    /**
      * Stores the Region Value
      */
     public String selectedRegion;
-    
     /**
      * Do not publish the artifacts when build fails
      */
     public boolean noUploadOnFailure;
-
     /**
      * Upload either from the slave or the master
      */
     public boolean uploadFromSlave;
-
     /**
      * Let Jenkins manage the S3 uploaded artifacts
      */
     public boolean managedArtifacts;
-    
     /**
      * Use S3 server side encryption when uploading the artifacts
      */
     public boolean useServerSideEncryption;
-
     /**
      * Flatten directories
      */
@@ -79,10 +76,7 @@ public final class Entry implements Describable<Entry> {
         return DESCRIPOR;
     }
 
-    @Extension
-    public final static DescriptorImpl DESCRIPOR = new DescriptorImpl();
-
-    public static class DescriptorImpl extends  Descriptor<Entry> {
+    public static class DescriptorImpl extends Descriptor<Entry> {
 
         @Override
         public String getDisplayName() {
@@ -105,6 +99,6 @@ public final class Entry implements Describable<Entry> {
             return model;
         }
 
-    };
+    }
 
 }

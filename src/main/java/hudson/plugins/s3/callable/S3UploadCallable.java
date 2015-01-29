@@ -1,13 +1,19 @@
 package hudson.plugins.s3.callable;
 
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.internal.Mimetypes;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
 import hudson.plugins.s3.Destination;
 import hudson.plugins.s3.FingerprintRecord;
 import hudson.plugins.s3.MetadataPair;
 import hudson.remoting.VirtualChannel;
-import hudson.util.Secret;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -16,14 +22,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.internal.Mimetypes;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
 
 public class S3UploadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord> {
     private static final long serialVersionUID = 1L;
@@ -35,7 +33,7 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
     private final boolean useServerSideEncryption;
 
     public S3UploadCallable(boolean produced, AmazonS3Client client, Destination dest, List<MetadataPair> userMetadata, String storageClass,
-            String selregion, boolean useServerSideEncryption) {
+                            String selregion, boolean useServerSideEncryption) {
         super(client);
         this.dest = dest;
         this.storageClass = storageClass;
@@ -106,7 +104,7 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
             }
 
             final PutObjectRequest request = new PutObjectRequest(dest.bucketName, dest.objectName, localFile)
-                .withMetadata(buildMetadata(file));
+                    .withMetadata(buildMetadata(file));
             final PutObjectResult result = getClient().putObject(request);
             return new FingerprintRecord(produced, dest.bucketName, file.getName(), result.getETag());
         } finally {
