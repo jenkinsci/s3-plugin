@@ -24,7 +24,6 @@
 package hudson.plugins.s3;
 
 import com.google.common.collect.Maps;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -32,7 +31,6 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
-import hudson.diagnosis.OldDataMonitor;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
@@ -42,13 +40,12 @@ import hudson.model.AbstractProject;
 import hudson.model.Build;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
-import hudson.model.Descriptor.FormException;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.Fingerprint;
 import hudson.model.FingerprintMap;
 import hudson.model.Hudson;
-import hudson.model.Job;
 import hudson.model.Item;
+import hudson.model.Job;
 import hudson.model.Project;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -66,45 +63,39 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.DescribableList;
 import hudson.util.FormValidation;
-import hudson.util.Memoizer;
-import hudson.util.XStream2;
+import jenkins.model.Jenkins;
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
-
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-
 /**
  * This is a S3 variant of the CopyArtifact plugin:
  * Build step to copy artifacts from another project.
+ *
  * @author Alan Harder
  */
 public class S3CopyArtifact extends Builder {
 
-    private String projectName;
     private final String filter, target;
-    private /*almost final*/ BuildSelector selector;
     private final Boolean flatten, optional;
+    private String projectName;
+    private /*almost final*/ BuildSelector selector;
 
     @DataBoundConstructor
     public S3CopyArtifact(String projectName, BuildSelector selector, String filter, String target,
-                        boolean flatten, boolean optional) {
+                          boolean flatten, boolean optional) {
         // Prevents both invalid values and access to artifacts of projects which this user cannot see.
         // If value is parameterized, it will be checked when build runs.
         if (projectName.indexOf('$') < 0 && new JobResolver(projectName).job == null)
@@ -142,7 +133,7 @@ public class S3CopyArtifact extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener)
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException {
         PrintStream console = listener.getLogger();
         String expandedProject = projectName, expandedFilter = filter;
@@ -152,14 +143,14 @@ public class S3CopyArtifact extends Builder {
             expandedProject = env.expand(projectName);
             JobResolver job = new JobResolver(expandedProject);
             if (job.job != null && !expandedProject.equals(projectName)
-                // If projectName is parameterized, need to do permission check on source project.
-                // Would like to check if user who started build has permission, but unable to get
-                // Authentication object for arbitrary user.. instead, only allow use of parameters
-                // to select jobs which are accessible to all authenticated users.
-                && !job.job.getACL().hasPermission(
-                        new UsernamePasswordAuthenticationToken("authenticated", "",
-                                new GrantedAuthority[]{ SecurityRealm.AUTHENTICATED_AUTHORITY }),
-                        Item.READ)) {
+                    // If projectName is parameterized, need to do permission check on source project.
+                    // Would like to check if user who started build has permission, but unable to get
+                    // Authentication object for arbitrary user.. instead, only allow use of parameters
+                    // to select jobs which are accessible to all authenticated users.
+                    && !job.job.getACL().hasPermission(
+                    new UsernamePasswordAuthenticationToken("authenticated", "",
+                            new GrantedAuthority[]{SecurityRealm.AUTHENTICATED_AUTHORITY}),
+                    Item.READ)) {
                 job.job = null; // Disallow access
             }
             if (job.job == null) {
@@ -189,7 +180,7 @@ public class S3CopyArtifact extends Builder {
                 // Copy artifacts from the build (ArchiveArtifacts build step)
                 boolean ok = perform(src, build, expandedFilter, targetDir, baseTargetDir, console);
                 // Copy artifacts from all modules of this Maven build (automatic archiving)
-                for (Run r : ((MavenModuleSetBuild)src).getModuleLastBuilds().values())
+                for (Run r : ((MavenModuleSetBuild) src).getModuleLastBuilds().values())
                     ok |= perform(r, build, expandedFilter, targetDir, baseTargetDir, console);
                 return ok;
             } else if (src instanceof MatrixBuild) {
@@ -199,13 +190,12 @@ public class S3CopyArtifact extends Builder {
                 for (Run r : ((MatrixBuild) src).getExactRuns())
                     // Use subdir of targetDir with configuration name (like "jdk=java6u20")
                     ok |= perform(r, build, expandedFilter, targetDir.child(r.getParent().getName()),
-                                  baseTargetDir, console);
+                            baseTargetDir, console);
                 return ok;
             } else {
                 return perform(src, build, expandedFilter, targetDir, baseTargetDir, console);
             }
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             Util.displayIOException(ex, listener);
             ex.printStackTrace(listener.error(
                     Messages.CopyArtifact_FailedToCopy(expandedProject, expandedFilter)));
@@ -213,46 +203,46 @@ public class S3CopyArtifact extends Builder {
         }
     }
 
-    private boolean perform(Run src, AbstractBuild<?,?> dst, String expandedFilter, FilePath targetDir,
-            FilePath baseTargetDir, PrintStream console)
+    private boolean perform(Run src, AbstractBuild<?, ?> dst, String expandedFilter, FilePath targetDir,
+                            FilePath baseTargetDir, PrintStream console)
             throws IOException, InterruptedException {
 
         S3ArtifactsAction action = src.getAction(S3ArtifactsAction.class);
         if (action == null) {
-          console.println("Build " + src.getDisplayName() + "[" + src.number + "] doesn't have any S3 artifacts uploaded");
-          return false;
+            console.println("Build " + src.getDisplayName() + "[" + src.number + "] doesn't have any S3 artifacts uploaded");
+            return false;
         }
-      
-       
+
+
         S3Profile profile = S3BucketPublisher.getProfile(action.getProfile());
-        
+
         try {
             targetDir.mkdirs();
             List<FingerprintRecord> records = profile.downloadAll(src, action.getArtifacts(), expandedFilter, targetDir, isFlatten(), console);
 
             Map<String, String> fingerprints = Maps.newHashMap();
-            for(FingerprintRecord record : records) {
+            for (FingerprintRecord record : records) {
                 FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
-                
+
                 Fingerprint f = map.getOrCreate(src, record.getName(), record.getFingerprint());
-                if (src!=null) {
-                    f.add((AbstractBuild)src);
+                if (src != null) {
+                    f.add((AbstractBuild) src);
                 }
                 f.add(dst);
                 fingerprints.put(record.getName(), record.getFingerprint());
             }
 
-            for (AbstractBuild r : new AbstractBuild[]{src instanceof AbstractBuild ? (AbstractBuild)src : null,dst}) {
+            for (AbstractBuild r : new AbstractBuild[]{src instanceof AbstractBuild ? (AbstractBuild) src : null, dst}) {
                 if (r == null)
                     continue;
 
                 FingerprintAction fa = r.getAction(FingerprintAction.class);
                 if (fa != null) fa.add(fingerprints);
-                else            r.getActions().add(new FingerprintAction(r, fingerprints));
+                else r.getActions().add(new FingerprintAction(r, fingerprints));
             }
 
-            console.println(MessageFormat.format("Copied {0} {0,choice,0#artifacts|1#artifact|1<artifacts} from \"{1}\" build number {2} stored in S3", fingerprints.size(), HyperlinkNote.encodeTo('/'+ src.getParent().getUrl(), src.getParent().getFullDisplayName()),
-                    HyperlinkNote.encodeTo('/'+src.getUrl(), Integer.toString(src.getNumber()))));
+            console.println(MessageFormat.format("Copied {0} {0,choice,0#artifacts|1#artifact|1<artifacts} from \"{1}\" build number {2} stored in S3", fingerprints.size(), HyperlinkNote.encodeTo('/' + src.getParent().getUrl(), src.getParent().getFullDisplayName()),
+                    HyperlinkNote.encodeTo('/' + src.getUrl(), Integer.toString(src.getNumber()))));
             // Fail build if 0 files copied unless copy is optional
             return fingerprints.size() > 0 || isOptional();
         } finally {
@@ -262,7 +252,7 @@ public class S3CopyArtifact extends Builder {
     // Find the job from the given name; usually just a Hudson.getItemByFullName lookup,
     // but this class encapsulates additional logic like filtering on parameters.
     private static class JobResolver {
-        Job<?,?> job;
+        Job<?, ?> job;
         BuildFilter filter = new BuildFilter();
 
         JobResolver(String projectName) {
@@ -272,7 +262,7 @@ public class S3CopyArtifact extends Builder {
                 // Check for parameterized job with filter (see help file)
                 int i = projectName.indexOf('/');
                 if (i > 0) {
-                    Job<?,?> candidate = hudson.getItemByFullName(projectName.substring(0, i), Job.class);
+                    Job<?, ?> candidate = hudson.getItemByFullName(projectName.substring(0, i), Job.class);
                     if (candidate != null) {
                         ParametersBuildFilter pFilter = new ParametersBuildFilter(projectName.substring(i + 1));
                         if (pFilter.isValid(candidate)) {
@@ -295,19 +285,18 @@ public class S3CopyArtifact extends Builder {
             FormValidation result;
             Item item = new JobResolver(value).job;
             if (item != null) {
-                
+
                 result = item instanceof MavenModuleSet
-                       ? FormValidation.warning(Messages.CopyArtifact_MavenProject())
-                       : (item instanceof MatrixProject
-                          ? FormValidation.warning(Messages.CopyArtifact_MatrixProject())
-                          : FormValidation.ok());
-            }
-            else if (value.indexOf('$') >= 0)
+                        ? FormValidation.warning(Messages.CopyArtifact_MavenProject())
+                        : (item instanceof MatrixProject
+                        ? FormValidation.warning(Messages.CopyArtifact_MatrixProject())
+                        : FormValidation.ok());
+            } else if (value.indexOf('$') >= 0)
                 result = FormValidation.warning(Messages.CopyArtifact_ParameterizedName());
             else
                 result = FormValidation.error(
-                    hudson.tasks.Messages.BuildTrigger_NoSuchProject(
-                        value, AbstractProject.findNearest(value).getName()));
+                        hudson.tasks.Messages.BuildTrigger_NoSuchProject(
+                                value, AbstractProject.findNearest(value).getName()));
             return result;
         }
 
@@ -319,7 +308,7 @@ public class S3CopyArtifact extends Builder {
             return "S3 Copy Artifact";
         }
 
-        public DescriptorExtensionList<BuildSelector,Descriptor<BuildSelector>> getBuildSelectors() {
+        public DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> getBuildSelectors() {
             final DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> list = DescriptorExtensionList.createDescriptorList(Jenkins.getInstance(), BuildSelector.class);
             // remove from list some of the CopyArchiver build selector that we can't deal with
             list.remove(WorkspaceSelector.DESCRIPTOR);
@@ -330,34 +319,35 @@ public class S3CopyArtifact extends Builder {
     // Listen for project renames and update property here if needed.
     @Extension
     public static final class ListenerImpl extends ItemListener {
-        @Override
-        public void onRenamed(Item item, String oldName, String newName) {
-            for (AbstractProject<?,?> project
-                    : Hudson.getInstance().getAllItems(AbstractProject.class)) {
-                for (S3CopyArtifact ca : getCopiers(project)) try {
-                    if (ca.getProjectName().equals(oldName))
-                        ca.projectName = newName;
-                    else if (ca.getProjectName().startsWith(oldName + '/'))
-                        // Support rename for "MatrixJobName/AxisName=value" type of name
-                        ca.projectName = newName + ca.projectName.substring(oldName.length());
-                    else continue;
-                    project.save();
-                } catch (IOException ex) {
-                    Logger.getLogger(ListenerImpl.class.getName()).log(Level.WARNING,
-                            "Failed to resave project " + project.getName()
-                            + " for project rename in S3 Copy Artifact build step ("
-                            + oldName + " =>" + newName + ")", ex);
-                }
-            }
+        private static List<S3CopyArtifact> getCopiers(AbstractProject project) {
+            DescribableList<Builder, Descriptor<Builder>> list =
+                    project instanceof Project ? ((Project<?, ?>) project).getBuildersList()
+                            : (project instanceof MatrixProject ?
+                            ((MatrixProject) project).getBuildersList() : null);
+            if (list == null) return Collections.emptyList();
+            return list.getAll(S3CopyArtifact.class);
         }
 
-        private static List<S3CopyArtifact> getCopiers(AbstractProject project) {
-            DescribableList<Builder,Descriptor<Builder>> list =
-                    project instanceof Project ? ((Project<?,?>)project).getBuildersList()
-                      : (project instanceof MatrixProject ?
-                          ((MatrixProject)project).getBuildersList() : null);
-            if (list == null) return Collections.emptyList();
-            return (List<S3CopyArtifact>)list.getAll(S3CopyArtifact.class);
+        @Override
+        public void onRenamed(Item item, String oldName, String newName) {
+            for (AbstractProject<?, ?> project
+                    : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+                for (S3CopyArtifact ca : getCopiers(project))
+                    try {
+                        if (ca.getProjectName().equals(oldName))
+                            ca.projectName = newName;
+                        else if (ca.getProjectName().startsWith(oldName + '/'))
+                            // Support rename for "MatrixJobName/AxisName=value" type of name
+                            ca.projectName = newName + ca.projectName.substring(oldName.length());
+                        else continue;
+                        project.save();
+                    } catch (IOException ex) {
+                        Logger.getLogger(ListenerImpl.class.getName()).log(Level.WARNING,
+                                "Failed to resave project " + project.getName()
+                                        + " for project rename in S3 Copy Artifact build step ("
+                                        + oldName + " =>" + newName + ")", ex);
+                    }
+            }
         }
     }
 
@@ -370,30 +360,38 @@ public class S3CopyArtifact extends Builder {
 
         @Override
         public void onStarted(Build r, TaskListener listener) {
-            if (((Build<?,?>)r).getProject().getBuildersList().get(S3CopyArtifact.class) != null)
+            if (((Build<?, ?>) r).getProject().getBuildersList().get(S3CopyArtifact.class) != null)
                 r.addAction(new EnvAction());
         }
     }
-    
+
     private static class EnvAction implements EnvironmentContributingAction {
         // Decided not to record this data in build.xml, so marked transient:
-        private transient Map<String,String> data = new HashMap<String,String>();
+        private transient Map<String, String> data = new HashMap<String, String>();
 
         private void add(String projectName, int buildNumber) {
-            if (data==null) return;
+            if (data == null) return;
             int i = projectName.indexOf('/'); // Omit any detail after a /
             if (i > 0) projectName = projectName.substring(0, i);
             data.put("COPYARTIFACT_BUILD_NUMBER_"
-                       + projectName.toUpperCase().replaceAll("[^A-Z]+", "_"), // Only use letters and _
-                     Integer.toString(buildNumber));
+                            + projectName.toUpperCase().replaceAll("[^A-Z]+", "_"), // Only use letters and _
+                    Integer.toString(buildNumber));
         }
 
-        public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
-            if (data!=null) env.putAll(data);
+        public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars env) {
+            if (data != null) env.putAll(data);
         }
 
-        public String getIconFileName() { return null; }
-        public String getDisplayName() { return null; }
-        public String getUrlName() { return null; }
+        public String getIconFileName() {
+            return null;
+        }
+
+        public String getDisplayName() {
+            return null;
+        }
+
+        public String getUrlName() {
+            return null;
+        }
     }
 }
