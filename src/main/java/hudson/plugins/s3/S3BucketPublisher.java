@@ -14,6 +14,7 @@ import hudson.tasks.Recorder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.CopyOnWriteList;
 import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
@@ -42,28 +43,28 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
     @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
-    private final List<Entry> entries = new ArrayList<Entry>();
+    private final List<Entry> entries;
 
     /**
      * User metadata key/value pairs to tag the upload with.
      */
-    private /*almost final*/ List<MetadataPair> userMetadata = new ArrayList<MetadataPair>();
-
+    private /*almost final*/ List<MetadataPair> userMetadata;
 
     @DataBoundConstructor
-    public S3BucketPublisher() {
-        super();
-    }
-
-    public S3BucketPublisher(String profileName) {
-        super();
+    public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata) {
         if (profileName == null) {
             // defaults to the first one
             S3Profile[] sites = DESCRIPTOR.getProfiles();
             if (sites.length > 0)
                 profileName = sites[0].getName();
         }
+
         this.profileName = profileName;
+        this.entries = entries;
+
+        if (userMetadata==null)
+            userMetadata = new ArrayList<MetadataPair>();
+        this.userMetadata = userMetadata;
     }
 
     protected Object readResolve() {
@@ -79,6 +80,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
     public List<MetadataPair> getUserMetadata() {
         return userMetadata;
     }
+
+    public String getProfileName() {
+        return this.profileName;
+    }
+
 
     public S3Profile getProfile() {
         return getProfile(profileName);
@@ -96,14 +102,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 return profile;
         }
         return null;
-    }
-
-    public String getName() {
-        return this.profileName;
-    }
-
-    public void setName(String profileName) {
-        this.profileName = profileName;
     }
 
     @Override
@@ -166,10 +164,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 String selRegion = entry.selectedRegion;
                 List<MetadataPair> escapedUserMetadata = new ArrayList<MetadataPair>();
                 for (MetadataPair metadataPair : userMetadata) {
-                    MetadataPair escapedMetadataPair = new MetadataPair();
-                    escapedMetadataPair.key = Util.replaceMacro(metadataPair.key, envVars);
-                    escapedMetadataPair.value = Util.replaceMacro(metadataPair.value, envVars);
-                    escapedUserMetadata.add(escapedMetadataPair);
+                    escapedUserMetadata.add(
+                        new MetadataPair(
+                            Util.replaceMacro(metadataPair.key, envVars),
+                            Util.replaceMacro(metadataPair.value, envVars))
+                    );
                 }
                 
                 List<FingerprintRecord> records = Lists.newArrayList();
@@ -273,22 +272,20 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
         }
 
         @Override
-        public S3BucketPublisher newInstance(StaplerRequest req, net.sf.json.JSONObject formData) throws FormException {
-            S3BucketPublisher pub = new S3BucketPublisher();
-            req.bindParameters(pub, "s3.");
-            pub.getEntries().addAll(req.bindParametersToList(Entry.class, "s3.entry."));
-            pub.getUserMetadata().addAll(req.bindParametersToList(MetadataPair.class, "s3.metadataPair."));
-            return pub;
-        }
-
-        @Override
         public boolean configure(StaplerRequest req, net.sf.json.JSONObject json) throws FormException {
             profiles.replaceBy(req.bindParametersToList(S3Profile.class, "s3."));
             save();
             return true;
         }
 
-
+        @SuppressWarnings("unused")
+        public ListBoxModel doFillProfileNameItems() {
+            ListBoxModel model = new ListBoxModel();
+            for (S3Profile profile : profiles) {
+                model.add(profile.getName(), profile.getName());
+            }
+            return model;
+        }
 
         public S3Profile[] getProfiles() {
             return profiles.toArray(new S3Profile[0]);

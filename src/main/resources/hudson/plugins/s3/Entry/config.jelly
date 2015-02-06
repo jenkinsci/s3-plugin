@@ -1,0 +1,31 @@
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+
+        <f:entry title="Source" field="sourceFile">
+          <f:textbox/>
+        </f:entry>
+        <f:entry title="Destination bucket" field="bucket">
+          <f:textbox/>
+        </f:entry>
+        <f:entry title="Storage class" field="storageClass">
+          <f:select />
+        </f:entry>
+        <f:entry title="Bucket Region" field="selectedRegion">
+            <f:select/>
+        </f:entry>
+        <f:entry field="noUploadOnFailure" title="No upload on build failure">
+		    <f:checkbox />
+        </f:entry>
+        <f:entry field="uploadFromSlave" title="Publish from Slave">
+		    <f:checkbox />
+        </f:entry>
+        <f:entry field="managedArtifacts" title="Manage artifacts">
+		    <f:checkbox />
+        </f:entry>
+        <f:entry field="useServerSideEncryption" title="Server side encryption">
+		    <f:checkbox />
+        </f:entry>
+        <f:entry field="flatten" title="Flatten directories">
+		    <f:checkbox />
+        </f:entry>
+
+</j:jelly>

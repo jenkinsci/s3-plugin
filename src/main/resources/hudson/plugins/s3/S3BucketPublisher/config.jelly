@@ -1,81 +1,27 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
   <j:set var="helpURL" value="/plugin/s3" />
-    <f:entry title="S3 profile">
-      <select class="setting-input" name="s3.name" description="Select configured S3 profile. Check global Jenkins config for defining access properties for this profile.">
-        <j:forEach var="s" items="${descriptor.profiles}">
-          <f:option selected="${s.name==instance.name}">${s.name}</f:option>
-        </j:forEach>
-      </select>
+    <f:entry title="S3 profile" field="profileName">
+      <f:select/>
     </f:entry>
 
   <f:entry title="Files to upload">
-    <f:repeatable var="e" items="${instance.entries}">
-      <table width="100%">
-        <f:entry title="Source" help="${helpURL}/help-source.html">
-          <input class="setting-input" name="s3.entry.sourceFile"
-            type="text" value="${e.sourceFile}" />
-        </f:entry>
-        <f:entry title="Destination bucket" help="${helpURL}/help-destination.html">
-          <input class="setting-input" name="s3.entry.bucket"
-            type="text" value="${e.bucket}" />
-        </f:entry>
-        <f:entry title="Storage class" help="${helpURL}/help-storageclass.html">
-          <select class="setting-input" name="s3.entry.storageClass">
-            <j:forEach var="storageOpt" items="${descriptor.storageClasses}">
-              <f:option selected="${storageOpt==e.storageClass}">${storageOpt}</f:option>
-            </j:forEach>
-          </select>
-        </f:entry>
-        <f:entry title="Bucket Region" help="${helpURL}/help-region.html">
-            <select class="setting-input" name="s3.entry.selectedRegion">
-                <j:forEach var="regionOpt" items="${descriptor.regions}">
-                    <f:option selected="${regionOpt==e.selectedRegion}">${regionOpt}</f:option>
-                </j:forEach>
-            </select>
-        </f:entry>
-        <f:entry field="noUploadOnFailure" title="No upload on build failure" help="${helpURL}/help-no-upload-on-failure.html">
-		    <f:checkbox name="s3.entry.noUploadOnFailure" checked="${e.noUploadOnFailure}"/>
-        </f:entry>
-        <f:entry field="failNoFilesToUpload" title="Mark unstable when no files were uploaded" help="${helpURL}/help-no-files-upload-failure.html">
-          <f:checkbox name="s3.entry.failNoFilesToUpload" checked="${e.failNoFilesToUpload}"/>
-        </f:entry>
-        <f:entry field="uploadFromSlave" title="Publish from Slave" help="${helpURL}/help-upload-from-slave.html">
-		    <f:checkbox name="s3.entry.uploadFromSlave" checked="${e.uploadFromSlave}"/>
-        </f:entry>
-        <f:entry field="managedArtifacts" title="Manage artifacts" help="${helpURL}/help-manage-artifacts.html">
-		    <f:checkbox name="s3.entry.managedArtifacts" checked="${e.managedArtifacts}"/>
-        </f:entry>
-        <f:entry field="useServerSideEncryption" title="Server side encryption" help="${helpURL}/help-server-encryption.html">
-		    <f:checkbox name="s3.entry.useServerSideEncryption" checked="${e.useServerSideEncryption}"/>
-        </f:entry>
-        <f:entry field="flatten" title="Flatten directories" help="${helpURL}/help-flatten-directories.html">
-		    <f:checkbox name="s3.entry.flatten" checked="${e.flatten}"/>
-        </f:entry>
+    <f:repeatableProperty field="entries">
+      <f:entry title="">
+          <div align="right">
+            <f:repeatableDeleteButton />
+          </div>
+      </f:entry>
+    </f:repeatableProperty>
+  </f:entry>
+
+  <f:entry title="Metadata tags">
+    <f:repeatableProperty field="userMetadata">
         <f:entry title="">
           <div align="right">
             <f:repeatableDeleteButton />
           </div>
         </f:entry>
-      </table>
-    </f:repeatable>
-  </f:entry>
-
-  <f:entry title="Metadata tags">
-    <f:repeatable var="m" items="${instance.userMetadata}">
-      <table width="100%">
-        <f:entry title="Metadata key" help="${helpURL}/help-key.html">
-          <f:textbox name="s3.metadataPair.key" value="${m.key}" />
-        </f:entry>
-        <f:entry title="Metadata value" help="${helpURL}/help-value.html">
-          <f:textbox name="s3.metadataPair.value" value="${m.value}" />
-        </f:entry>
-          <f:entry title="">
-          <div align="right">
-            <f:repeatableDeleteButton />
-          </div>
-        </f:entry>
-      </table>
-    </f:repeatable>
+    </f:repeatableProperty>
   </f:entry>
 </j:jelly>

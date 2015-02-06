@@ -40,16 +40,23 @@ public class S3Profile {
     private transient volatile AmazonS3Client client = null;
     private ClientConfiguration clientConfiguration = null;
     private boolean useRole;
+    private int signedUrlExpirySeconds = 60;
 
     public S3Profile() {
     }
 
-    @DataBoundConstructor
     public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole) {
+        /* The old hardcoded URL expiry was 4s, so: */
+        this(name, accessKey, secretKey, proxyHost, proxyPort, useRole, 4);
+    }
+
+    @DataBoundConstructor
+    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, int signedUrlExpirySeconds) {
         this.name = name;
         this.proxyHost = proxyHost;
         this.proxyPort = proxyPort;
         this.useRole = useRole;
+        this.signedUrlExpirySeconds = signedUrlExpirySeconds;
         if (useRole) {
             this.accessKey = "";
             this.secretKey = null;
@@ -208,10 +215,19 @@ public class S3Profile {
           getClient().deleteObject(req);
       }
 
+
+      /**
+       * Generate a signed download request for a redirect from s3/download.
+       *
+       * When the user asks to download a file, we sign a short-lived S3 URL
+       * for them and redirect them to it, so we don't have to proxy for the
+       * download and there's no need for the user to have credentials to
+       * access S3.
+       */
       public String getDownloadURL(Run build, FingerprintRecord record) {
           Destination dest = Destination.newFromRun(build, record.artifact);
           GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
-          request.setExpiration(new Date(System.currentTimeMillis() + 4000));
+          request.setExpiration(new Date(System.currentTimeMillis() + this.signedUrlExpirySeconds*1000));
           ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
           // let the browser use the last part of the name, not the full path
           // when saving.

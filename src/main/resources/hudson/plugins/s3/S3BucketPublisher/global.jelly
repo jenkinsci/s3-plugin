@@ -38,6 +38,12 @@
               <f:repeatableDeleteButton />
             </div>
           </f:entry>
+          <f:advanced>
+            <f:entry title="Download URL expiry (seconds)" help="/plugin/s3/help-signedUrlExpirySeconds.html">
+              <f:number clazz="positive-number" name="s3.signedUrlExpirySeconds"
+                        value="${profile.signedUrlExpirySeconds}" default="60" />
+            </f:entry>
+          </f:advanced>
         </table>
       </f:repeatable>
     </f:entry>
