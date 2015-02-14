@@ -6,9 +6,7 @@ import hudson.FilePath.FileCallable;
 import hudson.plugins.s3.Destination;
 import hudson.plugins.s3.FingerprintRecord;
 import hudson.plugins.s3.MetadataPair;
-import hudson.plugins.s3.Redirect;
 import hudson.remoting.VirtualChannel;
-import hudson.util.Secret;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,7 +15,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
@@ -32,18 +29,16 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
     private final Destination dest;
     private final String storageClass;
     private final List<MetadataPair> userMetadata;
-    private final Set<Redirect> redirects;
     private final String selregion;
     private final boolean produced;
     private final boolean useServerSideEncryption;
 
-    public S3UploadCallable(boolean produced, AmazonS3Client client, Destination dest, List<MetadataPair> userMetadata, Set<Redirect> redirects, 
+    public S3UploadCallable(boolean produced, AmazonS3Client client, Destination dest, List<MetadataPair> userMetadata,
                             String storageClass, String selregion, boolean useServerSideEncryption) {
         super(client);
         this.dest = dest;
         this.storageClass = storageClass;
         this.userMetadata = userMetadata;
-        this.redirects = redirects;
         this.selregion = selregion;
         this.produced = produced;
         this.useServerSideEncryption = useServerSideEncryption;
@@ -112,10 +107,6 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
             final PutObjectRequest request = new PutObjectRequest(dest.bucketName, dest.objectName, localFile)
                 .withMetadata(buildMetadata(file));
             final PutObjectResult result = getClient().putObject(request);
-
-            for (Redirect redirect : redirects) {
-                getClient().setObjectRedirectLocation(redirect.bucket, redirect.source, redirect.destination);
-            }
 
             return new FingerprintRecord(produced, dest.bucketName, file.getName(), result.getETag());
         } finally {

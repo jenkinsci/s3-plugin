@@ -1,6 +1,7 @@
 package hudson.plugins.s3;
 
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -49,7 +50,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
     
     private boolean dontWaitForConcurrentBuildCompletion;
     
-    private List<Redirect> redirects = new ArrayList<Redirect>();
+    private List<Redirect> redirects;
 
     /**
      * User metadata key/value pairs to tag the upload with.
@@ -57,7 +58,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
     private /*almost final*/ List<MetadataPair> userMetadata;
 
     @DataBoundConstructor
-    public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
+    public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata, List<Redirect> redirects,
                              boolean dontWaitForConcurrentBuildCompletion) {
         if (profileName == null) {
             // defaults to the first one
@@ -68,7 +69,8 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
 
         this.profileName = profileName;
         this.entries = entries;
-
+        this.redirects = redirects;
+        
         if (userMetadata==null)
             userMetadata = new ArrayList<MetadataPair>();
         this.userMetadata = userMetadata;
@@ -188,10 +190,10 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 }
                 Set<Redirect> escapedRedirects = new HashSet<Redirect>();
                 for (Redirect redirect : redirects) {
-                    Redirect escapedRedirect = new Redirect();
-                    escapedRedirect.bucket = Util.replaceMacro(redirect.bucket, envVars);
-                    escapedRedirect.source = Util.replaceMacro(redirect.source, envVars);
-                    escapedRedirect.destination = Util.replaceMacro(redirect.destination, envVars);
+                    Redirect escapedRedirect = new Redirect(
+                            Util.replaceMacro(redirect.bucket, envVars),
+                            Util.replaceMacro(redirect.key, envVars),
+                            Util.replaceMacro(redirect.redirectLocation, envVars));
                     escapedRedirects.add(escapedRedirect);
                 }
                 
@@ -199,8 +201,14 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 
                 for (FilePath src : paths) {
                     log(listener.getLogger(), String.format("bucket=%s, file=%s region=%s, upload from slave=%s managed=%s , server encryption %s", bucket, src.getName(), selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption));
-                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, escapedRedirects, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten));
+                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten));
                 }
+
+                for (Redirect r : escapedRedirects) {
+                    log(listener.getLogger(), String.format("S3 redirect: bucket=%s, source=%s, redirect=%s", r.bucket, r.key, r.redirectLocation));
+                    profile.getClient().putObject(new PutObjectRequest(r.bucket, r.key, r.redirectLocation));
+                }
+                
                 if (entry.managedArtifacts) {
                     artifacts.addAll(records);
     
