@@ -151,38 +151,29 @@ public class S3Profile {
     }
 
     public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
-            String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts,boolean useServerSideEncryption, boolean flatten) throws IOException, InterruptedException {
+            String storageClass, String selregion, boolean uploadFromSlave, String artifactManagement, boolean useServerSideEncryption) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
 
-        String fileName = null;
-        if (flatten) {
-            fileName = filePath.getName();
-        } else {
-            String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
-        }
-
-        Destination dest = new Destination(bucketName, fileName);
-        boolean produced = false;
-        if (managedArtifacts) {
-            dest = Destination.newFromBuild(build, bucketName, filePath.getName());
-            produced = build.getTimeInMillis() <= filePath.lastModified()+2000;
-        }
+        Destination dest = new Destination(build.getParent().getName(), build.getNumber(), bucketName, filePath, searchPathLength, artifactManagement);
+        boolean produced = Entry.isManaged(artifactManagement) && (build.getTimeInMillis() <= filePath.lastModified() + 2000);
         int retryCount = 0;
 
         while (true) {
             try {
-                S3UploadCallable callable = new S3UploadCallable(produced, getClient(), dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+                S3UploadCallable callable = new S3UploadCallable(produced, getClient(), dest, userMetadata,
+                        storageClass, selregion, useServerSideEncryption);
                 if (uploadFromSlave) {
                     return filePath.act(callable);
-                } else {
+                }
+                else {
                     return callable.invoke(filePath);
                 }
-            } catch (Exception e) {
+            } catch(Exception e) {
                 retryCount++;
-                if(retryCount >= maxUploadRetries){
+                if (retryCount >= maxUploadRetries)
+                {
                     throw new IOException("put " + dest + ": " + e + ":: Failed after " + retryCount + " tries.", e);
                 }
                 Thread.sleep(retryWaitTime * 1000);
@@ -191,11 +182,8 @@ public class S3Profile {
     }
 
     public List<String> list(Run build, String bucket, String expandedFilter) {
-        AmazonS3Client s3client = getClient();        
-
-        String buildName = build.getDisplayName();
-        int buildID = build.getNumber();
-        Destination dest = new Destination(bucket, "jobs/" + buildName + "/" + buildID + "/" + name);
+        AmazonS3Client s3client = getClient();
+        Destination dest = new Destination(build.getParent().getName(), build.getNumber(), bucket, name);
 
         ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
         .withBucketName(dest.bucketName)
@@ -218,7 +206,7 @@ public class S3Profile {
       /**
        * Download all artifacts from a given build
        */
-      public List<FingerprintRecord> downloadAll(Run build, List<FingerprintRecord> artifacts, String expandedFilter, FilePath targetDir, boolean flatten, PrintStream console) {
+      public List<FingerprintRecord> downloadAll(Run build, List<FingerprintRecord> artifacts, String expandedFilter, FilePath targetDir, PrintStream console) {
 
           FilenameSelector selector = new FilenameSelector();
           selector.setName(expandedFilter);
@@ -227,7 +215,7 @@ public class S3Profile {
           for(FingerprintRecord record : artifacts) {
               S3Artifact artifact = record.artifact;
               if (selector.isSelected(new File("/"), artifact.getName(), null)) {
-                  Destination dest = Destination.newFromRun(build, artifact);
+                  Destination dest = new Destination(build.getParent().getName(), build.getNumber(), artifact.getBucket(), artifact.getName());
                   FilePath target = new FilePath(targetDir, artifact.getName());
                   try {
                       fingerprints.add(target.act(new S3DownloadCallable(getClient(), dest, console)));
@@ -244,10 +232,10 @@ public class S3Profile {
       /**
        * Delete some artifacts of a given run
        * @param build
-       * @param artifact
+       * @param record
        */
       public void delete(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.artifact);
+          Destination dest = new Destination(build.getParent().getName(), build.getNumber(), record.artifact.getBucket(), record.artifact.getName());
           DeleteObjectRequest req = new DeleteObjectRequest(dest.bucketName, dest.objectName);
           getClient().deleteObject(req);
       }
@@ -262,13 +250,13 @@ public class S3Profile {
        * access S3.
        */
       public String getDownloadURL(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.artifact);
+          Destination dest = new Destination(build.getParent().getName(), build.getNumber(), record.artifact.getBucket(), record.artifact.getName());
           GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
           request.setExpiration(new Date(System.currentTimeMillis() + this.signedUrlExpirySeconds*1000));
           ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
           // let the browser use the last part of the name, not the full path
           // when saving.
-          String fileName = (new File(dest.objectName)).getName().trim(); 
+          String fileName = (new File(dest.objectName)).getName().trim();
           headers.setContentDisposition("attachment; filename=\"" + fileName + "\"");
           request.setResponseHeaders(headers);
           URL url = getClient().generatePresignedUrl(request);

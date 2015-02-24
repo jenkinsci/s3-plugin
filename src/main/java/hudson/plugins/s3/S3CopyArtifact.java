@@ -228,7 +228,7 @@ public class S3CopyArtifact extends Builder {
         
         try {
             targetDir.mkdirs();
-            List<FingerprintRecord> records = profile.downloadAll(src, action.getArtifacts(), expandedFilter, targetDir, isFlatten(), console);
+            List<FingerprintRecord> records = profile.downloadAll(src, action.getArtifacts(), expandedFilter, targetDir, console);
 
             Map<String, String> fingerprints = Maps.newHashMap();
             for(FingerprintRecord record : records) {
