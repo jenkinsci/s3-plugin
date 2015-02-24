@@ -33,6 +33,10 @@
             <id>dmbeer</id> 
             <name>David Beer</name>
         </developer>
+        <developer> 
+            <id>mattias</id> 
+            <name>Mattias Appelgren</name>
+        </developer>
     </developers>
 
     <scm>

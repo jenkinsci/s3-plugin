@@ -41,6 +41,8 @@ public class S3Profile {
     private Secret secretKey;
     private String proxyHost;
     private String proxyPort;
+    private int maxUploadRetries;
+    private int retryWaitTime;
     private transient volatile AmazonS3Client client = null;
     private ClientConfiguration clientConfiguration = null;
     private boolean useRole;
@@ -49,17 +51,27 @@ public class S3Profile {
     public S3Profile() {
     }
 
-    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole) {
+    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, String maxUploadRetries, String retryWaitTime) {
         /* The old hardcoded URL expiry was 4s, so: */
-        this(name, accessKey, secretKey, proxyHost, proxyPort, useRole, 4);
+        this(name, accessKey, secretKey, proxyHost, proxyPort, useRole, 4, maxUploadRetries, retryWaitTime);
     }
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, int signedUrlExpirySeconds) {
+    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String retryWaitTime) {
         this.name = name;
         this.proxyHost = proxyHost;
         this.proxyPort = proxyPort;
         this.useRole = useRole;
+        try {
+            this.maxUploadRetries = Integer.parseInt(maxUploadRetries);
+        } catch(NumberFormatException nfe) {
+            this.maxUploadRetries = 5;
+        }
+        try {
+            this.retryWaitTime = Integer.parseInt(retryWaitTime);
+        } catch(NumberFormatException nfe) {
+            this.retryWaitTime = 5;
+        }
         this.signedUrlExpirySeconds = signedUrlExpirySeconds;
         if (useRole) {
             this.accessKey = "";
@@ -80,6 +92,14 @@ public class S3Profile {
 
     public final Secret getSecretKey() {
         return secretKey;
+    }
+
+    public final int getMaxUploadRetries() {
+        return maxUploadRetries;
+    }
+
+    public final int getRetryWaitTime() {
+        return retryWaitTime;
     }
 
     public final String getName() {
@@ -138,16 +158,26 @@ public class S3Profile {
 
         Destination dest = new Destination(build.getParent().getName(), build.getNumber(), bucketName, filePath, searchPathLength, artifactManagement);
         boolean produced = Entry.isManaged(artifactManagement) && (build.getTimeInMillis() <= filePath.lastModified() + 2000);
+        int retryCount = 0;
 
-        try {
-            S3UploadCallable callable = new S3UploadCallable(produced, getClient(), dest, userMetadata, storageClass, selregion,useServerSideEncryption);
-            if (uploadFromSlave) {
-                return filePath.act(callable);
-            } else {
-                return callable.invoke(filePath);
+        while (true) {
+            try {
+                S3UploadCallable callable = new S3UploadCallable(produced, getClient(), dest, userMetadata,
+                        storageClass, selregion, useServerSideEncryption);
+                if (uploadFromSlave) {
+                    return filePath.act(callable);
+                }
+                else {
+                    return callable.invoke(filePath);
+                }
+            } catch(Exception e) {
+                retryCount++;
+                if (retryCount >= maxUploadRetries)
+                {
+                    throw new IOException("put " + dest + ": " + e + ":: Failed after " + retryCount + " tries.", e);
+                }
+                Thread.sleep(retryWaitTime * 1000);
             }
-        } catch (Exception e) {
-            throw new IOException("put " + dest + ": " + e);
         }
     }
 

@@ -7,6 +7,12 @@
           <f:entry title="Profile name" help="/plugin/s3/help-profile.html">
             <f:textbox name="s3.name" value="${profile.name}"/>
           </f:entry>
+          <f:entry title="Max upload retries">
+            <f:number name="s3.maxUploadRetries" value="${profile.maxUploadRetries}"/>
+          </f:entry>
+          <f:entry title="Retry wait time (seconds)" >
+            <f:number name="s3.retryWaitTime" value="${profile.retryWaitTime}"/>
+          </f:entry>
           <f:optionalBlock title="Use IAM Role" help="/plugin/s3/help-role.html"
                            checked="${profile.useRole}"
                            inline="true" negative="true" name="s3.useRole">
