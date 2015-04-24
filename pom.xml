@@ -8,33 +8,33 @@
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
-    <version>0.8-SNAPSHOT</version>
+    <version>0.8-ALEX-SNAPSHOT</version>
     <name>Jenkins S3 publisher plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/S3+Plugin</url>
 
     <developers>
-        <developer> 
-            <id>dougm</id> 
-            <name>Doug MacEachern</name> 
+        <developer>
+            <id>dougm</id>
+            <name>Doug MacEachern</name>
         </developer>
-        <developer> 
-            <id>d6y</id> 
-            <name>Richard Dallaway</name> 
+        <developer>
+            <id>d6y</id>
+            <name>Richard Dallaway</name>
         </developer>
-        <developer> 
-            <id>longlho</id> 
-            <name>Long Ho</name> 
+        <developer>
+            <id>longlho</id>
+            <name>Long Ho</name>
         </developer>
-        <developer> 
-            <id>mikewatt</id> 
-            <name>Michael Watt</name> 
+        <developer>
+            <id>mikewatt</id>
+            <name>Michael Watt</name>
         </developer>
-        <developer> 
-            <id>dmbeer</id> 
+        <developer>
+            <id>dmbeer</id>
             <name>David Beer</name>
         </developer>
-        <developer> 
-            <id>mattias</id> 
+        <developer>
+            <id>mattias</id>
             <name>Mattias Appelgren</name>
         </developer>
     </developers>
