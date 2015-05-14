@@ -128,6 +128,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             throws InterruptedException, IOException {
 
         final boolean buildFailed = build.getResult() == Result.FAILURE;
+        final boolean buildAborted = build.getResult() == Result.ABORTED;
         
         S3Profile profile = getProfile();
         if (profile == null) {
@@ -143,9 +144,9 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             
             for (Entry entry : entries) {
                 
-                if (entry.noUploadOnFailure && buildFailed) {
+                if (entry.noUploadOnFailure && (buildFailed || buildAborted)) {
                     // build failed. don't post
-                    log(listener.getLogger(), "Skipping publishing on S3 because build failed");
+                    log(listener.getLogger(), "Skipping publishing on S3 because build failed or aborted");
                     continue;
                 }
                 
