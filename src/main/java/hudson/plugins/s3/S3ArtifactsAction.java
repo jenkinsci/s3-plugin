@@ -7,12 +7,15 @@ import javax.servlet.ServletException;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 import hudson.model.RunAction;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
+import hudson.model.Api;
 
-public class S3ArtifactsAction implements RunAction {
+@ExportedBean public class S3ArtifactsAction implements RunAction {
   private final AbstractBuild build;
   private final String profile;
   private final List<FingerprintRecord> artifacts;
@@ -24,6 +27,10 @@ public class S3ArtifactsAction implements RunAction {
       onLoad();   // make compact
   }
 
+  public Api getApi() {
+         return new Api(this);
+     }
+  
   public AbstractBuild<?,?> getBuild() {
       return build;
   }
@@ -53,7 +60,7 @@ public class S3ArtifactsAction implements RunAction {
     return profile;
   }
 
-  public List<FingerprintRecord> getArtifacts() {
+  @Exported public List<FingerprintRecord> getArtifacts() {
     return artifacts;
   }
 
