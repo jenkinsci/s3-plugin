@@ -6,6 +6,10 @@ import hudson.plugins.s3.FingerprintRecord;
 import hudson.remoting.VirtualChannel;
 import hudson.util.Secret;
 
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.RoleSensitive;
+import jenkins.security.Roles;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -33,5 +37,10 @@ public class S3DownloadCallable extends AbstractS3Callable implements FileCallab
 
         return new FingerprintRecord(true, dest.bucketName, file.getName(), md.getETag());
     }
+    
+    @Override
+	public void checkRoles(RoleChecker checker) throws SecurityException {
+		checker.check((RoleSensitive) this, Roles.SLAVE);
+	}
 
 }
