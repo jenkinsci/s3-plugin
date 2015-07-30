@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.526</version>
+        <version>1.587</version>
     </parent>
 
     <artifactId>s3</artifactId>
