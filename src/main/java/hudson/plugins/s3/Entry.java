@@ -59,11 +59,12 @@ public final class Entry implements Describable<Entry> {
      * Flatten directories
      */
     public boolean flatten;
+	public boolean invalidateAfterUpload;
 
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
-                 boolean useServerSideEncryption, boolean flatten) {
+                 boolean useServerSideEncryption, boolean flatten, boolean invalidateAfterUpload) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
         this.storageClass = storageClass;
@@ -73,6 +74,7 @@ public final class Entry implements Describable<Entry> {
         this.managedArtifacts = managedArtifacts;
         this.useServerSideEncryption = useServerSideEncryption;
         this.flatten = flatten;
+		this.invalidateAfterUpload = invalidateAfterUpload;
     }
 
     public Descriptor<Entry> getDescriptor() {
