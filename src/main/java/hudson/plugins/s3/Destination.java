@@ -5,6 +5,8 @@ import hudson.model.Run;
 
 import java.io.Serializable;
 
+import org.apache.commons.io.FilenameUtils;
+
 
 /**
  * Provides a way to construct a destination bucket name and object name based

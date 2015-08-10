@@ -50,7 +50,7 @@ public class CloudFrontInvalidateCallable extends AbstractCloudFrontCallable imp
 		        String fileName = filePath.getRemote().substring(CloudFrontInvalidateCallable.this.searchPathLength);
 		        Destination dest = new Destination(CloudFrontInvalidateCallable.this.bucket, fileName);
 		        
-		        String key = FilenameUtils.separatorsToUnix(FilenameUtils.normalize(dest.objectName));
+		        String key = dest.objectName;
 		        if (!key.startsWith(UNIX_SEPARATOR)){
 		        	key = UNIX_SEPARATOR.concat(key);
 		        }
