@@ -5,6 +5,8 @@ import hudson.model.Run;
 
 import java.io.Serializable;
 
+import org.apache.commons.io.FilenameUtils;
+
 
 /**
  * Provides a way to construct a destination bucket name and object name based
@@ -30,9 +32,9 @@ public class Destination implements Serializable {
     bucketName = bucketNameArray[0];
     
     if (bucketNameArray.length > 1) {
-        objectName = bucketNameArray[1] + "/" + fileName;
+        objectName = FilenameUtils.separatorsToUnix(FilenameUtils.concat(bucketNameArray[1],fileName));
     } else {
-        objectName = fileName;
+        objectName = FilenameUtils.separatorsToUnix(FilenameUtils.normalize(fileName));
     }
   }
 
