@@ -54,11 +54,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
-import hudson.plugins.copyartifact.BuildFilter;
-import hudson.plugins.copyartifact.BuildSelector;
-import hudson.plugins.copyartifact.Messages;
-import hudson.plugins.copyartifact.ParametersBuildFilter;
-import hudson.plugins.copyartifact.WorkspaceSelector;
+import hudson.plugins.copyartifact.*;
 import hudson.security.AccessControlled;
 import hudson.security.SecurityRealm;
 import hudson.tasks.BuildStepDescriptor;
@@ -166,6 +162,9 @@ public class S3CopyArtifact extends Builder {
                 console.println(Messages.CopyArtifact_MissingProject(expandedProject));
                 return false;
             }
+            if(null==this.selector){
+                this.selector=createBuildSelector(env.get("BUILD_NUMBER"));
+            }
             Run src = selector.getBuild(job.job, env, job.filter, build);
             if (src == null) {
                 console.println(Messages.CopyArtifact_MissingBuild(expandedProject));
@@ -212,6 +211,25 @@ public class S3CopyArtifact extends Builder {
             return false;
         }
     }
+
+    private BuildSelector createBuildSelector(String buildNumber){
+        BuildSelector selector;
+        Logger log=  Logger.getLogger(S3CopyArtifact.class.getName());
+        if (buildNumber==null || buildNumber.startsWith("$")) {
+            log.log(Level.WARNING, "unresolved variable {0}", buildNumber);
+            return null;
+        }
+        if(buildNumber.matches("[0-9]*")) {
+            selector=new SpecificBuildSelector(buildNumber);
+        }else if(buildNumber.equals("lastSuccessfulBuild")){
+            selector=new StatusBuildSelector(true);
+        }else  {
+            throw new RuntimeException(("BuildSelector could not created for BUILD_NUMBER:" + buildNumber + " Not implemented yet!"));
+        }
+        log.log(Level.ALL,"Create BuildSelectorr "+ selector.getClass().getName() + "with number:"+ buildNumber);
+        return selector;
+    }
+
 
     private boolean perform(Run src, AbstractBuild<?,?> dst, String expandedFilter, FilePath targetDir,
             FilePath baseTargetDir, PrintStream console)
