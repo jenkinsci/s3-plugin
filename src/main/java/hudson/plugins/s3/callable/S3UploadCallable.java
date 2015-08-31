@@ -22,7 +22,8 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
 
 public class S3UploadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord> {
     private static final long serialVersionUID = 1L;
@@ -112,10 +113,14 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
                 localFile = new File(file.getRemote());
             }
 
+
             final PutObjectRequest request = new PutObjectRequest(dest.bucketName, dest.objectName, localFile)
                 .withMetadata(buildMetadata(file));
-            final PutObjectResult result = getClient().putObject(request);
-            return new FingerprintRecord(produced, bucketName, file.getName(), result.getETag());
+
+            final Upload upload = getTransferManager().upload(request);
+            final UploadResult result = upload.waitForUploadResult();
+
+            return new FingerprintRecord(produced, dest.bucketName, file.getName(), result.getETag());
         } finally {
             if (os != null) {
                 os.close();
@@ -123,6 +128,8 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
             if (deleteLocalFile && localFile != null) {
                 localFile.delete();
             }
+
+            getTransferManager().shutdownNow();
         }
     }
 

@@ -6,6 +6,7 @@ import java.io.Serializable;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class AbstractS3Callable implements Serializable
 {
@@ -15,6 +16,7 @@ public class AbstractS3Callable implements Serializable
     private final Secret secretKey;
     private final boolean useRole;
     private transient AmazonS3Client client;
+    private transient TransferManager tx;
 
     public AbstractS3Callable(String accessKey, Secret secretKey, boolean useRole) 
     {
@@ -32,7 +34,17 @@ public class AbstractS3Callable implements Serializable
                 client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()));
             }
         }
+
+
         return client;
     }
 
+    protected TransferManager getTransferManager()
+    {
+        if (tx == null) {
+            tx = new TransferManager(getClient());
+        }
+
+        return tx;
+    }
 }
