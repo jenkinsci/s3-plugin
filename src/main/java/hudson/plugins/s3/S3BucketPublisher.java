@@ -161,7 +161,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                         log(listener.getLogger(), error);
                 }
 
-                int searchPathLength = getSearchPathLength(ws.getRemote(), expanded);
+                int searchPathLength = ws.getRemote().length(); // tmoeller getSearchPathLength(ws.getRemote(), expanded, listener);
 
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
                 String storageClass = Util.replaceMacro(entry.storageClass, envVars);
@@ -178,7 +178,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 List<FingerprintRecord> records = Lists.newArrayList();
                 
                 for (FilePath src : paths) {
-                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
+                    log(listener.getLogger(), "bucket=" + bucket + ", workspace=" + ws.getRemote() + ", file=" + src.getRemote() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
                     records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten));
                 }
                 if (entry.managedArtifacts) {
@@ -207,9 +207,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
         return true;
     }
 
-    private int getSearchPathLength(String workSpace, String filterExpanded) {
+    private int getSearchPathLength(String workSpace, String filterExpanded, BuildListener listener) {
         File file1 = new File(workSpace);
         File file2 = new File(file1, filterExpanded);
+	//tmoeller Logging 
+	log(listener.getLogger(), "getSearchPathLength: ws:" + workSpace + ", filterExpanded:" + filterExpanded);
 
         String pathWithFilter = file2.getPath();
 
@@ -217,11 +219,15 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
 
         if (indexOfWildCard > 0)
         {
+	    //tmoeller Logging 
+	    log(listener.getLogger(), "getSearchPathLength: substring: pathWithFilter:" + pathWithFilter + ", indexOfWildCard:" + indexOfWildCard);
             String s = pathWithFilter.substring(0, indexOfWildCard);
             return s.length();
         }
         else
         {
+	    //tmoeller Logging 
+	    log(listener.getLogger(), "getSearchPathLength: no wildcard: file2.getParent():" + file2.getParent());
             return file2.getParent().length() + 1;
         }
     }
