@@ -175,16 +175,15 @@ public class S3Profile {
         String fileName = null;
         if (flatten) {
             fileName = filePath.getName();
-	    listener.getLogger().println( "\nS3Profile.upload: Flat: fileName=" + fileName);
         } else {
             String relativeFileName = filePath.getRemote();
             fileName = relativeFileName.substring(searchPathLength);
-	    listener.getLogger().println( "\nS3Profile.upload: NOT flat: fileName=" + fileName);
         }
         Destination dest = new Destination(bucketName, fileName);
         boolean produced = false;
         if (managedArtifacts) {
-	    //tmoeller            dest = Destination.newFromBuild(build, bucketName, filePath.getName());
+	    //tmoeller: We want to maintain the illusion of subfolder in S3, therefore we push to fileName instead of filePath.getName()
+            //dest = Destination.newFromBuild(build, bucketName, filePath.getName());
 	    dest = Destination.newFromBuild(build, bucketName, fileName);
             produced = build.getTimeInMillis() <= filePath.lastModified()+2000;
         } 
@@ -192,7 +191,7 @@ public class S3Profile {
 
         while (true) {
             try {
-                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, bucketName, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, bucketName, dest, fileName, userMetadata, storageClass, selregion,useServerSideEncryption);
                 if (uploadFromSlave) {
                     return filePath.act(callable);
                 } else {

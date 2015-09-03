@@ -161,7 +161,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                         log(listener.getLogger(), error);
                 }
 
-                int searchPathLength = ws.getRemote().length(); // tmoeller getSearchPathLength(ws.getRemote(), expanded, listener);
+                int searchPathLength = ws.getRemote().length() + 1;
 
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
                 String storageClass = Util.replaceMacro(entry.storageClass, envVars);
@@ -205,31 +205,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             build.setResult(Result.UNSTABLE);
         }
         return true;
-    }
-
-    private int getSearchPathLength(String workSpace, String filterExpanded, BuildListener listener) {
-        File file1 = new File(workSpace);
-        File file2 = new File(file1, filterExpanded);
-	//tmoeller Logging 
-	log(listener.getLogger(), "getSearchPathLength: ws:" + workSpace + ", filterExpanded:" + filterExpanded);
-
-        String pathWithFilter = file2.getPath();
-
-        int indexOfWildCard = pathWithFilter.indexOf("*");
-
-        if (indexOfWildCard > 0)
-        {
-	    //tmoeller Logging 
-	    log(listener.getLogger(), "getSearchPathLength: substring: pathWithFilter:" + pathWithFilter + ", indexOfWildCard:" + indexOfWildCard);
-            String s = pathWithFilter.substring(0, indexOfWildCard);
-            return s.length();
-        }
-        else
-        {
-	    //tmoeller Logging 
-	    log(listener.getLogger(), "getSearchPathLength: no wildcard: file2.getParent():" + file2.getParent());
-            return file2.getParent().length() + 1;
-        }
     }
 
     // Listen for project renames and update property here if needed.
