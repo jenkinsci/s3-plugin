@@ -37,12 +37,12 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
     @Deprecated
     public S3UploadCallable(boolean produced, String accessKey, Secret secretKey, boolean useRole, Destination dest, List<MetadataPair> userMetadata, String storageClass,
                             String selregion, boolean useServerSideEncryption) {
-        this(produced, accessKey, secretKey, useRole, dest.bucketName, dest, userMetadata, storageClass, selregion, useServerSideEncryption);
+        this(produced, accessKey, secretKey, useRole, false, null, dest.bucketName, dest, userMetadata, storageClass, selregion, useServerSideEncryption);
     }
 
-    public S3UploadCallable(boolean produced, String accessKey, Secret secretKey, boolean useRole, String bucketName, Destination dest, List<MetadataPair> userMetadata, String storageClass,
+    public S3UploadCallable(boolean produced, String accessKey, Secret secretKey, boolean useRole, boolean useSts, String stsRoleArn, String bucketName, Destination dest, List<MetadataPair> userMetadata, String storageClass,
             String selregion, boolean useServerSideEncryption) {
-        super(accessKey, secretKey, useRole);
+        super(accessKey, secretKey, useRole, useSts, stsRoleArn);
         this.bucketName = bucketName;
         this.dest = dest;
         this.storageClass = storageClass;

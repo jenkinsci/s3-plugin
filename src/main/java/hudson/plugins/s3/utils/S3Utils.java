@@ -8,19 +8,28 @@ import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
+import com.amazonaws.internal.StaticCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3Client;
 
 public class S3Utils {
 
-    public static AmazonS3Client createClient(String accessKey, Secret secretKey, boolean useRole) {
-        AmazonS3Client client;
+    public static AmazonS3Client createClient(String accessKey, Secret secretKey, boolean useRole, boolean useSts, String stsRoleArn) {
+        AWSCredentialsProvider credentialsProvider;
         if (useRole) {
-            client = new AmazonS3Client(getClientConfiguration());
+            credentialsProvider = new DefaultAWSCredentialsProviderChain();
         } else {
-            client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration());
+            BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey.getPlainText());
+            credentialsProvider = new StaticCredentialsProvider(credentials);
         }
-        return client;
+        if (useSts) {
+            credentialsProvider = new STSAssumeRoleSessionCredentialsProvider(credentialsProvider, stsRoleArn, "foo",
+                    getClientConfiguration());
+        }
+        return new AmazonS3Client(credentialsProvider, getClientConfiguration());
     }
 
     private static ClientConfiguration getClientConfiguration() {
