@@ -29,16 +29,6 @@
                />
             </f:entry>
           </f:optionalBlock>
-          <f:entry title="Proxy Host" help="/plugin/s3/help-proxyHost.html">
-            <input class="setting-input" name="s3.proxyHost"
-                   value="${profile.proxyHost}"
-            />
-          </f:entry>
-          <f:entry title="Proxy Port" help="/plugin/s3/help-proxyPort.html">
-            <input class="setting-input" name="s3.proxyPort"
-                   value="${profile.proxyPort}"
-            />
-          </f:entry>
           <f:advanced>
             <f:entry title="Download URL expiry (seconds)" help="/plugin/s3/help-signedUrlExpirySeconds.html">
               <f:number clazz="positive-number" name="s3.signedUrlExpirySeconds"

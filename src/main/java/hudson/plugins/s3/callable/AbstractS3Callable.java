@@ -1,5 +1,6 @@
 package hudson.plugins.s3.callable;
 
+import hudson.plugins.s3.utils.S3Utils;
 import hudson.util.Secret;
 
 import java.io.Serializable;
@@ -26,11 +27,7 @@ public class AbstractS3Callable implements Serializable
     protected AmazonS3Client getClient() 
     {
         if (client == null) {
-            if (useRole) {
-                client = new AmazonS3Client();
-            } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()));
-            }
+            client = S3Utils.createClient(accessKey, secretKey, useRole);
         }
         return client;
     }

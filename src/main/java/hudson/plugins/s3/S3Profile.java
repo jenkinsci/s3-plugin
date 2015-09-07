@@ -1,6 +1,5 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.ClientConfiguration;
 import hudson.FilePath;
 
 import java.io.File;
@@ -9,14 +8,10 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Pattern;
-
-import jenkins.model.Jenkins;
 
 import org.apache.tools.ant.types.selectors.FilenameSelector;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -30,37 +25,32 @@ import com.google.common.collect.Lists;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
-import hudson.ProxyConfiguration;
 import hudson.plugins.s3.callable.S3DownloadCallable;
 import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.utils.S3Utils;
 import hudson.util.Secret;
 
 public class S3Profile {
     private String name;
     private String accessKey;
     private Secret secretKey;
-    private String proxyHost;
-    private String proxyPort;
     private int maxUploadRetries;
     private int retryWaitTime;
     private transient volatile AmazonS3Client client = null;
-    private ClientConfiguration clientConfiguration = null;
     private boolean useRole;
     private int signedUrlExpirySeconds = 60;
 
     public S3Profile() {
     }
 
-    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, String maxUploadRetries, String retryWaitTime) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, String maxUploadRetries, String retryWaitTime) {
         /* The old hardcoded URL expiry was 4s, so: */
-        this(name, accessKey, secretKey, proxyHost, proxyPort, useRole, 4, maxUploadRetries, retryWaitTime);
+        this(name, accessKey, secretKey, useRole, 4, maxUploadRetries, retryWaitTime);
     }
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String retryWaitTime) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String retryWaitTime) {
         this.name = name;
-        this.proxyHost = proxyHost;
-        this.proxyPort = proxyPort;
         this.useRole = useRole;
         try {
             this.maxUploadRetries = Integer.parseInt(maxUploadRetries);
@@ -118,14 +108,6 @@ public class S3Profile {
         this.useRole = useRole;
     }
 
-    public String getProxyHost() {
-        return proxyHost;
-    }
-
-    public String getProxyPort() {
-        return proxyPort;
-    }
-
     public boolean isUseRole() {
         return useRole;
     }
@@ -136,30 +118,9 @@ public class S3Profile {
 
     public AmazonS3Client getClient() {
         if (client == null) {
-            if (useRole) {
-                client = new AmazonS3Client(getClientConfiguration());
-            } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration());
-            }
+            client = S3Utils.createClient(accessKey, secretKey, useRole);
         }
         return client;
-    }
-
-    private ClientConfiguration getClientConfiguration(){
-        if (clientConfiguration == null) {
-            clientConfiguration = new ClientConfiguration();
-
-            ProxyConfiguration proxy = Jenkins.getInstance().proxy;
-            if (shouldUseProxy(proxy, "s3.amazonaws.com")) {
-                clientConfiguration.setProxyHost(proxy.name);
-                clientConfiguration.setProxyPort(proxy.port);
-                if(proxy.getUserName() != null) {
-                    clientConfiguration.setProxyUsername(proxy.getUserName());
-                    clientConfiguration.setProxyPassword(proxy.getPassword());
-                }
-            }
-        }
-        return clientConfiguration;
     }
 
     public void check() throws Exception {
@@ -290,21 +251,4 @@ public class S3Profile {
           URL url = getClient().generatePresignedUrl(request);
           return url.toExternalForm();
       }
-
-
-    private Boolean shouldUseProxy(ProxyConfiguration proxy, String hostname) {
-        if(proxy == null) {
-            return false;
-        }
-        boolean shouldProxy = true;
-        for(Pattern p : proxy.getNoProxyHostPatterns()) {
-            if(p.matcher(hostname).matches()) {
-                shouldProxy = false;
-                break;
-            }
-        }
-
-        return shouldProxy;
-    }
-
 }
