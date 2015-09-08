@@ -27,5 +27,8 @@
         <f:entry field="flatten" title="Flatten directories">
 		    <f:checkbox />
         </f:entry>
+        <f:entry field="noFilename" title="No filename">
+		    <f:checkbox />
+        </f:entry>
 
 </j:jelly>
