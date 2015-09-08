@@ -19,9 +19,9 @@ public class S3DownloadCallable extends AbstractS3Callable implements FileCallab
     final private Destination dest;
     final transient private PrintStream log;
     
-    public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, boolean useSts, String stsRoleArn, Destination dest, PrintStream console) 
+    public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, String stsRoleArn, Destination dest, PrintStream console) 
     {
-        super(accessKey, secretKey, useRole, useSts, stsRoleArn);
+        super(accessKey, secretKey, useRole, stsRoleArn);
         this.dest = dest;
         this.log = console;
     }

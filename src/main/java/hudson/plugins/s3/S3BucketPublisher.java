@@ -1,11 +1,17 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.regions.Regions;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.*;
+import hudson.model.Action;
+import hudson.model.BuildListener;
+import hudson.model.Describable;
+import hudson.model.Result;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Fingerprint;
+import hudson.model.Run;
 import hudson.model.listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -15,18 +21,9 @@ import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.CopyOnWriteList;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import javax.servlet.ServletException;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +31,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.servlet.ServletException;
+
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+
+import com.amazonaws.regions.Regions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public final class S3BucketPublisher extends Recorder implements Describable<Publisher> {
     
@@ -298,7 +307,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             if (name == null) {// name is not entered yet
                 return FormValidation.ok();
             }
-            S3Profile profile = new S3Profile(name, req.getParameter("accessKey"), req.getParameter("secretKey"), false, req.getParameter("maxUploadRetries"), req.getParameter("retryWaitTime"), false, null);
+            S3Profile profile = new S3Profile(name, req.getParameter("accessKey"), req.getParameter("secretKey"), false, req.getParameter("maxUploadRetries"), req.getParameter("retryWaitTime"), req.getParameter("stsRoleArn"));
 
             try {
                 profile.check();

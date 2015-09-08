@@ -19,7 +19,7 @@
             <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
               <f:textbox name="s3.accessKey" value="${profile.accessKey}"
                          checkMethod="post"
-                         checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)"
+                         checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;stsRoleArn='+encodeURIComponent(Form.findMatchingInput(this,'s3.stsRoleArn').value)"
               />
             </f:entry>
             <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
@@ -29,18 +29,14 @@
                />
             </f:entry>
           </f:optionalBlock>
-          <f:optionalBlock title="Switch Role" help="/plugin/s3/help-sts.html"
-                           checked="${profile.useSts}"
-                           inline="true" name="s3.useSts">
-            <f:entry title="Role ARN" help="/plugin/s3/help-sts-role.html">
-              <f:textbox name="s3.stsRoleArn" value="${profile.stsRoleArn}"
-                         onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()" />
-            </f:entry>
-          </f:optionalBlock>
           <f:advanced>
             <f:entry title="Download URL expiry (seconds)" help="/plugin/s3/help-signedUrlExpirySeconds.html">
               <f:number clazz="positive-number" name="s3.signedUrlExpirySeconds"
                         value="${profile.signedUrlExpirySeconds}" default="60" />
+            </f:entry>
+            <f:entry title="Switch to role (ARN)" help="/plugin/s3/help-sts.html">
+              <f:textbox name="s3.stsRoleArn" value="${profile.stsRoleArn}"
+                         onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()" />
             </f:entry>
           </f:advanced>
 

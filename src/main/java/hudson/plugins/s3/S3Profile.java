@@ -2,6 +2,13 @@ package hudson.plugins.s3;
 
 
 import hudson.FilePath;
+import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
+import hudson.model.Run;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.utils.S3Utils;
+import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,14 +30,6 @@ import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
-import hudson.model.Run;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.plugins.s3.utils.S3Utils;
-import hudson.util.Secret;
-
 public class S3Profile {
     private String name;
     private String accessKey;
@@ -40,22 +39,20 @@ public class S3Profile {
     private transient volatile AmazonS3Client client = null;
     private boolean useRole;
     private int signedUrlExpirySeconds = 60;
-    private boolean useSts;
     private String stsRoleArn;
 
     public S3Profile() {
     }
 
-    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, String maxUploadRetries, String retryWaitTime, boolean useSts, String stsRoleArn) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, String maxUploadRetries, String retryWaitTime, String stsRoleArn) {
         /* The old hardcoded URL expiry was 4s, so: */
-        this(name, accessKey, secretKey, useRole, 4, maxUploadRetries, retryWaitTime, useSts, stsRoleArn);
+        this(name, accessKey, secretKey, useRole, 4, maxUploadRetries, retryWaitTime, stsRoleArn);
     }
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String retryWaitTime, boolean useSts, String stsRoleArn) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String retryWaitTime, String stsRoleArn) {
         this.name = name;
         this.useRole = useRole;
-        this.useSts = useSts;
         try {
             this.maxUploadRetries = Integer.parseInt(maxUploadRetries);
         } catch(NumberFormatException nfe) {
@@ -74,10 +71,10 @@ public class S3Profile {
             this.accessKey = accessKey;
             this.secretKey = Secret.fromString(secretKey);
         }
-        if (useSts) {
-            this.stsRoleArn = stsRoleArn;
-        } else {
+        if (stsRoleArn == null) {
             this.stsRoleArn = "";
+        } else {
+            this.stsRoleArn = stsRoleArn;
         }
     }
 
@@ -125,14 +122,6 @@ public class S3Profile {
         return signedUrlExpirySeconds;
     }
 
-    public boolean isUseSts() {
-        return useSts;
-    }
-
-    public void setUseSts(boolean useSts) {
-        this.useSts = useSts;
-    }
-
     public String getStsRoleArn() {
         return stsRoleArn;
     }
@@ -143,7 +132,7 @@ public class S3Profile {
 
     public AmazonS3Client getClient() {
         if (client == null) {
-            client = S3Utils.createClient(accessKey, secretKey, useRole, useSts, stsRoleArn);
+            client = S3Utils.createClient(accessKey, secretKey, useRole, stsRoleArn);
         }
         return client;
     }
@@ -176,7 +165,7 @@ public class S3Profile {
 
         while (true) {
             try {
-                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, useSts, stsRoleArn, bucketName, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, stsRoleArn, bucketName, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
                 if (uploadFromSlave) {
                     return filePath.act(callable);
                 } else {
@@ -232,7 +221,7 @@ public class S3Profile {
                   Destination dest = Destination.newFromRun(build, artifact);
                   FilePath target = new FilePath(targetDir, artifact.getName());
                   try {
-                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, useSts, stsRoleArn, dest, console)));
+                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, stsRoleArn, dest, console)));
                   } catch (IOException e) {
                       e.printStackTrace();
                   } catch (InterruptedException e) {

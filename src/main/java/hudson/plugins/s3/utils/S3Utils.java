@@ -17,7 +17,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 
 public class S3Utils {
 
-    public static AmazonS3Client createClient(String accessKey, Secret secretKey, boolean useRole, boolean useSts, String stsRoleArn) {
+    public static AmazonS3Client createClient(String accessKey, Secret secretKey, boolean useRole, String stsRoleArn) {
         AWSCredentialsProvider credentialsProvider;
         if (useRole) {
             credentialsProvider = new DefaultAWSCredentialsProviderChain();
@@ -25,7 +25,7 @@ public class S3Utils {
             BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey.getPlainText());
             credentialsProvider = new StaticCredentialsProvider(credentials);
         }
-        if (useSts) {
+        if (stsRoleArn != null && !stsRoleArn.isEmpty()) {
             credentialsProvider = new STSAssumeRoleSessionCredentialsProvider(credentialsProvider, stsRoleArn, "foo",
                     getClientConfiguration());
         }
