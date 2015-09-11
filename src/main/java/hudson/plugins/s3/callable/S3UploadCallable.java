@@ -20,7 +20,10 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.internal.Mimetypes;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.GroupGrantee;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.Permission;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 
@@ -53,6 +56,7 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
     }
 
     public ObjectMetadata buildMetadata(FilePath filePath) throws IOException, InterruptedException {
+    	
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(Mimetypes.getInstance().getMimetype(filePath.getName()));
         metadata.setContentLength(filePath.length());
@@ -111,8 +115,9 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
             } else {
                 localFile = new File(file.getRemote());
             }
-
-            final PutObjectRequest request = new PutObjectRequest(dest.bucketName, dest.objectName, localFile)
+            AccessControlList acl = new AccessControlList();           
+        	acl.grantPermission(GroupGrantee.AuthenticatedUsers, Permission.FullControl);
+            final PutObjectRequest request = new PutObjectRequest(dest.bucketName, dest.objectName, localFile).withAccessControlList(acl)
                 .withMetadata(buildMetadata(file));
             final PutObjectResult result = getClient().putObject(request);
             return new FingerprintRecord(produced, bucketName, file.getName(), result.getETag());
