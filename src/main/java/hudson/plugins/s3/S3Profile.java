@@ -166,18 +166,22 @@ public class S3Profile {
         getClient().listBuckets();
     }
 
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
+    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, String destinationFile, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
             String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts,boolean useServerSideEncryption, boolean flatten) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
 
         String fileName = null;
-        if (flatten) {
-            fileName = filePath.getName();
+        if (destinationFile == null){
+	        if (flatten) {
+	            fileName = filePath.getName();
+	        } else {
+	            String relativeFileName = filePath.getRemote();
+	            fileName = relativeFileName.substring(searchPathLength);
+	        }
         } else {
-            String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
+        	fileName = destinationFile;
         }
 
         Destination dest = new Destination(bucketName, fileName);

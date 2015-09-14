@@ -6,6 +6,9 @@
         <f:entry title="Destination bucket" field="bucket">
           <f:textbox/>
         </f:entry>
+        <f:entry title="Destination File Name" field="destinationFile">
+          <f:textbox/>
+        </f:entry>
         <f:entry title="Storage class" field="storageClass">
           <f:select />
         </f:entry>
