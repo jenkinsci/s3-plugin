@@ -1,12 +1,20 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.ClientConfiguration;
 import hudson.FilePath;
+import hudson.ProxyConfiguration;
+import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
+import hudson.model.Run;
+import hudson.plugins.s3.callable.CloudFrontInvalidateCallable;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -16,6 +24,7 @@ import jenkins.model.Jenkins;
 import org.apache.tools.ant.types.selectors.FilenameSelector;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
@@ -26,14 +35,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
-
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
-import hudson.model.Run;
-import hudson.ProxyConfiguration;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.util.Secret;
 
 public class S3Profile {
     private String name;
@@ -200,6 +201,24 @@ public class S3Profile {
                 retryCount++;
                 if(retryCount >= maxUploadRetries){
                     throw new IOException("put " + dest + ": " + e + ":: Failed after " + retryCount + " tries.", e);
+                }
+                Thread.sleep(retryWaitTime * 1000);
+            }
+        }
+    }
+    
+    public InvalidationRecord invalidate(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, int searchPathLength, boolean invalidateAfterUpload, FilePath...paths) throws IOException, InterruptedException {
+      
+        int retryCount = 0;
+
+        while (true) {
+            try {
+                CloudFrontInvalidateCallable callable = new CloudFrontInvalidateCallable(accessKey, secretKey, useRole, bucketName, searchPathLength, invalidateAfterUpload);
+                return callable.invoke(paths);
+            } catch (Exception e) {
+                retryCount++;
+                if(retryCount >= maxUploadRetries){
+                    throw new IOException("invalidate paths " + Arrays.toString(paths) + ": " + e + ":: Failed after " + retryCount + " tries.", e);
                 }
                 Thread.sleep(retryWaitTime * 1000);
             }
