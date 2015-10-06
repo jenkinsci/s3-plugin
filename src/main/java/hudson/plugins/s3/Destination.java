@@ -22,14 +22,16 @@ public class Destination implements Serializable {
   
   public Destination(final String userBucketName, final String fileName) {
     
-    if (userBucketName == null || fileName == null) 
-      throw new IllegalArgumentException("Not defined for null parameters: "+userBucketName+","+fileName);
+    if (userBucketName == null)
+      throw new IllegalArgumentException("Not defined for null parameters: "+userBucketName);
     
     final String[] bucketNameArray = userBucketName.split("/", 2);
     
     bucketName = bucketNameArray[0];
-    
-    if (bucketNameArray.length > 1) {
+
+    if (fileName == null) {
+        objectName = bucketNameArray[1];
+    } else if (bucketNameArray.length > 1) {
         objectName = bucketNameArray[1] + "/" + fileName;
     } else {
         objectName = fileName;
