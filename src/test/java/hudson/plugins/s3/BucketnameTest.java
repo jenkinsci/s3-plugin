@@ -27,4 +27,10 @@ public class BucketnameTest {
   
   }
 
+  @Test
+  public void testWindowsPathsConvertingToS3CompatiblePaths() {
+    assertEquals("Destination [bucketName=my-bucket, objectName=with-some/subfolder//path-from/windows.txt]",
+            new Destination("my-bucket/with-some/subfolder/", "path-from\\windows.txt").toString() );
+  }
+
 }

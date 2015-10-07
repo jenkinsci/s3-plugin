@@ -8,7 +8,7 @@
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
-    <version>0.8-SNAPSHOT</version>
+    <version>0.9-SNAPSHOT</version>
     <name>Jenkins S3 publisher plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/S3+Plugin</url>
 
@@ -43,13 +43,14 @@
         <connection>scm:git:ssh://github.com/jenkinsci/s3-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/s3-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/s3-plugin</url>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
 
     <dependencies>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.9.6</version>
+          <groupId>org.jenkins-ci.plugins</groupId>
+          <artifactId>aws-java-sdk</artifactId>
+          <version>1.10.16</version>
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
