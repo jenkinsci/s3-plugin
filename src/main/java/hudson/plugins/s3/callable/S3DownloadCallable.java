@@ -13,7 +13,7 @@ import java.io.PrintStream;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
-public class S3DownloadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord> 
+public class S3DownloadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord>
 {
     private static final long serialVersionUID = 1L;
     final private Destination dest;

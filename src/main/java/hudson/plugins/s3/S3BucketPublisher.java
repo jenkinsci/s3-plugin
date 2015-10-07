@@ -161,7 +161,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                         log(listener.getLogger(), error);
                 }
 
-                int searchPathLength = getSearchPathLength(ws.getRemote(), expanded);
+                int searchPathLength = ws.getRemote().length() + 1;
 
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
                 String storageClass = Util.replaceMacro(entry.storageClass, envVars);
@@ -178,7 +178,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 List<FingerprintRecord> records = Lists.newArrayList();
                 
                 for (FilePath src : paths) {
-                    log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
+                    log(listener.getLogger(), "bucket=" + bucket + ", workspace=" + ws.getRemote() + ", file=" + src.getRemote() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
                     records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten));
                 }
                 if (entry.managedArtifacts) {
@@ -205,25 +205,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             build.setResult(Result.UNSTABLE);
         }
         return true;
-    }
-
-    private int getSearchPathLength(String workSpace, String filterExpanded) {
-        File file1 = new File(workSpace);
-        File file2 = new File(file1, filterExpanded);
-
-        String pathWithFilter = file2.getPath();
-
-        int indexOfWildCard = pathWithFilter.indexOf("*");
-
-        if (indexOfWildCard > 0)
-        {
-            String s = pathWithFilter.substring(0, indexOfWildCard);
-            return s.length();
-        }
-        else
-        {
-            return file2.getParent().length() + 1;
-        }
     }
 
     // Listen for project renames and update property here if needed.
