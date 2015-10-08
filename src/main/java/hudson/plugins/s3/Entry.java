@@ -18,6 +18,13 @@ public final class Entry implements Describable<Entry> {
      * Can contain macros and wildcards.
      */
     public String sourceFile;
+    
+    /**
+     * File name in the S3
+     * This is optional
+     */
+    public String destinationFile;
+    
     /**
      * options for x-amz-storage-class can be STANDARD or REDUCED_REDUNDANCY
      */
@@ -61,11 +68,12 @@ public final class Entry implements Describable<Entry> {
     public boolean flatten;
 
     @DataBoundConstructor
-    public Entry(String bucket, String sourceFile, String storageClass, String selectedRegion,
+    public Entry(String bucket, String sourceFile, String destinationFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
                  boolean useServerSideEncryption, boolean flatten) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
+        this.destinationFile = destinationFile;
         this.storageClass = storageClass;
         this.selectedRegion = selectedRegion;
         this.noUploadOnFailure = noUploadOnFailure;
