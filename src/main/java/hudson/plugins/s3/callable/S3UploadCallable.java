@@ -23,6 +23,7 @@ import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
+import org.jenkinsci.remoting.RoleChecker;
 
 public class S3UploadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord> {
     private static final long serialVersionUID = 1L;
@@ -136,5 +137,10 @@ public class S3UploadCallable extends AbstractS3Callable implements FileCallable
         }
 
         getClient().setRegion(region);
+    }
+
+    @Override
+    public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+        // TODO:
     }
 }

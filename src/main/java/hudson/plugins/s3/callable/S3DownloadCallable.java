@@ -12,6 +12,7 @@ import java.io.PrintStream;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import org.jenkinsci.remoting.RoleChecker;
 
 public class S3DownloadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord> 
 {
@@ -34,4 +35,8 @@ public class S3DownloadCallable extends AbstractS3Callable implements FileCallab
         return new FingerprintRecord(true, dest.bucketName, file.getName(), md.getETag());
     }
 
+    @Override
+    public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+        // TODO: fixme
+    }
 }
