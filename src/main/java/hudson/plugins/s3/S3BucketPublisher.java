@@ -128,7 +128,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             throws InterruptedException, IOException {
 
         final boolean buildFailed = build.getResult() == Result.FAILURE;
-        
         S3Profile profile = getProfile();
         if (profile == null) {
             log(listener.getLogger(), "No S3 profile is configured.");
@@ -136,13 +135,15 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             return true;
         }
         log(listener.getLogger(), "Using S3 profile: " + profile.getName());
+
+        Entry entry = null;
         try {
             Map<String, String> envVars = build.getEnvironment(listener);
             Map<String,String> record = Maps.newHashMap();
             List<FingerprintRecord> artifacts = Lists.newArrayList();
-            
-            for (Entry entry : entries) {
-                
+
+            for (int i = 0; i < entries.size(); i++) {
+                entry = entries.get(i);
                 if (entry.noUploadOnFailure && buildFailed) {
                     // build failed. don't post
                     log(listener.getLogger(), "Skipping publishing on S3 because build failed");
@@ -202,7 +203,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             }
         } catch (IOException e) {
             e.printStackTrace(listener.error("Failed to upload files"));
-            build.setResult(Result.UNSTABLE);
+            if (!entry.passTheBuildUnderS3Failure)
+                build.setResult(Result.UNSTABLE);
+        } catch (Exception e) {
+            if (!entry.passTheBuildUnderS3Failure)
+                build.setResult(Result.UNSTABLE);
         }
         return true;
     }
