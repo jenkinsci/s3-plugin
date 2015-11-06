@@ -124,7 +124,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                            Launcher launcher,
                            BuildListener listener)
             throws InterruptedException, IOException {
-
         final boolean buildFailed = build.getResult() == Result.FAILURE;
         
         S3Profile profile = getProfile();
@@ -157,6 +156,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                     String error = ws.validateAntFileMask(expanded);
                     if (error != null)
                         log(listener.getLogger(), error);
+
+                    if (entry.failNoFilesToUpload) {
+                      log(listener.getLogger(), "Marking build unstable because no file(s) were found.");
+                      build.setResult(Result.UNSTABLE);
+                    }
                 }
 
                 int searchPathLength = getSearchPathLength(ws.getRemote(), expanded);
@@ -193,6 +197,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                     log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
                     records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten, entry.gzipFiles));
                 }
+
                 if (entry.managedArtifacts) {
                     artifacts.addAll(records);
     
@@ -216,6 +221,7 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             e.printStackTrace(listener.error("Failed to upload files"));
             build.setResult(Result.UNSTABLE);
         }
+
         return true;
     }
 
