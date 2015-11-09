@@ -59,6 +59,7 @@ import hudson.plugins.copyartifact.BuildSelector;
 import hudson.plugins.copyartifact.Messages;
 import hudson.plugins.copyartifact.ParametersBuildFilter;
 import hudson.plugins.copyartifact.WorkspaceSelector;
+import hudson.plugins.copyartifact.StatusBuildSelector;
 import hudson.security.AccessControlled;
 import hudson.security.SecurityRealm;
 import hudson.tasks.BuildStepDescriptor;
@@ -101,16 +102,21 @@ public class S3CopyArtifact extends Builder {
     private final String filter, target;
     private /*almost final*/ BuildSelector selector;
     private final Boolean flatten, optional;
+    
+    private static final BuildSelector DEFAULT_BUILD_SELECTOR = new StatusBuildSelector(true);
 
     @DataBoundConstructor
-    public S3CopyArtifact(String projectName, BuildSelector selector, String filter, String target,
+    public S3CopyArtifact(String projectName, BuildSelector buildSelector, String filter, String target,
                         boolean flatten, boolean optional) {
         // Prevents both invalid values and access to artifacts of projects which this user cannot see.
         // If value is parameterized, it will be checked when build runs.
         if (projectName.indexOf('$') < 0 && new JobResolver(projectName).job == null)
             projectName = ""; // Ignore/clear bad value to avoid ugly 500 page
         this.projectName = projectName;
-        this.selector = selector;
+        if (buildSelector == null) {
+            buildSelector = DEFAULT_BUILD_SELECTOR;
+        }
+        this.selector = buildSelector;
         this.filter = Util.fixNull(filter).trim();
         this.target = Util.fixNull(target).trim();
         this.flatten = flatten ? Boolean.TRUE : null;
