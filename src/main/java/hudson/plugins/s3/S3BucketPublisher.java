@@ -1,6 +1,7 @@
 package hudson.plugins.s3;
 
 import com.amazonaws.regions.Regions;
+import com.google.common.collect.Iterables;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -28,10 +29,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.File;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -166,20 +164,34 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
                 String storageClass = Util.replaceMacro(entry.storageClass, envVars);
                 String selRegion = entry.selectedRegion;
-                List<MetadataPair> escapedUserMetadata = new ArrayList<MetadataPair>();
-                for (MetadataPair metadataPair : userMetadata) {
-                    escapedUserMetadata.add(
-                        new MetadataPair(
-                            Util.replaceMacro(metadataPair.key, envVars),
-                            Util.replaceMacro(metadataPair.value, envVars))
-                    );
+
+                Map<String, String> mergedMetadata = new HashMap<String, String>();
+
+                if (userMetadata != null) {
+                    for (MetadataPair pair : userMetadata) {
+                        mergedMetadata.put(pair.key, pair.value);
+                    }
                 }
-                
+
+                if (entry.userMetadata != null) {
+                    for (MetadataPair pair : entry.userMetadata) {
+                        mergedMetadata.put(pair.key, pair.value);
+                    }
+                }
+
+                Map<String, String> escapedMetadata = new HashMap<String, String>();
+
+                for (Map.Entry<String, String> mapEntry : mergedMetadata.entrySet()) {
+                    escapedMetadata.put(
+                            Util.replaceMacro(mapEntry.getKey(), envVars),
+                            Util.replaceMacro(mapEntry.getValue(), envVars));
+                }
+
                 List<FingerprintRecord> records = Lists.newArrayList();
                 
                 for (FilePath src : paths) {
                     log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
-                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedUserMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten));
+                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten, entry.gzipFiles));
                 }
                 if (entry.managedArtifacts) {
                     artifacts.addAll(records);

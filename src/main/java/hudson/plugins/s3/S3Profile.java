@@ -9,6 +9,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
@@ -166,8 +167,8 @@ public class S3Profile {
         getClient().listBuckets();
     }
 
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
-            String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts,boolean useServerSideEncryption, boolean flatten) throws IOException, InterruptedException {
+    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, Map<String, String> userMetadata,
+            String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts, boolean useServerSideEncryption, boolean flatten, boolean gzipFiles) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
@@ -190,7 +191,7 @@ public class S3Profile {
 
         while (true) {
             try {
-                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, bucketName, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
+                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, bucketName, dest, userMetadata, storageClass, selregion, useServerSideEncryption, gzipFiles);
                 if (uploadFromSlave) {
                     return filePath.act(callable);
                 } else {

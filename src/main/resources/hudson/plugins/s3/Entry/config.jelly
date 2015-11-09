@@ -27,5 +27,18 @@
         <f:entry field="flatten" title="Flatten directories">
 		    <f:checkbox />
         </f:entry>
+        <f:entry field="gzipFiles" title="GZIP files">
+            <f:checkbox />
+        </f:entry>
+
+        <f:entry title="Metadata tags">
+            <f:repeatableProperty field="userMetadata">
+                <f:entry title="">
+                  <div align="right">
+                    <f:repeatableDeleteButton />
+                  </div>
+                </f:entry>
+            </f:repeatableProperty>
+        </f:entry>
 
 </j:jelly>
