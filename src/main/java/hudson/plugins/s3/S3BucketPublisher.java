@@ -193,6 +193,9 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                     log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
                     records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten, entry.gzipFiles));
                 }
+                if (entry.invalidateAfterUpload){
+                	profile.invalidate(build, listener, bucket, searchPathLength, paths);
+                }
                 if (entry.managedArtifacts) {
                     artifacts.addAll(records);
     

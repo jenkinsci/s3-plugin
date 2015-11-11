@@ -1,12 +1,14 @@
 package hudson.plugins.s3;
 
 import com.amazonaws.ClientConfiguration;
+
 import hudson.FilePath;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,7 @@ import hudson.model.Run;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.callable.S3DownloadCallable;
 import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.callable.cloudfront.CloudFrontInvalidationCallable;
 import hudson.util.Secret;
 
 public class S3Profile {
@@ -206,6 +209,27 @@ public class S3Profile {
             }
         }
     }
+
+	public void invalidate(AbstractBuild<?, ?> build, final BuildListener listener, String bucketName,
+			int searchPathLength, FilePath... paths) throws IOException, InterruptedException {
+		int retryCount = 0;
+		while (true) {
+			try {
+				CloudFrontInvalidationCallable callable = new CloudFrontInvalidationCallable(accessKey, secretKey, useRole, bucketName,
+						searchPathLength);
+				callable.invoke(paths);
+				return;
+			} catch (Exception e) {
+				retryCount++;
+				if (retryCount >= maxUploadRetries) {
+					throw new IOException("invalidate paths "
+							+ Arrays.toString(paths) + ": " + e
+							+ ":: Failed after " + retryCount + " tries.", e);
+				}
+				Thread.sleep(retryWaitTime * 1000);
+			}
+		}
+	}
 
     public List<String> list(Run build, String bucket, String expandedFilter) {
         AmazonS3Client s3client = getClient();        
