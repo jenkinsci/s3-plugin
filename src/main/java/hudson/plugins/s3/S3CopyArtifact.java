@@ -56,7 +56,6 @@ import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
 import hudson.plugins.copyartifact.BuildFilter;
 import hudson.plugins.copyartifact.BuildSelector;
-import hudson.plugins.copyartifact.Messages;
 import hudson.plugins.copyartifact.ParametersBuildFilter;
 import hudson.plugins.copyartifact.WorkspaceSelector;
 import hudson.security.AccessControlled;
