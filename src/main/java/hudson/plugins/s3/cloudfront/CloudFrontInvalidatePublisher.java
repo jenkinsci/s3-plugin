@@ -29,14 +29,12 @@ import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public final class CloudFrontInvalidatePublisher extends Recorder implements
-		Describable<Publisher> {
-
-	private String profileName;
+public final class CloudFrontInvalidatePublisher extends Recorder implements Describable<Publisher> {
 	
 	@Extension
 	public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
+	private String profileName;
 	private final List<InvalidationEntry> invalidationEntries;
 
 	public CloudFrontInvalidatePublisher(){
@@ -85,13 +83,11 @@ public final class CloudFrontInvalidatePublisher extends Recorder implements
 	}
 
 	protected void log(final PrintStream logger, final String message) {
-		logger.println(StringUtils.defaultString(getDescriptor()
-				.getDisplayName()) + " " + message);
+		logger.println(StringUtils.defaultString(getDescriptor().getDisplayName()) + " " + message);
 	}
 
 	@Override
-	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
-			BuildListener listener) throws InterruptedException, IOException {
+	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
 
 		final boolean buildFailed = build.getResult() == Result.FAILURE;
 
@@ -104,7 +100,6 @@ public final class CloudFrontInvalidatePublisher extends Recorder implements
 		log(listener.getLogger(), "Using S3 profile: " + profile.getName());
 		try {
 			Map<String, String> envVars = build.getEnvironment(listener);
-
 			for (InvalidationEntry entry : invalidationEntries) {
 
 				if (entry.noInvalidateOnFailure && buildFailed) {
@@ -114,13 +109,17 @@ public final class CloudFrontInvalidatePublisher extends Recorder implements
 				}
 
 				String keyPrefix = Util.replaceMacro(entry.keyPrefix, envVars);
-				
 				if (StringUtils.isBlank(keyPrefix)) {
 					log(listener.getLogger(), "No S3 asset key was provided.");
 					continue;
 				}
 
 				String bucket = Util.replaceMacro(entry.bucket, envVars);
+				if (StringUtils.isBlank(bucket)) {
+					log(listener.getLogger(), "S3 bucket was not specified.");
+					continue;
+				}
+				
 				InvalidationRecord invalidationRecord = profile.invalidate(build, listener, bucket, keyPrefix);
 				log(listener.getLogger(), "With bucket = " + bucket 
 						+ "; keyPrefix = " + keyPrefix + ";\n\t" + invalidationRecord);

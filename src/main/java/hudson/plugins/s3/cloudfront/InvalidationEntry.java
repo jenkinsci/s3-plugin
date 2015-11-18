@@ -12,7 +12,7 @@ import org.kohsuke.stapler.QueryParameter;
 public final class InvalidationEntry implements Describable<InvalidationEntry> {
 
     /**
-     * Destination bucket for the copy. Can contain macros.
+     * S3 bucket the entry belongs to. Can contain macros.
      */
     public String bucket;
     /**

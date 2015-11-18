@@ -20,11 +20,9 @@ import com.google.common.collect.Lists;
 
 public class CloudFrontInvalidationCallable extends AbstractCloudFrontCallable {
 
-	private static final String UNIX_SEPARATOR = "/";
-
 	private static final long serialVersionUID = 1L;
-	
 	private static final Logger log = Logger.getLogger(CloudFrontInvalidationCallable.class.getName());
+	private static final String UNIX_SEPARATOR = "/";
 
 	public CloudFrontInvalidationCallable(String accessKey, Secret secretKey, boolean useRole) {
 		super(accessKey, secretKey, useRole);
@@ -77,7 +75,7 @@ public class CloudFrontInvalidationCallable extends AbstractCloudFrontCallable {
 		CreateInvalidationResult invalidationResult = getClient().createInvalidation(
 						new CreateInvalidationRequest(distributionId,
 								new InvalidationBatch(new Paths().withItems(paths)
-										.withQuantity(paths.size()),	callerReference)));
+										.withQuantity(paths.size()), callerReference)));
 		return invalidationResult.getInvalidation();
 	}
 }
