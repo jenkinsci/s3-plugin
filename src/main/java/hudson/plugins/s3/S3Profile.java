@@ -246,12 +246,12 @@ public class S3Profile {
         
         ObjectListing objectListing;
         do {
-            objectListing = s3client.listObjects(listObjectsRequest);
-            for (S3ObjectSummary summary : objectListing.getObjectSummaries()) {
-                GetObjectRequest req = new GetObjectRequest(dest.bucketName, summary.getKey());
-                files.add(req.getKey());
-            }
-            listObjectsRequest.setMarker(objectListing.getNextMarker());
+          objectListing = s3client.listObjects(listObjectsRequest);
+          for (S3ObjectSummary summary : objectListing.getObjectSummaries()) {
+            GetObjectRequest req = new GetObjectRequest(dest.bucketName, summary.getKey());
+            files.add(req.getKey());
+          }
+          listObjectsRequest.setMarker(objectListing.getNextMarker());
         } while (objectListing.isTruncated());        
         return files;
       }
