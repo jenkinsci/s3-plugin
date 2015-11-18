@@ -1,14 +1,20 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.ClientConfiguration;
-
 import hudson.FilePath;
+import hudson.ProxyConfiguration;
+import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
+import hudson.model.Run;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.cloudfront.InvalidationRecord;
+import hudson.plugins.s3.cloudfront.callable.CloudFrontInvalidationCallable;
+import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +25,7 @@ import jenkins.model.Jenkins;
 import org.apache.tools.ant.types.selectors.FilenameSelector;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
@@ -29,15 +36,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
-
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
-import hudson.model.Run;
-import hudson.ProxyConfiguration;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.plugins.s3.callable.cloudfront.CloudFrontInvalidationCallable;
-import hudson.util.Secret;
 
 public class S3Profile {
     private String name;
@@ -209,21 +207,25 @@ public class S3Profile {
             }
         }
     }
+	
+    public InvalidationRecord invalidate(AbstractBuild<?, ?> build, BuildListener listener, String bucket, String keyPrefix) throws IOException, InterruptedException {
+    	List<String> filesToInvalidate = list(new Destination(bucket, keyPrefix));
+    	return invalidate(build, listener, bucket, filesToInvalidate);
+	}
+	
+	
 
-	public void invalidate(AbstractBuild<?, ?> build, final BuildListener listener, String bucketName,
-			int searchPathLength, FilePath... paths) throws IOException, InterruptedException {
+	private InvalidationRecord invalidate(AbstractBuild<?, ?> build, final BuildListener listener, String bucket, List<String> paths) throws IOException, InterruptedException {
 		int retryCount = 0;
 		while (true) {
 			try {
-				CloudFrontInvalidationCallable callable = new CloudFrontInvalidationCallable(accessKey, secretKey, useRole, bucketName,
-						searchPathLength);
-				callable.invoke(paths);
-				return;
+				CloudFrontInvalidationCallable callable = new CloudFrontInvalidationCallable(accessKey, secretKey, useRole);
+				return callable.invoke(bucket, paths);
 			} catch (Exception e) {
 				retryCount++;
 				if (retryCount >= maxUploadRetries) {
 					throw new IOException("invalidate paths "
-							+ Arrays.toString(paths) + ": " + e
+							+ paths.toString() + ": " + e
 							+ ":: Failed after " + retryCount + " tries.", e);
 				}
 				Thread.sleep(retryWaitTime * 1000);
@@ -232,13 +234,15 @@ public class S3Profile {
 	}
 
     public List<String> list(Run build, String bucket, String expandedFilter) {
-        AmazonS3Client s3client = getClient();        
-
         String buildName = build.getDisplayName();
         int buildID = build.getNumber();
         Destination dest = new Destination(bucket, "jobs/" + buildName + "/" + buildID + "/" + name);
+        return list(dest);
+      }
 
-        ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
+	private List<String> list(Destination dest) {
+		AmazonS3Client s3client = getClient();        
+		ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
         .withBucketName(dest.bucketName)
         .withPrefix(dest.objectName);
 

@@ -1,4 +1,4 @@
-package hudson.plugins.s3.callable.cloudfront;
+package hudson.plugins.s3.cloudfront.callable;
 
 import hudson.util.Secret;
 

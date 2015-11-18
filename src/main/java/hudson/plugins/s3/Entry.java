@@ -69,11 +69,6 @@ public final class Entry implements Describable<Entry> {
     public boolean gzipFiles;
 
     /**
-     * use to invalidate uploaded files among available CloudFront distributions
-     */
-    public boolean invalidateAfterUpload;
-    
-    /**
     * Metadata overrides
     */
     public List<MetadataPair> userMetadata;
@@ -81,7 +76,7 @@ public final class Entry implements Describable<Entry> {
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
-                 boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, boolean invalidateAfterUpload, List<MetadataPair> userMetadata) {
+                 boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, List<MetadataPair> userMetadata) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
         this.storageClass = storageClass;
@@ -92,7 +87,6 @@ public final class Entry implements Describable<Entry> {
         this.useServerSideEncryption = useServerSideEncryption;
         this.flatten = flatten;
         this.gzipFiles = gzipFiles;
-		this.invalidateAfterUpload = invalidateAfterUpload;
         this.userMetadata = userMetadata;
     }
 

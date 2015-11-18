@@ -1,0 +1,17 @@
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+
+	<f:entry title="S3 bucket" field="bucket">
+    	<f:textbox/>
+    </f:entry>
+    <f:entry title="S3 Key prefix" field="keyPrefix">
+    	<f:textbox/>
+    </f:entry>
+    <f:entry title="No invalidate on build failure" field="noInvalidateOnFailure">
+		<f:checkbox />
+    </f:entry>
+    <f:entry title="">
+		<div align="right" display="block">
+ 		     <f:repeatableDeleteButton />
+      	</div>
+    </f:entry>
+</j:jelly>
