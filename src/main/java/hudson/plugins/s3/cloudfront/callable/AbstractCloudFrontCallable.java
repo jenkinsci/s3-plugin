@@ -14,7 +14,7 @@ public class AbstractCloudFrontCallable implements Serializable {
 	private final String accessKey;
 	private final Secret secretKey;
 	private final boolean useRole;
-	private AmazonCloudFront cloudFrontClient;
+	private transient AmazonCloudFront cloudFrontClient;
 
 	public AbstractCloudFrontCallable(String accessKey, Secret secretKey, boolean useRole) {
 		this.accessKey = accessKey;

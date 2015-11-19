@@ -48,11 +48,11 @@ public final class InvalidationEntry implements Describable<InvalidationEntry> {
         }
         
     	public FormValidation doCheckBucket(@QueryParameter String bucket) {
-			return checkNotBlank(bucket, "Bucket name must be speified");
+			return checkNotBlank(bucket, "Bucket name must be speсified");
 		}
 		
 		public FormValidation doCheckKeyPrefix(@QueryParameter String keyPrefix) {
-			return checkNotBlank(keyPrefix, "Key prefix name must be speified");
+			return checkNotBlank(keyPrefix, "Key prefix name must be speсified");
 		}
 
 		private FormValidation checkNotBlank(String value, String errorMessage) {
