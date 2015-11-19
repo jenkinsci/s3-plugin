@@ -206,46 +206,42 @@ public class S3Profile {
                 Thread.sleep(retryWaitTime * 1000);
             }
         }
-    }
-	
-    public InvalidationRecord invalidate(AbstractBuild<?, ?> build, BuildListener listener, String bucket, String keyPrefix) throws IOException, InterruptedException {
+      }
+      
+      public InvalidationRecord invalidate(AbstractBuild<?, ?> build, BuildListener listener, String bucket, String keyPrefix) throws IOException, InterruptedException {
     	List<String> filesToInvalidate = list(new Destination(bucket, keyPrefix));
     	return invalidate(build, listener, bucket, filesToInvalidate);
-	}
+      }
 	
 	
 
-	private InvalidationRecord invalidate(AbstractBuild<?, ?> build, final BuildListener listener, String bucket, List<String> paths) throws IOException, InterruptedException {
-		int retryCount = 0;
-		while (true) {
-			try {
-				CloudFrontInvalidationCallable callable = new CloudFrontInvalidationCallable(accessKey, secretKey, useRole);
-				return callable.invoke(bucket, paths);
-			} catch (Exception e) {
-				retryCount++;
-				if (retryCount >= maxUploadRetries) {
-					throw new IOException("invalidate paths "
-							+ paths.toString() + ": " + e
-							+ ":: Failed after " + retryCount + " tries.", e);
-				}
-				Thread.sleep(retryWaitTime * 1000);
-			}
+      private InvalidationRecord invalidate(AbstractBuild<?, ?> build, final BuildListener listener, String bucket, List<String> paths) throws IOException, InterruptedException {
+	int retryCount = 0;
+	while (true) {
+	    try {
+		CloudFrontInvalidationCallable callable = new CloudFrontInvalidationCallable(accessKey, secretKey, useRole);
+		return callable.invoke(bucket, paths);
+	    } catch (Exception e) {
+		retryCount++;
+		if (retryCount >= maxUploadRetries) {
+	    	    throw new IOException("invalidate paths " + paths.toString() + ": " + e
+				+ ":: Failed after " + retryCount + " tries.", e);
 		}
+		Thread.sleep(retryWaitTime * 1000);
+	    }
 	}
+      }
 
-    public List<String> list(Run build, String bucket, String expandedFilter) {
+      public List<String> list(Run build, String bucket, String expandedFilter) {
         String buildName = build.getDisplayName();
         int buildID = build.getNumber();
         Destination dest = new Destination(bucket, "jobs/" + buildName + "/" + buildID + "/" + name);
         return list(dest);
       }
 
-	private List<String> list(Destination dest) {
-		AmazonS3Client s3client = getClient();        
-		ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
-        .withBucketName(dest.bucketName)
-        .withPrefix(dest.objectName);
-
+      private List<String> list(Destination dest) {
+	AmazonS3Client s3client = getClient();        
+	ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(dest.bucketName).withPrefix(dest.objectName);
         List<String> files = Lists.newArrayList();
         
         ObjectListing objectListing;
