@@ -24,7 +24,6 @@
 package hudson.plugins.s3;
 
 import com.google.common.collect.Maps;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -32,7 +31,6 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
-import hudson.diagnosis.OldDataMonitor;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
@@ -42,7 +40,6 @@ import hudson.model.AbstractProject;
 import hudson.model.Build;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
-import hudson.model.Descriptor.FormException;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.Fingerprint;
 import hudson.model.FingerprintMap;
@@ -54,11 +51,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
-import hudson.plugins.copyartifact.BuildFilter;
-import hudson.plugins.copyartifact.BuildSelector;
-import hudson.plugins.copyartifact.Messages;
-import hudson.plugins.copyartifact.ParametersBuildFilter;
-import hudson.plugins.copyartifact.WorkspaceSelector;
+import hudson.plugins.copyartifact.*;
 import hudson.security.AccessControlled;
 import hudson.security.SecurityRealm;
 import hudson.tasks.BuildStepDescriptor;
@@ -66,29 +59,24 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.DescribableList;
 import hudson.util.FormValidation;
-import hudson.util.Memoizer;
-import hudson.util.XStream2;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
 
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * This is a S3 variant of the CopyArtifact plugin:
@@ -102,15 +90,22 @@ public class S3CopyArtifact extends Builder {
     private /*almost final*/ BuildSelector selector;
     private final Boolean flatten, optional;
 
+    private static final BuildSelector DEFAULT_BUILD_SELECTOR = new StatusBuildSelector(true);
+
     @DataBoundConstructor
-    public S3CopyArtifact(String projectName, BuildSelector selector, String filter, String target,
+    public S3CopyArtifact(String projectName, BuildSelector buildSelector, String filter, String target,
                         boolean flatten, boolean optional) {
         // Prevents both invalid values and access to artifacts of projects which this user cannot see.
         // If value is parameterized, it will be checked when build runs.
         if (projectName.indexOf('$') < 0 && new JobResolver(projectName).job == null)
             projectName = ""; // Ignore/clear bad value to avoid ugly 500 page
         this.projectName = projectName;
-        this.selector = selector;
+
+        if (buildSelector == null) {
+            buildSelector = DEFAULT_BUILD_SELECTOR;
+        }
+        this.selector = buildSelector;
+
         this.filter = Util.fixNull(filter).trim();
         this.target = Util.fixNull(target).trim();
         this.flatten = flatten ? Boolean.TRUE : null;
@@ -222,10 +217,14 @@ public class S3CopyArtifact extends Builder {
           console.println("Build " + src.getDisplayName() + "[" + src.number + "] doesn't have any S3 artifacts uploaded");
           return false;
         }
-      
-       
+
         S3Profile profile = S3BucketPublisher.getProfile(action.getProfile());
-        
+
+        if (profile == null) {
+            console.println("Can't find S3 profile");
+            return false;
+        }
+
         try {
             targetDir.mkdirs();
             List<FingerprintRecord> records = profile.downloadAll(src, action.getArtifacts(), expandedFilter, targetDir, isFlatten(), console);
@@ -233,11 +232,9 @@ public class S3CopyArtifact extends Builder {
             Map<String, String> fingerprints = Maps.newHashMap();
             for(FingerprintRecord record : records) {
                 FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
-                
+
                 Fingerprint f = map.getOrCreate(src, record.getName(), record.getFingerprint());
-                if (src!=null) {
-                    f.add((AbstractBuild)src);
-                }
+                f.add((AbstractBuild)src);
                 f.add(dst);
                 fingerprints.put(record.getName(), record.getFingerprint());
             }

@@ -14,10 +14,10 @@ import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.tools.ant.types.selectors.FilenameSelector;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -44,7 +44,8 @@ public class S3Profile {
     private String proxyPort;
     private int maxUploadRetries;
     private int retryWaitTime;
-    private transient volatile AmazonS3Client client = null;
+    private transient volatile AmazonS3Client client;
+
     private ClientConfiguration clientConfiguration = null;
     private boolean useRole;
     private int signedUrlExpirySeconds = 60;
@@ -137,11 +138,7 @@ public class S3Profile {
 
     public AmazonS3Client getClient() {
         if (client == null) {
-            if (useRole) {
-                client = new AmazonS3Client(getClientConfiguration());
-            } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration());
-            }
+            client = ClientHelper.createClient(accessKey, secretKey, useRole);
         }
         return client;
     }
@@ -167,31 +164,33 @@ public class S3Profile {
         getClient().listBuckets();
     }
 
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, Map<String, String> userMetadata,
+    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int workspacePath, Map<String, String> userMetadata,
             String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts, boolean useServerSideEncryption, boolean flatten, boolean gzipFiles) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
 
-        String fileName = null;
+        String fileName;
         if (flatten) {
             fileName = filePath.getName();
         } else {
             String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
+            fileName = relativeFileName.substring(workspacePath);
         }
 
         Destination dest = new Destination(bucketName, fileName);
         boolean produced = false;
         if (managedArtifacts) {
-            dest = Destination.newFromBuild(build, bucketName, filePath.getName());
+            dest = Destination.newFromBuild(build, bucketName, fileName);
             produced = build.getTimeInMillis() <= filePath.lastModified()+2000;
         }
         int retryCount = 0;
 
         while (true) {
             try {
-                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, bucketName, dest, userMetadata, storageClass, selregion, useServerSideEncryption, gzipFiles);
+                S3UploadCallable callable = new S3UploadCallable(produced, fileName, accessKey, secretKey, useRole,
+                        bucketName, dest, userMetadata, storageClass, selregion, useServerSideEncryption, gzipFiles);
+
                 if (uploadFromSlave) {
                     return filePath.act(callable);
                 } else {
@@ -236,32 +235,53 @@ public class S3Profile {
        * Download all artifacts from a given build
        */
       public List<FingerprintRecord> downloadAll(Run build, List<FingerprintRecord> artifacts, String expandedFilter, FilePath targetDir, boolean flatten, PrintStream console) {
-
-          FilenameSelector selector = new FilenameSelector();
-          selector.setName(expandedFilter);
-          
           List<FingerprintRecord> fingerprints = Lists.newArrayList();
           for(FingerprintRecord record : artifacts) {
               S3Artifact artifact = record.artifact;
-              if (selector.isSelected(new File("/"), artifact.getName(), null)) {
-                  Destination dest = Destination.newFromRun(build, artifact);
-                  FilePath target = new FilePath(targetDir, artifact.getName());
+              Destination dest = Destination.newFromRun(build, artifact);
+              FilePath target = getFilePath(targetDir, flatten, artifact);
+
+              if (selected(expandedFilter, artifact)) {
                   try {
-                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, console)));
+                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest)));
                   } catch (IOException e) {
-                      e.printStackTrace();
+                      e.printStackTrace(console);
                   } catch (InterruptedException e) {
-                      e.printStackTrace();
+                      e.printStackTrace(console);
                   }
               }
           }
           return fingerprints;
       }
 
-      /**
+    private boolean selected(String expandedFilter, S3Artifact artifact) {
+        final String[] filters = expandedFilter.split(",");
+        final FilenameSelector selector = new FilenameSelector();
+
+        for (String filter : filters) {
+            selector.setName(filter);
+
+            if (selector.isSelected(new File("/"), artifact.getName(), null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private FilePath getFilePath(FilePath targetDir, boolean flatten, S3Artifact artifact) {
+        if (flatten) {
+            return new FilePath(targetDir, FilenameUtils.getName(artifact.getName()));
+        }
+        else  {
+            return new FilePath(targetDir, artifact.getName());
+        }
+    }
+
+    /**
        * Delete some artifacts of a given run
        * @param build
-       * @param artifact
+       * @param record
        */
       public void delete(Run build, FingerprintRecord record) {
           Destination dest = Destination.newFromRun(build, record.artifact);
@@ -285,7 +305,7 @@ public class S3Profile {
           ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
           // let the browser use the last part of the name, not the full path
           // when saving.
-          String fileName = (new File(dest.objectName)).getName().trim(); 
+          String fileName = (new File(dest.objectName)).getName().trim();
           headers.setContentDisposition("attachment; filename=\"" + fileName + "\"");
           request.setResponseHeaders(headers);
           URL url = getClient().generatePresignedUrl(request);
