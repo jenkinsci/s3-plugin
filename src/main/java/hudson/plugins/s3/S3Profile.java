@@ -12,12 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
 
-import org.apache.tools.ant.types.selectors.FilenameSelector;
+import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -28,8 +28,7 @@ import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
+
 import hudson.model.Run;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.callable.S3DownloadCallable;
@@ -44,7 +43,8 @@ public class S3Profile {
     private String proxyPort;
     private int maxUploadRetries;
     private int retryWaitTime;
-    private transient volatile AmazonS3Client client = null;
+    private transient volatile AmazonS3Client client;
+
     private ClientConfiguration clientConfiguration = null;
     private boolean useRole;
     private int signedUrlExpirySeconds = 60;
@@ -137,11 +137,7 @@ public class S3Profile {
 
     public AmazonS3Client getClient() {
         if (client == null) {
-            if (useRole) {
-                client = new AmazonS3Client(getClientConfiguration());
-            } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration());
-            }
+            client = ClientHelper.createClient(accessKey, secretKey, useRole);
         }
         return client;
     }
@@ -167,31 +163,35 @@ public class S3Profile {
         getClient().listBuckets();
     }
 
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, Map<String, String> userMetadata,
-            String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts, boolean useServerSideEncryption, boolean flatten, boolean gzipFiles) throws IOException, InterruptedException {
+    public FingerprintRecord upload(Run<?, ?> run, final TaskListener listener, String bucketName, FilePath filePath,
+                                    int workspacePath, Map<String, String> userMetadata,
+                                    String storageClass, String selregion, boolean uploadFromSlave,
+                                    boolean managedArtifacts, boolean useServerSideEncryption, boolean flatten, boolean gzipFiles) throws IOException, InterruptedException {
         if (filePath.isDirectory()) {
             throw new IOException(filePath + " is a directory");
         }
 
-        String fileName = null;
+        String fileName;
         if (flatten) {
             fileName = filePath.getName();
         } else {
             String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
+            fileName = relativeFileName.substring(workspacePath);
         }
 
         Destination dest = new Destination(bucketName, fileName);
         boolean produced = false;
         if (managedArtifacts) {
-            dest = Destination.newFromBuild(build, bucketName, filePath.getName());
-            produced = build.getTimeInMillis() <= filePath.lastModified()+2000;
+            dest = Destination.newFromRun(run, bucketName, fileName);
+            produced = run.getTimeInMillis() <= filePath.lastModified()+2000;
         }
         int retryCount = 0;
 
         while (true) {
             try {
-                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, bucketName, dest, userMetadata, storageClass, selregion, useServerSideEncryption, gzipFiles);
+                S3UploadCallable callable = new S3UploadCallable(produced, fileName, accessKey, secretKey, useRole,
+                        bucketName, dest, userMetadata, storageClass, selregion, useServerSideEncryption, gzipFiles);
+
                 if (uploadFromSlave) {
                     return filePath.act(callable);
                 } else {
@@ -208,7 +208,7 @@ public class S3Profile {
     }
 
     public List<String> list(Run build, String bucket, String expandedFilter) {
-        AmazonS3Client s3client = getClient();        
+        AmazonS3Client s3client = getClient();
 
         String buildName = build.getDisplayName();
         int buildID = build.getNumber();
@@ -219,7 +219,7 @@ public class S3Profile {
         .withPrefix(dest.objectName);
 
         List<String> files = Lists.newArrayList();
-        
+
         ObjectListing objectListing;
         do {
           objectListing = s3client.listObjects(listObjectsRequest);
@@ -228,43 +228,51 @@ public class S3Profile {
             files.add(req.getKey());
           }
           listObjectsRequest.setMarker(objectListing.getNextMarker());
-        } while (objectListing.isTruncated());        
+        } while (objectListing.isTruncated());
         return files;
       }
 
       /**
        * Download all artifacts from a given build
        */
-      public List<FingerprintRecord> downloadAll(Run build, List<FingerprintRecord> artifacts, String expandedFilter, FilePath targetDir, boolean flatten, PrintStream console) {
-
-          FilenameSelector selector = new FilenameSelector();
-          selector.setName(expandedFilter);
-          
+      public List<FingerprintRecord> downloadAll(Run build, List<FingerprintRecord> artifacts, String includeFilter, String excludeFilter, FilePath targetDir, boolean flatten, PrintStream console) {
           List<FingerprintRecord> fingerprints = Lists.newArrayList();
           for(FingerprintRecord record : artifacts) {
               S3Artifact artifact = record.artifact;
-              if (selector.isSelected(new File("/"), artifact.getName(), null)) {
-                  Destination dest = Destination.newFromRun(build, artifact);
-                  FilePath target = new FilePath(targetDir, artifact.getName());
+              Destination dest = Destination.newFromRun(build, artifact);
+              FilePath target = getFilePath(targetDir, flatten, artifact);
+
+              if (FileHelper.selected(includeFilter, excludeFilter, artifact.getName())) {
                   try {
-                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, console)));
+                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest)));
                   } catch (IOException e) {
-                      e.printStackTrace();
+                      e.printStackTrace(console);
                   } catch (InterruptedException e) {
-                      e.printStackTrace();
+                      e.printStackTrace(console);
                   }
               }
           }
           return fingerprints;
       }
 
-      /**
+
+
+    private FilePath getFilePath(FilePath targetDir, boolean flatten, S3Artifact artifact) {
+        if (flatten) {
+            return new FilePath(targetDir, FilenameUtils.getName(artifact.getName()));
+        }
+        else  {
+            return new FilePath(targetDir, artifact.getName());
+        }
+    }
+
+    /**
        * Delete some artifacts of a given run
-       * @param build
-       * @param artifact
+       * @param run
+       * @param record
        */
-      public void delete(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.artifact);
+      public void delete(Run run, FingerprintRecord record) {
+          Destination dest = Destination.newFromRun(run, record.artifact);
           DeleteObjectRequest req = new DeleteObjectRequest(dest.bucketName, dest.objectName);
           getClient().deleteObject(req);
       }
@@ -278,14 +286,14 @@ public class S3Profile {
        * download and there's no need for the user to have credentials to
        * access S3.
        */
-      public String getDownloadURL(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.artifact);
+      public String getDownloadURL(Run run, FingerprintRecord record) {
+          Destination dest = Destination.newFromRun(run, record.artifact);
           GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
           request.setExpiration(new Date(System.currentTimeMillis() + this.signedUrlExpirySeconds*1000));
           ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
           // let the browser use the last part of the name, not the full path
           // when saving.
-          String fileName = (new File(dest.objectName)).getName().trim(); 
+          String fileName = (new File(dest.objectName)).getName().trim();
           headers.setContentDisposition("attachment; filename=\"" + fileName + "\"");
           request.setResponseHeaders(headers);
           URL url = getClient().generatePresignedUrl(request);
@@ -306,6 +314,17 @@ public class S3Profile {
         }
 
         return shouldProxy;
+    }
+
+
+    @Override
+    public String toString() {
+        return "S3Profile{" +
+                "name='" + name + '\'' +
+                ", accessKey='" + accessKey + '\'' +
+                ", secretKey=" + secretKey +
+                ", useRole=" + useRole +
+                '}';
     }
 
 }

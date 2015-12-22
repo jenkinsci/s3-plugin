@@ -58,11 +58,4 @@ public class Destination implements Serializable {
   {
     return newFromRun(run, artifact.getBucket(), artifact.getName());
   }
-    
-  public static Destination newFromBuild(AbstractBuild<?, ?> build, String bucketName, String fileName)
-  {
-    String projectName = build.getParent().getName();
-    int buildID =build.getNumber();
-    return new Destination(bucketName, "jobs/" + projectName + "/" + buildID + "/" + fileName);
-  }
 }
