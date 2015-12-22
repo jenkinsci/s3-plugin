@@ -3,6 +3,9 @@
         <f:entry title="Source" field="sourceFile">
           <f:textbox/>
         </f:entry>
+        <f:entry title="Exclude" field="excludedFile">
+            <f:textbox/>
+        </f:entry>
         <f:entry title="Destination bucket" field="bucket">
           <f:textbox/>
         </f:entry>

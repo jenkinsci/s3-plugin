@@ -1,13 +1,12 @@
 package hudson.plugins.s3;
 
-import hudson.model.AbstractBuild;
 import hudson.model.Fingerprint;
 import hudson.model.FingerprintMap;
+import hudson.model.Run;
+import jenkins.model.Jenkins;
 
 import java.io.IOException;
 import java.io.Serializable;
-
-import jenkins.model.Jenkins;
 
 public class FingerprintRecord implements Serializable {
   private static final long serialVersionUID = 1L;
@@ -22,9 +21,9 @@ public class FingerprintRecord implements Serializable {
       this.md5sum = md5sum;
   }
 
-  Fingerprint addRecord(AbstractBuild<?,?> build) throws IOException {
+  Fingerprint addRecord(Run<?,?> run) throws IOException {
       FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
-      return map.getOrCreate(produced?build:null, artifact.getName(), md5sum);
+      return map.getOrCreate(produced ? run:null, artifact.getName(), md5sum);
   }
 
   public String getName() {

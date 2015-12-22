@@ -1,13 +1,16 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:ca="/hudson/plugins/copyartifact">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form">
   <f:entry title="Project name" field="projectName">
     <f:editableComboBox items="${app.topLevelItemNames}" clazz="setting-input"/>
   </f:entry>
-  <ca:selectorList currentSelector="${instance.buildSelector}"
-      name="selector" title="Which build"/>
-  <f:entry title="Artifacts to copy" field="filter">
+  <f:dropdownDescriptorSelector field="buildSelector" help="/plugin/copyartifact/help-buildSelector.html"
+    name="buildSelector" title="Which build" descriptors="${descriptor.availableBuildSelectorList}" />
+  <f:entry title="Artifacts to copy" field="includeFilter">
     <f:textbox/>
   </f:entry>
+  <f:entry title="Artifacts not to copy" field="excludeFilter">
+      <f:textbox/>
+    </f:entry>
   <f:entry title="Target directory" field="target">
     <f:textbox/>
   </f:entry>
