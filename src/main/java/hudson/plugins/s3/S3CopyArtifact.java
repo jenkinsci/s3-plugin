@@ -24,7 +24,6 @@
 package hudson.plugins.s3;
 
 import com.google.common.collect.Maps;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -32,7 +31,6 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
-import hudson.diagnosis.OldDataMonitor;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
@@ -42,7 +40,6 @@ import hudson.model.AbstractProject;
 import hudson.model.Build;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
-import hudson.model.Descriptor.FormException;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.Fingerprint;
 import hudson.model.FingerprintMap;
@@ -54,11 +51,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
-import hudson.plugins.copyartifact.BuildFilter;
-import hudson.plugins.copyartifact.BuildSelector;
-import hudson.plugins.copyartifact.Messages;
-import hudson.plugins.copyartifact.ParametersBuildFilter;
-import hudson.plugins.copyartifact.WorkspaceSelector;
+import hudson.plugins.copyartifact.*;
 import hudson.security.AccessControlled;
 import hudson.security.SecurityRealm;
 import hudson.tasks.BuildStepDescriptor;
@@ -66,29 +59,24 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.DescribableList;
 import hudson.util.FormValidation;
-import hudson.util.Memoizer;
-import hudson.util.XStream2;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
 
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * This is a S3 variant of the CopyArtifact plugin:
@@ -98,20 +86,31 @@ import org.kohsuke.stapler.StaplerRequest;
 public class S3CopyArtifact extends Builder {
 
     private String projectName;
-    private final String filter, target;
+    private final String includeFilter;
+    private final String excludeFilter;
+    private final String target;
+
     private /*almost final*/ BuildSelector selector;
     private final Boolean flatten, optional;
 
+    private static final BuildSelector DEFAULT_BUILD_SELECTOR = new StatusBuildSelector(true);
+
     @DataBoundConstructor
-    public S3CopyArtifact(String projectName, BuildSelector selector, String filter, String target,
-                        boolean flatten, boolean optional) {
+    public S3CopyArtifact(String projectName, BuildSelector buildSelector, String includeFilter,
+                          String excludeFilter, String target, boolean flatten, boolean optional) {
         // Prevents both invalid values and access to artifacts of projects which this user cannot see.
         // If value is parameterized, it will be checked when build runs.
         if (projectName.indexOf('$') < 0 && new JobResolver(projectName).job == null)
             projectName = ""; // Ignore/clear bad value to avoid ugly 500 page
         this.projectName = projectName;
-        this.selector = selector;
-        this.filter = Util.fixNull(filter).trim();
+
+        if (buildSelector == null) {
+            buildSelector = DEFAULT_BUILD_SELECTOR;
+        }
+        this.selector = buildSelector;
+
+        this.includeFilter = Util.fixNull(includeFilter).trim();
+        this.excludeFilter = Util.fixNull(excludeFilter).trim();
         this.target = Util.fixNull(target).trim();
         this.flatten = flatten ? Boolean.TRUE : null;
         this.optional = optional ? Boolean.TRUE : null;
@@ -125,8 +124,11 @@ public class S3CopyArtifact extends Builder {
         return selector;
     }
 
-    public String getFilter() {
-        return filter;
+    public String getIncludeFilter() {
+        return includeFilter;
+    }
+    public String getExcludeFilter() {
+        return excludeFilter;
     }
 
     public String getTarget() {
@@ -145,7 +147,10 @@ public class S3CopyArtifact extends Builder {
     public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException {
         PrintStream console = listener.getLogger();
-        String expandedProject = projectName, expandedFilter = filter;
+        String expandedProject = projectName;
+        String includeFilter = getIncludeFilter();
+        String excludeFilter = getExcludeFilter();
+
         try {
             EnvVars env = build.getEnvironment(listener);
             env.overrideAll(build.getBuildVariables()); // Add in matrix axes..
@@ -171,50 +176,62 @@ public class S3CopyArtifact extends Builder {
                 console.println(Messages.CopyArtifact_MissingBuild(expandedProject));
                 return isOptional();  // Fail build unless copy is optional
             }
-            FilePath targetDir = build.getWorkspace(), baseTargetDir = targetDir;
+
+            FilePath targetDir = build.getWorkspace();
             if (targetDir == null || !targetDir.exists()) {
                 console.println(Messages.CopyArtifact_MissingWorkspace()); // (see JENKINS-3330)
                 return isOptional();  // Fail build unless copy is optional
             }
+
             // Add info about the selected build into the environment
             EnvAction envData = build.getAction(EnvAction.class);
             if (envData != null) {
                 envData.add(expandedProject, src.getNumber());
             }
-            if (target.length() > 0) targetDir = new FilePath(targetDir, env.expand(target));
-            expandedFilter = env.expand(filter);
-            if (expandedFilter.trim().length() == 0) expandedFilter = "**";
+
+            if (target.length() > 0)
+                targetDir = new FilePath(targetDir, env.expand(target));
+
+            includeFilter = env.expand(includeFilter);
+            if (includeFilter.trim().length() == 0)
+                includeFilter = "**";
+
+            excludeFilter = env.expand(excludeFilter);
 
             if (src instanceof MavenModuleSetBuild) {
                 // Copy artifacts from the build (ArchiveArtifacts build step)
-                boolean ok = perform(src, build, expandedFilter, targetDir, baseTargetDir, console);
+                boolean ok = perform(src, build, includeFilter, excludeFilter, targetDir, console);
+
                 // Copy artifacts from all modules of this Maven build (automatic archiving)
-                for (Run r : ((MavenModuleSetBuild)src).getModuleLastBuilds().values())
-                    ok |= perform(r, build, expandedFilter, targetDir, baseTargetDir, console);
+                for (Run r : ((MavenModuleSetBuild)src).getModuleLastBuilds().values()) {
+                    ok |= perform(r, build, includeFilter, excludeFilter, targetDir, console);
+                }
+
                 return ok;
             } else if (src instanceof MatrixBuild) {
                 boolean ok = false;
                 // Copy artifacts from all configurations of this matrix build
                 // Use MatrixBuild.getExactRuns if available
-                for (Run r : ((MatrixBuild) src).getExactRuns())
+                for (Run r : ((MatrixBuild) src).getExactRuns()) {
                     // Use subdir of targetDir with configuration name (like "jdk=java6u20")
-                    ok |= perform(r, build, expandedFilter, targetDir.child(r.getParent().getName()),
-                                  baseTargetDir, console);
+                    FilePath subdir = targetDir.child(r.getParent().getName());
+                    ok |= perform(r, build, includeFilter, excludeFilter, subdir, console);
+                }
+
                 return ok;
             } else {
-                return perform(src, build, expandedFilter, targetDir, baseTargetDir, console);
+                return perform(src, build, includeFilter, excludeFilter, targetDir, console);
             }
         }
         catch (IOException ex) {
             Util.displayIOException(ex, listener);
             ex.printStackTrace(listener.error(
-                    Messages.CopyArtifact_FailedToCopy(expandedProject, expandedFilter)));
+                    Messages.CopyArtifact_FailedToCopy(expandedProject, includeFilter)));
             return false;
         }
     }
 
-    private boolean perform(Run src, AbstractBuild<?,?> dst, String expandedFilter, FilePath targetDir,
-            FilePath baseTargetDir, PrintStream console)
+    private boolean perform(Run src, AbstractBuild<?,?> dst, String includeFilter, String excludeFilter, FilePath targetDir, PrintStream console)
             throws IOException, InterruptedException {
 
         S3ArtifactsAction action = src.getAction(S3ArtifactsAction.class);
@@ -222,41 +239,40 @@ public class S3CopyArtifact extends Builder {
           console.println("Build " + src.getDisplayName() + "[" + src.number + "] doesn't have any S3 artifacts uploaded");
           return false;
         }
-      
-       
+
         S3Profile profile = S3BucketPublisher.getProfile(action.getProfile());
-        
-        try {
-            targetDir.mkdirs();
-            List<FingerprintRecord> records = profile.downloadAll(src, action.getArtifacts(), expandedFilter, targetDir, isFlatten(), console);
 
-            Map<String, String> fingerprints = Maps.newHashMap();
-            for(FingerprintRecord record : records) {
-                FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
-                
-                Fingerprint f = map.getOrCreate(src, record.getName(), record.getFingerprint());
-                if (src!=null) {
-                    f.add((AbstractBuild)src);
-                }
-                f.add(dst);
-                fingerprints.put(record.getName(), record.getFingerprint());
-            }
-
-            for (AbstractBuild r : new AbstractBuild[]{src instanceof AbstractBuild ? (AbstractBuild)src : null,dst}) {
-                if (r == null)
-                    continue;
-
-                FingerprintAction fa = r.getAction(FingerprintAction.class);
-                if (fa != null) fa.add(fingerprints);
-                else            r.getActions().add(new FingerprintAction(r, fingerprints));
-            }
-
-            console.println(MessageFormat.format("Copied {0} {0,choice,0#artifacts|1#artifact|1<artifacts} from \"{1}\" build number {2} stored in S3", fingerprints.size(), HyperlinkNote.encodeTo('/'+ src.getParent().getUrl(), src.getParent().getFullDisplayName()),
-                    HyperlinkNote.encodeTo('/'+src.getUrl(), Integer.toString(src.getNumber()))));
-            // Fail build if 0 files copied unless copy is optional
-            return fingerprints.size() > 0 || isOptional();
-        } finally {
+        if (profile == null) {
+            console.println("Can't find S3 profile");
+            return false;
         }
+
+        targetDir.mkdirs();
+        List<FingerprintRecord> records = profile.downloadAll(src, action.getArtifacts(), includeFilter, excludeFilter, targetDir, isFlatten(), console);
+
+        Map<String, String> fingerprints = Maps.newHashMap();
+        for(FingerprintRecord record : records) {
+            FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
+
+            Fingerprint f = map.getOrCreate(src, record.getName(), record.getFingerprint());
+            f.add((AbstractBuild)src);
+            f.add(dst);
+            fingerprints.put(record.getName(), record.getFingerprint());
+        }
+
+        for (AbstractBuild r : new AbstractBuild[]{src instanceof AbstractBuild ? (AbstractBuild)src : null, dst}) {
+            if (r == null)
+                continue;
+
+            FingerprintAction fa = r.getAction(FingerprintAction.class);
+            if (fa != null) fa.add(fingerprints);
+            else            r.getActions().add(new FingerprintAction(r, fingerprints));
+        }
+
+        console.println(MessageFormat.format("Copied {0} {0,choice,0#artifacts|1#artifact|1<artifacts} from \"{1}\" build number {2} stored in S3", fingerprints.size(), HyperlinkNote.encodeTo('/'+ src.getParent().getUrl(), src.getParent().getFullDisplayName()),
+                HyperlinkNote.encodeTo('/'+src.getUrl(), Integer.toString(src.getNumber()))));
+        // Fail build if 0 files copied unless copy is optional
+        return fingerprints.size() > 0 || isOptional();
     }
 
     // Find the job from the given name; usually just a Hudson.getItemByFullName lookup,

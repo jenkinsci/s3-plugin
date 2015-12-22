@@ -1,11 +1,14 @@
 package hudson.plugins.s3.callable;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import hudson.plugins.s3.ClientHelper;
 import hudson.util.Secret;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
-
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
 
 public class AbstractS3Callable implements Serializable
 {
@@ -14,25 +17,52 @@ public class AbstractS3Callable implements Serializable
     private final String accessKey;
     private final Secret secretKey;
     private final boolean useRole;
-    private transient AmazonS3Client client;
 
-    public AbstractS3Callable(String accessKey, Secret secretKey, boolean useRole) 
+    private transient static volatile AmazonS3Client client;
+    private transient static volatile TransferManager transferManager;
+    private transient static String oldClient;
+
+    public AbstractS3Callable(String accessKey, Secret secretKey, boolean useRole)
     {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.useRole = useRole;
     }
 
-    protected AmazonS3Client getClient() 
+    protected synchronized AmazonS3Client getClient()
     {
-        if (client == null) {
-            if (useRole) {
-                client = new AmazonS3Client();
-            } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()));
-            }
+        String newClient = getHash(accessKey, secretKey, useRole);
+
+        if (client == null || !newClient.equals(oldClient)) {
+            client = ClientHelper.createClient(accessKey, secretKey, useRole);
+            oldClient = newClient;
         }
+
         return client;
     }
 
+    private String getHash(String access, Secret secret, boolean useRole) {
+        return access + (secret!=null ? secret.getPlainText() : "null") + Boolean.toString(useRole);
+    }
+
+    protected synchronized TransferManager getTransferManager()
+    {
+        if (transferManager == null) {
+            transferManager = new TransferManager(getClient());
+        }
+        else {
+            AmazonS3 oldClient = transferManager.getAmazonS3Client();
+            AmazonS3 newClient = getClient();
+            if (!newClient.equals(oldClient)) {
+                transferManager.shutdownNow(true);
+                transferManager = new TransferManager(getClient());
+            }
+        }
+
+        return transferManager;
+    }
+
+    protected String getMD5(InputStream inputStream) throws IOException {
+        return org.apache.commons.codec.digest.DigestUtils.md5Hex(inputStream);
+    }
 }

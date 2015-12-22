@@ -27,7 +27,6 @@ import com.google.common.collect.Maps;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.logging.Level;
@@ -148,8 +147,9 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 }
                 
                 String expanded = Util.replaceMacro(entry.sourceFile, envVars);
+                String exclude = Util.replaceMacro(entry.excludedFile, envVars);
                 FilePath ws = build.getWorkspace();
-                FilePath[] paths = ws.list(expanded);
+                FilePath[] paths = ws.list(expanded, exclude);
 
                 if (paths.length == 0) {
                     // try to do error diagnostics
@@ -158,8 +158,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                     if (error != null)
                         log(listener.getLogger(), error);
                 }
-
-                int searchPathLength = getSearchPathLength(ws.getRemote(), expanded);
 
                 String bucket = Util.replaceMacro(entry.bucket, envVars);
                 String storageClass = Util.replaceMacro(entry.storageClass, envVars);
@@ -188,10 +186,11 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
                 }
 
                 List<FingerprintRecord> records = Lists.newArrayList();
-                
+
+                int workspacePath = ws.getRemote().length() + 1;
                 for (FilePath src : paths) {
                     log(listener.getLogger(), "bucket=" + bucket + ", file=" + src.getName() + " region=" + selRegion + ", upload from slave=" + entry.uploadFromSlave + " managed="+ entry.managedArtifacts + " , server encryption "+entry.useServerSideEncryption);
-                    records.add(profile.upload(build, listener, bucket, src, searchPathLength, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten, entry.gzipFiles));
+                    records.add(profile.upload(build, listener, bucket, src, workspacePath, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.flatten, entry.gzipFiles));
                 }
                 if (entry.managedArtifacts) {
                     artifacts.addAll(records);
@@ -217,25 +216,6 @@ public final class S3BucketPublisher extends Recorder implements Describable<Pub
             build.setResult(Result.UNSTABLE);
         }
         return true;
-    }
-
-    private int getSearchPathLength(String workSpace, String filterExpanded) {
-        File file1 = new File(workSpace);
-        File file2 = new File(file1, filterExpanded);
-
-        String pathWithFilter = file2.getPath();
-
-        int indexOfWildCard = pathWithFilter.indexOf("*");
-
-        if (indexOfWildCard > 0)
-        {
-            String s = pathWithFilter.substring(0, indexOfWildCard);
-            return s.length();
-        }
-        else
-        {
-            return file2.getParent().length() + 1;
-        }
     }
 
     // Listen for project renames and update property here if needed.
