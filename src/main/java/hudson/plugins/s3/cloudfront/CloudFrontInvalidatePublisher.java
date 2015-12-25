@@ -104,21 +104,20 @@ public final class CloudFrontInvalidatePublisher extends Recorder implements Des
                     continue;
                 }
 
-                String keyPrefix = Util.replaceMacro(entry.keyPrefix, envVars);
-                if (StringUtils.isBlank(keyPrefix)) {
+                String origin = Util.replaceMacro(entry.origin, envVars);
+                if (StringUtils.isBlank(origin)) {
+                    log(listener.getLogger(), "Origin was not provided.");
+                    continue;
+                }
+                
+                String keyPath = Util.replaceMacro(entry.invalidationPath, envVars);
+                if (StringUtils.isBlank(keyPath)) {
                     log(listener.getLogger(), "No S3 asset key was provided.");
                     continue;
                 }
 
-                String bucket = Util.replaceMacro(entry.bucket, envVars);
-                if (StringUtils.isBlank(bucket)) {
-                    log(listener.getLogger(), "S3 bucket was not specified.");
-                    continue;
-                }
-
-                InvalidationRecord invalidationRecord = profile.invalidate(build, listener, bucket,
-                        keyPrefix);
-                log(listener.getLogger(), "With bucket = " + bucket + "; keyPrefix = " + keyPrefix
+                InvalidationRecord invalidationRecord = profile.invalidate(build, listener, origin, keyPath);
+                log(listener.getLogger(), "With keyPath = " + keyPath
                         + ";\n\t" + invalidationRecord);
             }
         } catch (IOException e) {

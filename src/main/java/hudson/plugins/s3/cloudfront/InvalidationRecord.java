@@ -9,8 +9,8 @@ public class InvalidationRecord {
 
 	List<InvalidationRecordEntry> entries = new ArrayList<InvalidationRecordEntry>();
 
-	public void add(DistributionSummary distribution, List<String> paths) {
-		entries.add(new InvalidationRecordEntry(distribution, paths));
+	public void add(DistributionSummary distribution, String invalidationPath) {
+		entries.add(new InvalidationRecordEntry(distribution, invalidationPath));
 	}
 
 	@Override
@@ -21,16 +21,16 @@ public class InvalidationRecord {
 	private class InvalidationRecordEntry {
 
 		private DistributionSummary distribution;
-		private List<String> paths;
+		private String path;
 
-		public InvalidationRecordEntry(DistributionSummary distribution, List<String> paths) {
+		public InvalidationRecordEntry(DistributionSummary distribution, String invalidationPath) {
 			this.distribution = distribution;
-			this.paths = paths;
+			this.path = invalidationPath;
 		}
 
 		@Override
 		public String toString() {
-			return "[distribution=" + distribution.getAliases().getItems() + ", paths=" + paths + "]";
+			return "[distribution=" + distribution.getAliases().getItems() + ", paths=" + path + "]";
 		}
 		
 		

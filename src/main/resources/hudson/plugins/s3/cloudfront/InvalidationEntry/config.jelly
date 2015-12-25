@@ -1,9 +1,8 @@
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-
-	<f:entry title="S3 bucket" field="bucket">
+	<f:entry title="Distribution origin" field="origin">
     	<f:textbox/>
     </f:entry>
-    <f:entry title="S3 Key prefix" field="keyPrefix">
+    <f:entry title="Invalidation path" field="invalidationPath">
     	<f:textbox/>
     </f:entry>
     <f:entry title="No invalidate on build failure" field="noInvalidateOnFailure">

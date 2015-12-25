@@ -12,14 +12,15 @@ import org.kohsuke.stapler.QueryParameter;
 public final class InvalidationEntry implements Describable<InvalidationEntry> {
 
     /**
-     * S3 bucket the entry belongs to. Can contain macros.
-     */
-    public String bucket;
-    /**
-     * Key prefix of S3 files to invalidate.
+     * Origin of the distribution.
      * Can contain macros.
      */
-    public String keyPrefix;
+    public String origin;
+    /**
+     * Invalidation Path.
+     * Can contain macros and wildcards.
+     */
+    public String invalidationPath;
     
     /**
      * Do not invalidate the artifacts when build fails
@@ -27,9 +28,9 @@ public final class InvalidationEntry implements Describable<InvalidationEntry> {
     public boolean noInvalidateOnFailure;
 
     @DataBoundConstructor
-    public InvalidationEntry(String bucket, String keyPrefix, boolean noInvalidateOnFailure) {
-        this.bucket = bucket;
-        this.keyPrefix = keyPrefix;
+    public InvalidationEntry(String origin, String invalidationPath, boolean noInvalidateOnFailure) {
+        this.origin = origin;
+        this.invalidationPath = invalidationPath;
         this.noInvalidateOnFailure = noInvalidateOnFailure;
     }
 
@@ -47,12 +48,12 @@ public final class InvalidationEntry implements Describable<InvalidationEntry> {
             return "Files to invalidate";
         }
         
-    	public FormValidation doCheckBucket(@QueryParameter String bucket) {
-			return checkNotBlank(bucket, "Bucket name must be speсified");
-		}
-		
-		public FormValidation doCheckKeyPrefix(@QueryParameter String keyPrefix) {
-			return checkNotBlank(keyPrefix, "Key prefix name must be speсified");
+        public FormValidation doCheckOrigin(@QueryParameter String origin) {
+            return checkNotBlank(origin, "Origin name must be speсified");
+        }
+        
+		public FormValidation doCheckInvalidationPathx(@QueryParameter String invalidationPath) {
+			return checkNotBlank(invalidationPath, "Invalidation path must be speсified");
 		}
 
 		private FormValidation checkNotBlank(String value, String errorMessage) {
