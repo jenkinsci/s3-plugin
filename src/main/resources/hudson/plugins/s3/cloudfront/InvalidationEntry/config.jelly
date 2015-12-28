@@ -1,0 +1,16 @@
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+	<f:entry title="Distribution origin" field="origin">
+    	<f:textbox/>
+    </f:entry>
+    <f:entry title="Invalidation path" field="invalidationPath">
+    	<f:textbox/>
+    </f:entry>
+    <f:entry title="No invalidate on build failure" field="noInvalidateOnFailure">
+		<f:checkbox />
+    </f:entry>
+    <f:entry title="">
+		<div align="right" display="block">
+ 		     <f:repeatableDeleteButton />
+      	</div>
+    </f:entry>
+</j:jelly>
