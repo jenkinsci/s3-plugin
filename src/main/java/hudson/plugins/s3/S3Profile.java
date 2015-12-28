@@ -208,16 +208,16 @@ public class S3Profile {
         }
       }
       
-      public InvalidationRecord invalidate(AbstractBuild<?, ?> build, BuildListener listener, String origin, String invalidationPath) throws IOException, InterruptedException {
+      public InvalidationRecord invalidate(AbstractBuild<?, ?> build, BuildListener listener, String origin, String...paths) throws IOException, InterruptedException {
           int retryCount = 0;
           while (true) {
               try {
               CloudFrontInvalidationCallable callable = new CloudFrontInvalidationCallable(accessKey, secretKey, useRole);
-              return callable.invoke(origin, invalidationPath);
+              return callable.invoke(origin, paths);
               } catch (Exception e) {
               retryCount++;
               if (retryCount >= maxUploadRetries) {
-                      throw new IOException("invalidate paths " + invalidationPath.toString() + ": " + e
+                      throw new IOException("invalidate paths " + Arrays.toString(paths) + ": " + e
                       + ":: Failed after " + retryCount + " tries.", e);
               }
               Thread.sleep(retryWaitTime * 1000);

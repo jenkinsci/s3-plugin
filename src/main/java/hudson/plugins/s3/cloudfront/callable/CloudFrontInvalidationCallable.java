@@ -27,15 +27,15 @@ public class CloudFrontInvalidationCallable extends AbstractCloudFrontCallable {
         super(accessKey, secretKey, useRole);
     }
 
-    public InvalidationRecord invoke(String bucket, String invalidationPath) {
-        String normalizedPaths = normalize(invalidationPath);
+    public InvalidationRecord invoke(String bucket, String...paths) {
+        String[] normalizedPaths = normalize(paths);
         List<DistributionSummary> distributionitems = getClient()
                 .listDistributions(new ListDistributionsRequest()).getDistributionList().getItems();
         InvalidationRecord invalidationRecord = new InvalidationRecord();
         for (DistributionSummary distribution : distributionitems) {
             if (isDistributionRelatedToBucket(distribution, bucket) && distribution.isEnabled()) {
                 Invalidation invalidationResult = invalidateFiles(distribution, normalizedPaths);
-                invalidationRecord.add(distribution, invalidationPath);
+                invalidationRecord.add(distribution, paths);
                 log.info(String.format("Invalidated cache %s of path %s with status = %s",
                         distribution.getAliases().toString(), invalidationResult
                                 .getInvalidationBatch().getPaths().toString(),
@@ -43,6 +43,14 @@ public class CloudFrontInvalidationCallable extends AbstractCloudFrontCallable {
             }
         }
         return invalidationRecord;
+    }
+
+    private String[] normalize(String[] invalidationPath) {
+        String[] normalized = new String[invalidationPath.length];
+        for (int i = 0; i < invalidationPath.length; i++){
+            normalized[i] = normalize(invalidationPath[i]);
+        }
+        return normalized;
     }
 
     private boolean isDistributionRelatedToBucket(DistributionSummary distribution, String bucket) {
@@ -64,19 +72,19 @@ public class CloudFrontInvalidationCallable extends AbstractCloudFrontCallable {
     }
 
     private String normalize(String path) {
-        String normalizedKey = encode(path);
+        String normalizedKey = encode(path.trim());
         if (!normalizedKey.startsWith(UNIX_SEPARATOR)) {
             normalizedKey = UNIX_SEPARATOR.concat(normalizedKey);
         }
         return normalizedKey;
     }
 
-    private Invalidation invalidateFiles(DistributionSummary distributionSummary, String normalizedPath) {
+    private Invalidation invalidateFiles(DistributionSummary distributionSummary, String[] normalizedPath) {
         String distributionId = distributionSummary.getId();
         String callerReference = String.valueOf(System.currentTimeMillis());
         CreateInvalidationResult invalidationResult = getClient().createInvalidation(
                 new CreateInvalidationRequest(distributionId, new InvalidationBatch(new Paths()
-                        .withItems(normalizedPath).withQuantity(1), callerReference)));
+                        .withItems(normalizedPath).withQuantity(normalizedPath.length), callerReference)));
         return invalidationResult.getInvalidation();
     }
 }

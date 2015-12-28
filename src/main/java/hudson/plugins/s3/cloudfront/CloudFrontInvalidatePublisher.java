@@ -116,7 +116,7 @@ public final class CloudFrontInvalidatePublisher extends Recorder implements Des
                     continue;
                 }
 
-                InvalidationRecord invalidationRecord = profile.invalidate(build, listener, origin, keyPath);
+                InvalidationRecord invalidationRecord = profile.invalidate(build, listener, origin, keyPath.split(","));
                 log(listener.getLogger(), "With keyPath = " + keyPath
                         + ";\n\t" + invalidationRecord);
             }
