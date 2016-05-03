@@ -75,6 +75,8 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
                 case "content-encoding":
                     metadata.setContentEncoding(entry.getValue());
                     break;
+                case "content-type":
+                    metadata.setContentType(entry.getValue());
                 default:
                     metadata.addUserMetadata(entry.getKey(), entry.getValue());
                     break;
