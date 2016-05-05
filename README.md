@@ -15,6 +15,16 @@ Building
 
 Just run `mvn`.
 
+Usage
+=====
+
+When activated, traditional (Freestyle) Jenkins builds will have a
+build action called `S3 Copy Artifact` for downloading artifacts,
+and a post-build action called `Publish Artifacts to S3 Bucket`.
+
+For Pipeline users, the same two actions are available via the
+`step` step. You can use the snippet generator to get started.
+
 Notes
 =====
 
