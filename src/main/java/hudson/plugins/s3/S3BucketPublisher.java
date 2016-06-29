@@ -121,9 +121,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath ws, @Nonnull Launcher launcher, @Nonnull TaskListener listener)
             throws InterruptedException {
 
-        final boolean buildFailed = Result.FAILURE.equals(run.getResult());
-        final boolean buildAborted = Result.ABORTED.equals(run.getResult());
-
         if (run.isBuilding()) {
             log(listener.getLogger(), "Build is still running");
         }
@@ -136,6 +133,12 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             return;
         }
 
+        if (Result.ABORTED.equals(run.getResult())) {
+            // build aborted. don't post
+            log(listener.getLogger(), "Skipping publishing on S3 because build aborted");
+            return;
+        }
+
         log(listener.getLogger(), "Using S3 profile: " + profile.getName());
 
         try {
@@ -144,13 +147,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final List<FingerprintRecord> artifacts = Lists.newArrayList();
 
             for (Entry entry : entries) {
-                if (buildAborted) {
-                    // build aborted. don't post
-                    log(listener.getLogger(), "Skipping publishing on S3 because build aborted");
-                    continue;
-                }
-
-                if (entry.noUploadOnFailure && buildFailed) {
+                if (entry.noUploadOnFailure && Result.FAILURE.equals(run.getResult())) {
                     // build failed. don't post
                     log(listener.getLogger(), "Skipping publishing on S3 because build failed");
                     continue;
