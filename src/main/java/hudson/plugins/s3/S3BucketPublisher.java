@@ -121,8 +121,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath ws, @Nonnull Launcher launcher, @Nonnull TaskListener listener)
             throws InterruptedException {
 
-        final boolean buildFailed = Result.FAILURE.equals(build.getResult());
-        final boolean buildAborted = Result.ABORTED.equals(build.getResult());
+        final boolean buildFailed = Result.FAILURE.equals(run.getResult());
+        final boolean buildAborted = Result.ABORTED.equals(run.getResult());
 
         if (run.isBuilding()) {
             log(listener.getLogger(), "Build is still running");
