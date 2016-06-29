@@ -144,9 +144,15 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final List<FingerprintRecord> artifacts = Lists.newArrayList();
 
             for (Entry entry : entries) {
-                if (entry.noUploadOnFailure && (buildFailed || buildAborted)) {
+                if (buildAborted) {
+                    // build aborted. don't post
+                    log(listener.getLogger(), "Skipping publishing on S3 because build aborted");
+                    continue;
+                }
+
+                if (entry.noUploadOnFailure && buildFailed) {
                     // build failed. don't post
-                    log(listener.getLogger(), "Skipping publishing on S3 because build failed or aborted");
+                    log(listener.getLogger(), "Skipping publishing on S3 because build failed");
                     continue;
                 }
 
