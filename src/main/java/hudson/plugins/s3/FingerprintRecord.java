@@ -1,42 +1,55 @@
 package hudson.plugins.s3;
 
-import hudson.model.AbstractBuild;
 import hudson.model.Fingerprint;
 import hudson.model.FingerprintMap;
+import hudson.model.Run;
+import jenkins.model.Jenkins;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 import java.io.IOException;
 import java.io.Serializable;
 
-import jenkins.model.Jenkins;
-
+@ExportedBean
 public class FingerprintRecord implements Serializable {
-  private static final long serialVersionUID = 1L;
-  final boolean produced;
-  final String md5sum;
-  final S3Artifact artifact;
+    private static final long serialVersionUID = 1L;
+    private final boolean produced;
+    private final String md5sum;
+    private final S3Artifact artifact;
+    private boolean keepForever;
 
 
-  public FingerprintRecord(boolean produced, String bucket, String name, String md5sum) {
-      this.produced = produced;
-      this.artifact = new S3Artifact(bucket, name);
-      this.md5sum = md5sum;
-  }
+    public FingerprintRecord(boolean produced, String bucket, String name, String region, String md5sum) {
+        this.produced = produced;
+        this.artifact = new S3Artifact(region, bucket, name);
+        this.md5sum = md5sum;
+    }
 
-  Fingerprint addRecord(AbstractBuild<?,?> build) throws IOException {
-      FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
-      return map.getOrCreate(produced?build:null, artifact.getName(), md5sum);
-  }
+    Fingerprint addRecord(Run<?, ?> run) throws IOException {
+        final FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
+        return map.getOrCreate(produced ? run : null, artifact.getName(), md5sum);
+    }
 
-  public String getName() {
-    return artifact.getName();
-  }
+    public boolean isKeepForever() {
+        return keepForever;
+    }
 
-  public String getBucket() {
-    return artifact.getBucket();
-  }
+    public void setKeepForever(boolean keepForever) {
+        this.keepForever = keepForever;
+    }
 
-  public String getFingerprint() {
-    return md5sum;
-  }
+    @Exported
+    public String getName() {
+        return artifact.getName();
+    }
 
+    @Exported
+    public String getFingerprint() {
+        return md5sum;
+    }
+
+    @Exported
+    public S3Artifact getArtifact() {
+        return artifact;
+    }
 }

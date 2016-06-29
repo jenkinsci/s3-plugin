@@ -3,6 +3,9 @@
         <f:entry title="Source" field="sourceFile">
           <f:textbox/>
         </f:entry>
+        <f:entry title="Exclude" field="excludedFile">
+            <f:textbox/>
+        </f:entry>
         <f:entry title="Destination bucket" field="bucket">
           <f:textbox/>
         </f:entry>
@@ -26,6 +29,22 @@
         </f:entry>
         <f:entry field="flatten" title="Flatten directories">
 		    <f:checkbox />
+        </f:entry>
+        <f:entry field="gzipFiles" title="GZIP files">
+            <f:checkbox />
+        </f:entry>
+        <f:entry field="keepForever" title="Keep files forever">
+            <f:checkbox />
+        </f:entry>
+
+        <f:entry title="Metadata tags">
+            <f:repeatableProperty field="userMetadata">
+                <f:entry title="">
+                  <div align="right">
+                    <f:repeatableDeleteButton />
+                  </div>
+                </f:entry>
+            </f:repeatableProperty>
         </f:entry>
 
 </j:jelly>

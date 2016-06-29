@@ -1,37 +1,36 @@
 package hudson.plugins.s3.callable;
 
-import hudson.FilePath.FileCallable;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.transfer.Download;
+import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
-import hudson.plugins.s3.FingerprintRecord;
+import hudson.plugins.s3.MD5;
 import hudson.remoting.VirtualChannel;
 import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-
-public class S3DownloadCallable extends AbstractS3Callable implements FileCallable<FingerprintRecord> 
+public final class S3DownloadCallable extends S3Callable<String>
 {
     private static final long serialVersionUID = 1L;
-    final private Destination dest;
-    final transient private PrintStream log;
+    private final Destination dest;
     
-    public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, PrintStream console) 
+    public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, String region, ProxyConfiguration proxy)
     {
-        super(accessKey, secretKey, useRole);
+        super(accessKey, secretKey, useRole, region, proxy);
         this.dest = dest;
-        this.log = console;
     }
 
-    public FingerprintRecord invoke(File file, VirtualChannel channel) throws IOException, InterruptedException 
+    @Override
+    public String invoke(File file, VirtualChannel channel) throws IOException, InterruptedException
     {
-        GetObjectRequest req = new GetObjectRequest(dest.bucketName, dest.objectName);
-        ObjectMetadata md = getClient().getObject(req, file);
+        final GetObjectRequest req = new GetObjectRequest(dest.bucketName, dest.objectName);
+        final Download download = getTransferManager().download(req, file);
 
-        return new FingerprintRecord(true, dest.bucketName, file.getName(), md.getETag());
+        download.waitForCompletion();
+
+        return MD5.generateFromFile(file);
     }
 
 }

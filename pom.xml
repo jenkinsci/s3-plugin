@@ -1,41 +1,57 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.526</version>
+        <version>1.609.3</version>
     </parent>
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
-    <version>0.8-SNAPSHOT</version>
+    <version>0.10.6-SNAPSHOT</version>
     <name>Jenkins S3 publisher plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/S3+Plugin</url>
 
     <developers>
-        <developer> 
-            <id>dougm</id> 
-            <name>Doug MacEachern</name> 
+        <developer>
+            <id>dougm</id>
+            <name>Doug MacEachern</name>
         </developer>
-        <developer> 
-            <id>d6y</id> 
-            <name>Richard Dallaway</name> 
+        <developer>
+            <id>d6y</id>
+            <name>Richard Dallaway</name>
         </developer>
-        <developer> 
-            <id>longlho</id> 
-            <name>Long Ho</name> 
+        <developer>
+            <id>longlho</id>
+            <name>Long Ho</name>
         </developer>
-        <developer> 
-            <id>mikewatt</id> 
-            <name>Michael Watt</name> 
+        <developer>
+            <id>mikewatt</id>
+            <name>Michael Watt</name>
         </developer>
-        <developer> 
-            <id>dmbeer</id> 
+        <developer>
+            <id>dmbeer</id>
             <name>David Beer</name>
         </developer>
-        <developer> 
-            <id>mattias</id> 
+        <developer>
+            <id>mattias</id>
             <name>Mattias Appelgren</name>
+        </developer>
+        <developer>
+            <id>Jimilian</id>
+            <name>Alexander Akbashev</name>
         </developer>
     </developers>
 
@@ -43,46 +59,24 @@
         <connection>scm:git:ssh://github.com/jenkinsci/s3-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/s3-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/s3-plugin</url>
+        <tag>HEAD</tag>
     </scm>
 
     <dependencies>
         <dependency>
-            <groupId>com.amazonaws</groupId>
+            <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.9.6</version>
-        </dependency>
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>3.2.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-codec</groupId>
-                    <artifactId>commons-codec</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>1.10.50</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
-            <version>1.21</version>
+            <version>1.37</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.jnr</groupId>
-            <artifactId>jffi</artifactId>
-            <version>1.2.7</version>
-            <scope>provided</scope>
-            <classifier>native</classifier>
-        </dependency>
-        <dependency>
-            <groupId>com.github.jnr</groupId>
-            <artifactId>jffi</artifactId>
-            <version>1.2.7</version>
-            <scope>provided</scope>
+            <version>2.0</version>
         </dependency>
     </dependencies>
 

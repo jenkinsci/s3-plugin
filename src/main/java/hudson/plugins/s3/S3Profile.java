@@ -1,22 +1,22 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.ClientConfiguration;
 import hudson.FilePath;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
+import hudson.ProxyConfiguration;
+import hudson.plugins.s3.callable.*;
 import jenkins.model.Jenkins;
-
-import org.apache.tools.ant.types.selectors.FilenameSelector;
+import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -27,51 +27,31 @@ import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 
-import hudson.model.BuildListener;
-import hudson.model.AbstractBuild;
 import hudson.model.Run;
-import hudson.ProxyConfiguration;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
 import hudson.util.Secret;
 
 public class S3Profile {
-    private String name;
-    private String accessKey;
-    private Secret secretKey;
-    private String proxyHost;
-    private String proxyPort;
-    private int maxUploadRetries;
-    private int retryWaitTime;
-    private transient volatile AmazonS3Client client = null;
-    private ClientConfiguration clientConfiguration = null;
-    private boolean useRole;
-    private int signedUrlExpirySeconds = 60;
+    private final String name;
+    private final String accessKey;
+    private final Secret secretKey;
+    private final int maxUploadRetries;
+    private final int uploadRetryTime;
+    private final int maxDownloadRetries;
+    private final int downloadRetryTime;
+    private transient volatile AmazonS3Client client;
+    private final boolean keepStructure;
 
-    public S3Profile() {
-    }
-
-    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, String maxUploadRetries, String retryWaitTime) {
-        /* The old hardcoded URL expiry was 4s, so: */
-        this(name, accessKey, secretKey, proxyHost, proxyPort, useRole, 4, maxUploadRetries, retryWaitTime);
-    }
+    private final boolean useRole;
+    private final int signedUrlExpirySeconds;
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey, String proxyHost, String proxyPort, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String retryWaitTime) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
         this.name = name;
-        this.proxyHost = proxyHost;
-        this.proxyPort = proxyPort;
         this.useRole = useRole;
-        try {
-            this.maxUploadRetries = Integer.parseInt(maxUploadRetries);
-        } catch(NumberFormatException nfe) {
-            this.maxUploadRetries = 5;
-        }
-        try {
-            this.retryWaitTime = Integer.parseInt(retryWaitTime);
-        } catch(NumberFormatException nfe) {
-            this.retryWaitTime = 5;
-        }
+        this.maxUploadRetries = parseWithDefault(maxUploadRetries, 5);
+        this.uploadRetryTime = parseWithDefault(uploadRetryTime, 5);
+        this.maxDownloadRetries = parseWithDefault(maxDownloadRetries, 5);
+        this.downloadRetryTime = parseWithDefault(downloadRetryTime, 5);
         this.signedUrlExpirySeconds = signedUrlExpirySeconds;
         if (useRole) {
             this.accessKey = "";
@@ -80,14 +60,32 @@ public class S3Profile {
             this.accessKey = accessKey;
             this.secretKey = Secret.fromString(secretKey);
         }
+
+        this.keepStructure = keepStructure;
+    }
+
+    public boolean isKeepStructure() {
+        return keepStructure;
+    }
+
+    private int parseWithDefault(String number, int defaultValue) {
+        try {
+            return Integer.parseInt(number);
+        } catch(NumberFormatException nfe) {
+            return defaultValue;
+        }
+    }
+
+    public int getMaxDownloadRetries() {
+        return maxDownloadRetries;
+    }
+
+    public int getDownloadRetryTime() {
+        return downloadRetryTime;
     }
 
     public final String getAccessKey() {
         return accessKey;
-    }
-
-    public void setAccessKey(String accessKey) {
-        this.accessKey = accessKey;
     }
 
     public final Secret getSecretKey() {
@@ -98,32 +96,16 @@ public class S3Profile {
         return maxUploadRetries;
     }
 
-    public final int getRetryWaitTime() {
-        return retryWaitTime;
+    public final int getUploadRetryTime() {
+        return uploadRetryTime;
     }
 
     public final String getName() {
         return this.name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public final boolean getUseRole() {
         return this.useRole;
-    }
-
-    public void setUseRole(boolean useRole) {
-        this.useRole = useRole;
-    }
-
-    public String getProxyHost() {
-        return proxyHost;
-    }
-
-    public String getProxyPort() {
-        return proxyPort;
     }
 
     public boolean isUseRole() {
@@ -136,135 +118,176 @@ public class S3Profile {
 
     public AmazonS3Client getClient() {
         if (client == null) {
-            if (useRole) {
-                client = new AmazonS3Client(getClientConfiguration());
-            } else {
-                client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey.getPlainText()), getClientConfiguration());
-            }
+            client = ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, getProxy());
         }
         return client;
     }
 
-    private ClientConfiguration getClientConfiguration(){
-        if (clientConfiguration == null) {
-            clientConfiguration = new ClientConfiguration();
+    public List<FingerprintRecord> upload(Run<?, ?> run,
+                                    final String bucketName,
+                                    final List<FilePath> filePaths,
+                                    final List<String> fileNames,
+                                    final Map<String, String> userMetadata,
+                                    final String storageClass,
+                                    final String selregion,
+                                    final boolean uploadFromSlave,
+                                    final boolean managedArtifacts,
+                                    final boolean useServerSideEncryption,
+                                    final boolean gzipFiles) throws IOException, InterruptedException {
+        final List<FingerprintRecord> fingerprints = new ArrayList<>(fileNames.size());
 
-            ProxyConfiguration proxy = Jenkins.getInstance().proxy;
-            if (shouldUseProxy(proxy, "s3.amazonaws.com")) {
-                clientConfiguration.setProxyHost(proxy.name);
-                clientConfiguration.setProxyPort(proxy.port);
-                if(proxy.getUserName() != null) {
-                    clientConfiguration.setProxyUsername(proxy.getUserName());
-                    clientConfiguration.setProxyPassword(proxy.getPassword());
-                }
-            }
-        }
-        return clientConfiguration;
-    }
+        try {
+            for (int i = 0; i < fileNames.size(); i++) {
+                final FilePath filePath = filePaths.get(i);
+                final String fileName = fileNames.get(i);
 
-    public void check() throws Exception {
-        getClient().listBuckets();
-    }
-
-    public FingerprintRecord upload(AbstractBuild<?,?> build, final BuildListener listener, String bucketName, FilePath filePath, int searchPathLength, List<MetadataPair> userMetadata,
-            String storageClass, String selregion, boolean uploadFromSlave, boolean managedArtifacts,boolean useServerSideEncryption, boolean flatten) throws IOException, InterruptedException {
-        if (filePath.isDirectory()) {
-            throw new IOException(filePath + " is a directory");
-        }
-
-        String fileName = null;
-        if (flatten) {
-            fileName = filePath.getName();
-        } else {
-            String relativeFileName = filePath.getRemote();
-            fileName = relativeFileName.substring(searchPathLength);
-        }
-
-        Destination dest = new Destination(bucketName, fileName);
-        boolean produced = false;
-        if (managedArtifacts) {
-            dest = Destination.newFromBuild(build, bucketName, filePath.getName());
-            produced = build.getTimeInMillis() <= filePath.lastModified()+2000;
-        }
-        int retryCount = 0;
-
-        while (true) {
-            try {
-                S3UploadCallable callable = new S3UploadCallable(produced, accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion,useServerSideEncryption);
-                if (uploadFromSlave) {
-                    return filePath.act(callable);
+                final Destination dest;
+                final boolean produced;
+                if (managedArtifacts) {
+                    dest = Destination.newFromRun(run, bucketName, fileName, true);
+                    produced = run.getTimeInMillis() <= filePath.lastModified() + 2000;
                 } else {
-                    return callable.invoke(filePath);
+                    dest = new Destination(bucketName, fileName);
+                    produced = false;
                 }
-            } catch (Exception e) {
-                retryCount++;
-                if(retryCount >= maxUploadRetries){
-                    throw new IOException("put " + dest + ": " + e + ":: Failed after " + retryCount + " tries.", e);
+
+                final MasterSlaveCallable<String> upload;
+                if (gzipFiles) {
+                    upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata,
+                            storageClass, selregion, useServerSideEncryption, getProxy());
+                } else {
+                    upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata,
+                            storageClass, selregion, useServerSideEncryption, getProxy());
                 }
-                Thread.sleep(retryWaitTime * 1000);
+
+                final FingerprintRecord fingerprintRecord = repeat(maxUploadRetries, uploadRetryTime, dest, new Callable<FingerprintRecord>() {
+                    @Override
+                    public FingerprintRecord call() throws IOException, InterruptedException {
+                        final String md5 = invoke(uploadFromSlave, filePath, upload);
+                        return new FingerprintRecord(produced, bucketName, fileName, selregion, md5);
+                    }
+                });
+
+                fingerprints.add(fingerprintRecord);
+            }
+
+            waitUploads(filePaths, uploadFromSlave);
+        } catch (InterruptedException | IOException exception) {
+            cleanupUploads(filePaths, uploadFromSlave);
+            throw exception;
+        }
+
+        return fingerprints;
+    }
+
+    private void cleanupUploads(final List<FilePath> filePaths, boolean uploadFromSlave) {
+        for (FilePath filePath : filePaths) {
+            try {
+                invoke(uploadFromSlave, filePath, new S3CleanupUploadCallable());
+            }
+            catch (InterruptedException | IOException ignored) {
             }
         }
     }
 
-    public List<String> list(Run build, String bucket, String expandedFilter) {
-        AmazonS3Client s3client = getClient();        
+    private void waitUploads(final List<FilePath> filePaths, boolean uploadFromSlave) throws InterruptedException, IOException {
+        for (FilePath filePath : filePaths) {
+            invoke(uploadFromSlave, filePath, new S3WaitUploadCallable());
+        }
+    }
 
-        String buildName = build.getDisplayName();
-        int buildID = build.getNumber();
-        Destination dest = new Destination(bucket, "jobs/" + buildName + "/" + buildID + "/" + name);
+    private <T> T invoke(boolean uploadFromSlave, FilePath filePath, MasterSlaveCallable<T> callable) throws InterruptedException, IOException {
+        if (uploadFromSlave) {
+            return filePath.act(callable);
+        } else {
+            return callable.invoke(filePath);
+        }
+    }
 
-        ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
+    public List<String> list(Run build, String bucket) {
+        final AmazonS3Client s3client = getClient();
+
+        final String buildName = build.getDisplayName();
+        final int buildID = build.getNumber();
+        final Destination dest = new Destination(bucket, "jobs/" + buildName + '/' + buildID + '/' + name);
+
+        final ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
         .withBucketName(dest.bucketName)
         .withPrefix(dest.objectName);
 
-        List<String> files = Lists.newArrayList();
-        
+        final List<String> files = Lists.newArrayList();
+
         ObjectListing objectListing;
         do {
           objectListing = s3client.listObjects(listObjectsRequest);
           for (S3ObjectSummary summary : objectListing.getObjectSummaries()) {
-            GetObjectRequest req = new GetObjectRequest(dest.bucketName, summary.getKey());
+            final GetObjectRequest req = new GetObjectRequest(dest.bucketName, summary.getKey());
             files.add(req.getKey());
           }
           listObjectsRequest.setMarker(objectListing.getNextMarker());
-        } while (objectListing.isTruncated());        
+        } while (objectListing.isTruncated());
         return files;
       }
 
       /**
        * Download all artifacts from a given build
        */
-      public List<FingerprintRecord> downloadAll(Run build, List<FingerprintRecord> artifacts, String expandedFilter, FilePath targetDir, boolean flatten, PrintStream console) {
+      public List<FingerprintRecord> downloadAll(Run build,
+                                                 final List<FingerprintRecord> artifacts,
+                                                 final String includeFilter,
+                                                 final String excludeFilter,
+                                                 final FilePath targetDir,
+                                                 final boolean flatten) throws IOException, InterruptedException {
+          final List<FingerprintRecord> fingerprints = Lists.newArrayList();
+          for(final FingerprintRecord record : artifacts) {
+              final S3Artifact artifact = record.getArtifact();
+              final Destination dest = Destination.newFromRun(build, artifact);
+              final FilePath target = getFilePath(targetDir, flatten, artifact.getName());
 
-          FilenameSelector selector = new FilenameSelector();
-          selector.setName(expandedFilter);
-          
-          List<FingerprintRecord> fingerprints = Lists.newArrayList();
-          for(FingerprintRecord record : artifacts) {
-              S3Artifact artifact = record.artifact;
-              if (selector.isSelected(new File("/"), artifact.getName(), null)) {
-                  Destination dest = Destination.newFromRun(build, artifact);
-                  FilePath target = new FilePath(targetDir, artifact.getName());
-                  try {
-                      fingerprints.add(target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, console)));
-                  } catch (IOException e) {
-                      e.printStackTrace();
-                  } catch (InterruptedException e) {
-                      e.printStackTrace();
-                  }
+              if (FileHelper.selected(includeFilter, excludeFilter, artifact.getName())) {
+                  fingerprints.add(repeat(maxDownloadRetries, downloadRetryTime, dest, new Callable<FingerprintRecord>() {
+                      @Override
+                      public FingerprintRecord call() throws IOException, InterruptedException {
+                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, artifact.getRegion(), getProxy()));
+                          return new FingerprintRecord(true, dest.bucketName, target.getName(), artifact.getRegion(), md5);
+                      }
+                  }));
               }
           }
           return fingerprints;
       }
 
-      /**
+    private <T> T repeat(int maxRetries, int waitTime, Destination dest, Callable<T> func) throws IOException, InterruptedException {
+        int retryCount = 0;
+
+        while (true) {
+            try {
+                return func.call();
+            } catch (Exception e) {
+                retryCount++;
+                if(retryCount >= maxRetries){
+                    throw new IOException("Call fails for " + dest + ": " + e + ":: Failed after " + retryCount + " tries.", e);
+                }
+                Thread.sleep(TimeUnit.SECONDS.toMillis(waitTime));
+            }
+        }
+    }
+
+    private FilePath getFilePath(FilePath targetDir, boolean flatten, String fullName) {
+        if (flatten) {
+            return new FilePath(targetDir, FilenameUtils.getName(fullName));
+        }
+        else  {
+            return new FilePath(targetDir, fullName);
+        }
+    }
+
+    /**
        * Delete some artifacts of a given run
-       * @param build
-       * @param artifact
        */
-      public void delete(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.artifact);
-          DeleteObjectRequest req = new DeleteObjectRequest(dest.bucketName, dest.objectName);
+      public void delete(Run run, FingerprintRecord record) {
+          final Destination dest = Destination.newFromRun(run, record.getArtifact());
+          final DeleteObjectRequest req = new DeleteObjectRequest(dest.bucketName, dest.objectName);
           getClient().deleteObject(req);
       }
 
@@ -277,34 +300,31 @@ public class S3Profile {
        * download and there's no need for the user to have credentials to
        * access S3.
        */
-      public String getDownloadURL(Run build, FingerprintRecord record) {
-          Destination dest = Destination.newFromRun(build, record.artifact);
-          GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
+      public String getDownloadURL(Run run, FingerprintRecord record) {
+          final Destination dest = Destination.newFromRun(run, record.getArtifact());
+          final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
           request.setExpiration(new Date(System.currentTimeMillis() + this.signedUrlExpirySeconds*1000));
-          ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
+          final ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
           // let the browser use the last part of the name, not the full path
           // when saving.
-          String fileName = (new File(dest.objectName)).getName().trim(); 
-          headers.setContentDisposition("attachment; filename=\"" + fileName + "\"");
+          final String fileName = (new File(dest.objectName)).getName().trim();
+          headers.setContentDisposition("attachment; filename=\"" + fileName + '"');
           request.setResponseHeaders(headers);
-          URL url = getClient().generatePresignedUrl(request);
-          return url.toExternalForm();
+          return getClient().generatePresignedUrl(request).toExternalForm();
       }
 
 
-    private Boolean shouldUseProxy(ProxyConfiguration proxy, String hostname) {
-        if(proxy == null) {
-            return false;
-        }
-        boolean shouldProxy = true;
-        for(Pattern p : proxy.getNoProxyHostPatterns()) {
-            if(p.matcher(hostname).matches()) {
-                shouldProxy = false;
-                break;
-            }
-        }
-
-        return shouldProxy;
+    @Override
+    public String toString() {
+        return "S3Profile{" +
+                "name='" + name + '\'' +
+                ", accessKey='" + accessKey + '\'' +
+                ", secretKey=" + secretKey +
+                ", useRole=" + useRole +
+                '}';
     }
 
+    private ProxyConfiguration getProxy() {
+        return Jenkins.getActiveInstance().proxy;
+    }
 }
