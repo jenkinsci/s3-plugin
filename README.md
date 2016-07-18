@@ -22,8 +22,31 @@ When activated, traditional (Freestyle) Jenkins builds will have a
 build action called `S3 Copy Artifact` for downloading artifacts,
 and a post-build action called `Publish Artifacts to S3 Bucket`.
 
+## Pipeline users
+
 For Pipeline users, the same two actions are available via the
-`step` step. You can use the snippet generator to get started.
+`step` step.
+
+To upload a Tar GZip artifact named `${env.JOB_BASE_NAME}.tar.gz` to `my-bucket` bucket:
+
+```groovy
+node {
+  stage "Upload artifact"
+  step(
+    [
+      $class: 'S3BucketPublisher',
+      entries: [
+        [
+          $class: 'Entry',
+          bucket: "my-bucket/${env.JOB_BASE_NAME}",
+          sourceFile: "${env.JOB_BASE_NAME}.tar.gz",
+          selectedRegion: "us-east-1"
+        ]
+      ]
+    ]
+  )
+}
+```
 
 Notes
 =====
