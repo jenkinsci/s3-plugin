@@ -22,8 +22,24 @@ When activated, traditional (Freestyle) Jenkins builds will have a
 build action called `S3 Copy Artifact` for downloading artifacts,
 and a post-build action called `Publish Artifacts to S3 Bucket`.
 
-For Pipeline users, the same two actions are available via the
-`step` step. You can use the snippet generator to get started.
+For Pipeline users, the same two actions are available via the `step` step. 
+You can use the snippet generator to configure a `step` within a `stage` like so.
+```
+stage("publish to s3") {
+  step([$class: 'S3BucketPublisher', entries: [[
+	sourceFile: 'myBuildArtefact',
+	bucket: 'myS3Bucket',
+	selectedRegion: 'eu-west-2',
+	noUploadOnFailure: true,
+	managedArtifacts: true,
+	flatten: true,
+	showDirectlyInBrowser: true,
+	keepForever: true,]],
+	profileName: 'myAWSprofile',
+	dontWaitForConcurrentBuildCompletion: false, 
+    ])
+}
+```
 
 Notes
 =====
