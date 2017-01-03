@@ -291,29 +291,6 @@ public class S3Profile {
           getClient().deleteObject(req);
       }
 
-
-      /**
-       * Generate a signed download request for a redirect from s3/download.
-       *
-       * When the user asks to download a file, we sign a short-lived S3 URL
-       * for them and redirect them to it, so we don't have to proxy for the
-       * download and there's no need for the user to have credentials to
-       * access S3.
-       */
-      public String getDownloadURL(Run run, FingerprintRecord record) {
-          final Destination dest = Destination.newFromRun(run, record.getArtifact());
-          final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
-          request.setExpiration(new Date(System.currentTimeMillis() + this.signedUrlExpirySeconds*1000));
-          final ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
-          // let the browser use the last part of the name, not the full path
-          // when saving.
-          final String fileName = (new File(dest.objectName)).getName().trim();
-          headers.setContentDisposition("attachment; filename=\"" + fileName + '"');
-          request.setResponseHeaders(headers);
-          return getClient().generatePresignedUrl(request).toExternalForm();
-      }
-
-
     @Override
     public String toString() {
         return "S3Profile{" +

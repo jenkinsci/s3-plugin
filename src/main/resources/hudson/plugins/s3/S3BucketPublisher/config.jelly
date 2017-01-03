@@ -25,7 +25,15 @@
     </f:repeatableProperty>
   </f:entry>
 
+  <f:entry title="Publish Failure Result Constraint" field="pluginFailureResultConstraint">
+    <f:select />
+  </f:entry>
+
   <f:entry field="dontWaitForConcurrentBuildCompletion" title="">
     <f:checkbox title="Don't wait for completion of concurrent builds before publishing to S3" />
+  </f:entry>
+
+  <f:entry title="Build console log level" field="consoleLogLevel">
+    <f:select />
   </f:entry>
 </j:jelly>

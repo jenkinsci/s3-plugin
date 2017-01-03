@@ -1,6 +1,8 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.regions.Regions;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
+import com.amazonaws.services.s3.AmazonS3;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -26,9 +28,9 @@ public final class Entry implements Describable<Entry> {
      */
     public String excludedFile;
     /**
-     * options for x-amz-storage-class can be STANDARD or REDUCED_REDUNDANCY
+     * options for x-amz-storage-class can be STANDARD, STANDARD_IA, or REDUCED_REDUNDANCY
      */
-    public static final String[] storageClasses = {"STANDARD", "REDUCED_REDUNDANCY"};
+    public static final String[] storageClasses = {"STANDARD", "STANDARD_IA", "REDUCED_REDUNDANCY"};
     /**
      * what x-amz-storage-class is currently set
      */
@@ -36,7 +38,7 @@ public final class Entry implements Describable<Entry> {
     /**
      * Regions Values
      */
-    public static final Regions[] regions = Regions.values();
+    public static final List<Region> regions = RegionUtils.getRegionsForService(AmazonS3.ENDPOINT_PREFIX);
     /**
      * Stores the Region Value
      */
@@ -70,8 +72,12 @@ public final class Entry implements Describable<Entry> {
     /**
     * use GZIP to compress files
     */
-
     public boolean gzipFiles;
+
+    /**
+     * show content of entity directly in browser
+     */
+    public boolean showDirectlyInBrowser;
 
     /**
      * Don't delete artifacts in Amazon after job was rotated
@@ -88,7 +94,7 @@ public final class Entry implements Describable<Entry> {
     public Entry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
                  boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, boolean keepForever,
-                 List<MetadataPair> userMetadata) {
+                 boolean showDirectlyInBrowser, List<MetadataPair> userMetadata) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
         this.excludedFile = excludedFile;
@@ -102,6 +108,7 @@ public final class Entry implements Describable<Entry> {
         this.gzipFiles = gzipFiles;
         this.keepForever = keepForever;
         this.userMetadata = userMetadata;
+        this.showDirectlyInBrowser = showDirectlyInBrowser;
     }
 
     @Override
@@ -129,7 +136,7 @@ public final class Entry implements Describable<Entry> {
 
         public ListBoxModel doFillSelectedRegionItems() {
             final ListBoxModel model = new ListBoxModel();
-            for (Regions r : regions) {
+            for (Region r : regions) {
                 model.add(r.getName(), r.getName());
             }
             return model;

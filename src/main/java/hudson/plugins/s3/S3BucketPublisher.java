@@ -1,7 +1,7 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -43,6 +43,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     private boolean dontWaitForConcurrentBuildCompletion;
 
+    private Level consoleLogLevel;
+    private Result pluginFailureResultConstraint;
     /**
      * User metadata key/value pairs to tag the upload with.
      */
@@ -50,7 +52,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     @DataBoundConstructor
     public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
-                             boolean dontWaitForConcurrentBuildCompletion) {
+                             boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint) {
         if (profileName == null) {
             // defaults to the first one
             final S3Profile[] sites = DESCRIPTOR.getProfiles();
@@ -66,12 +68,41 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.userMetadata = userMetadata;
 
         this.dontWaitForConcurrentBuildCompletion = dontWaitForConcurrentBuildCompletion;
+        this.consoleLogLevel = parseLevel(consoleLogLevel);
+        this.pluginFailureResultConstraint = Result.fromString(pluginFailureResultConstraint);
+    }
+
+    private Level parseLevel(String lvl) {
+        switch (lvl) {
+        case "WARNING": return Level.WARNING;
+        case "SEVERE":  return Level.SEVERE;
+        default:        return Level.INFO;
+        }
     }
 
     protected Object readResolve() {
         if (userMetadata == null)
             userMetadata = new ArrayList<>();
+
+        if (pluginFailureResultConstraint == null)
+            pluginFailureResultConstraint = Result.FAILURE;
+
+        if(consoleLogLevel==null)
+            consoleLogLevel = Level.INFO;
+
         return this;
+    }
+
+    private Result constrainResult(Result r, @Nonnull TaskListener listener) {
+        final PrintStream console = listener.getLogger();
+        // pass through NOT_BUILT and ABORTED
+        if (r.isWorseThan(Result.FAILURE)) {
+            return r;
+        } else if (r.isWorseThan(pluginFailureResultConstraint)) {
+            log(console, "Build result constrained by configuration to: " + pluginFailureResultConstraint + " from: " + Result.UNSTABLE);
+            return pluginFailureResultConstraint;
+        }
+        return r;
     }
 
     @SuppressWarnings("unused")
@@ -90,8 +121,21 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     }
 
     @SuppressWarnings("unused")
+    public Result getPluginFailureResultConstraint() {
+        if (pluginFailureResultConstraint == null) {
+            return Result.FAILURE;
+        }
+        return pluginFailureResultConstraint;
+    }
+
+    @SuppressWarnings("unused")
     public boolean isDontWaitForConcurrentBuildCompletion() {
         return dontWaitForConcurrentBuildCompletion;
+    }
+
+    @SuppressWarnings("unused")
+    public Level getConsoleLogLevel() {
+        return consoleLogLevel;
     }
 
     public S3Profile getProfile() {
@@ -109,7 +153,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             if (profile.getName().equals(profileName))
                 return profile;
         }
-        return null;
+
+        throw new IllegalArgumentException("Can't find profile: " + profileName);
     }
 
     @Override
@@ -118,7 +163,13 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     }
 
     private void log(final PrintStream logger, final String message) {
-        logger.println(StringUtils.defaultString(getDescriptor().getDisplayName()) + ' ' + message);
+        log(Level.INFO, logger, message);
+    }
+
+    private void log(final Level level, final PrintStream logger, final String message) {
+        if(level.intValue() >= consoleLogLevel.intValue()) {
+            logger.println(StringUtils.defaultString(getDescriptor().getDisplayName()) + ' ' + message);
+        }
     }
 
     @Override
@@ -126,7 +177,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             throws InterruptedException {
         final PrintStream console = listener.getLogger();
         if (Result.ABORTED.equals(run.getResult())) {
-            log(console, "Skipping publishing on S3 because build aborted");
+            log(Level.SEVERE, console, "Skipping publishing on S3 because build aborted");
             return;
         }
 
@@ -137,8 +188,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         final S3Profile profile = getProfile();
 
         if (profile == null) {
-            log(console, "No S3 profile is configured.");
-            run.setResult(Result.UNSTABLE);
+            log(Level.SEVERE, console, "No S3 profile is configured.");
+            run.setResult(constrainResult(Result.UNSTABLE, listener));
             return;
         }
 
@@ -153,7 +204,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             for (Entry entry : entries) {
                 if (entry.noUploadOnFailure && Result.FAILURE.equals(run.getResult())) {
                     // build failed. don't post
-                    log(console, "Skipping publishing on S3 because build failed");
+                    log(Level.WARNING, console, "Skipping publishing on S3 because build failed");
                     continue;
                 }
 
@@ -199,6 +250,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
                     fingerprintRecord.setKeepForever(entry.keepForever);
+                    fingerprintRecord.setShowDirectlyInBrowser(entry.showDirectlyInBrowser);
                 }
 
                 if (entry.managedArtifacts) {
@@ -212,18 +264,18 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 run.addAction(new S3ArtifactsAction(run, profile, artifacts));
                 run.addAction(new FingerprintAction(run, record));
             }
-        } catch (IOException e) {
+        } catch (AmazonClientException|IOException e) {
             e.printStackTrace(listener.error("Failed to upload files"));
-            run.setResult(Result.UNSTABLE);
+            run.setResult(constrainResult(Result.UNSTABLE, listener));
         }
     }
 
     private void printDiagnostics(@Nonnull FilePath ws, PrintStream console, String expanded) throws IOException {
-        log(console, "No file(s) found: " + expanded);
+        log(Level.WARNING, console, "No file(s) found: " + expanded);
         try {
             final String error = ws.validateAntFileMask(expanded, 100);
             if (error != null) {
-                log(console, error);
+                log(Level.WARNING, console, error);
             }
         } catch (InterruptedException ignored) {
             // don't want to die here just because
@@ -304,14 +356,16 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
+        public static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
+        private static final Result[] pluginFailureResultConstraints = { Result.FAILURE, Result.UNSTABLE, Result.SUCCESS };
 
         public DescriptorImpl(Class<? extends Publisher> clazz) {
             super(clazz);
             load();
         }
 
-        public Regions[] regions = Entry.regions;
+        public List<Region> regions = Entry.regions;
 
         public String[] storageClasses = Entry.storageClasses;
 
@@ -350,9 +404,40 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             return model;
         }
 
+        public ListBoxModel doFillConsoleLogLevelItems() {
+            final ListBoxModel model = new ListBoxModel();
+            for (Level l : consoleLogLevels) {
+                model.add(l.getName(), l.getLocalizedName());
+            }
+            return model;
+        }
+
+        @SuppressWarnings("unused")
+        public ListBoxModel doFillPluginFailureResultConstraintItems() {
+            final ListBoxModel model = new ListBoxModel();
+            for (Result r : pluginFailureResultConstraints) {
+                model.add(r.toString(), r.toString());
+            }
+            return model;
+        }
+
+        @SuppressWarnings("unused")
+        public void replaceProfiles(List<S3Profile> profiles) {
+            this.profiles.replaceBy(profiles);
+            save();
+        }
+
+        public Level[] getConsoleLogLevels() {
+            return consoleLogLevels;
+        }
+
         public S3Profile[] getProfiles() {
             final S3Profile[] profileArray = new S3Profile[profiles.size()];
             return profiles.toArray(profileArray);
+        }
+
+        public Result[] getPluginFailureResultConstraints() {
+            return pluginFailureResultConstraints;
         }
 
         @SuppressWarnings("unused")
@@ -383,7 +468,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
             try {
                 client.listBuckets();
-            } catch (AmazonServiceException e) {
+            } catch (AmazonClientException e) {
                 LOGGER.log(Level.SEVERE, e.getMessage(), e);
                 return FormValidation.error("Can't connect to S3 service: " + e.getMessage());
             }

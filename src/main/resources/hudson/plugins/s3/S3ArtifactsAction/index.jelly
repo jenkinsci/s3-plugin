@@ -15,7 +15,7 @@
         <j:forEach var="e" items="${it.artifacts}">
           <tr>
             <td>
-							<a href="download/${e.name}">${h.escape(e.name)}</a>
+							<a href="download/${e.link}">${h.escape(e.name)}</a>
             </td>
             <td>
               <a href="${rootURL}/fingerprint/${e.fingerprint}/">

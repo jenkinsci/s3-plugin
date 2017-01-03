@@ -20,9 +20,20 @@
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
-    <version>0.10.8-SNAPSHOT</version>
+    <version>0.10.12-SNAPSHOT</version>
     <name>Jenkins S3 publisher plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/S3+Plugin</url>
+
+    <distributionManagement>
+        <repository>
+            <id>maven.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>maven.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <developers>
         <developer>
@@ -64,9 +75,21 @@
 
     <dependencies>
         <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.10.50</version>
+            <version>1.11.37</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
