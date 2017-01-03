@@ -1,0 +1,18 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+  <j:set var="helpURL" value="/plugin/s3" />
+    <f:entry title="S3 profile" field="profileName">
+      <f:select/>
+    </f:entry>
+
+  <f:entry title="Artifacts to copy">
+    <f:repeatableProperty field="entries">
+      <f:entry title="">
+          <div align="right">
+            <f:repeatableDeleteButton />
+          </div>
+      </f:entry>
+    </f:repeatableProperty>
+  </f:entry>
+
+</j:jelly>

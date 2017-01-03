@@ -36,6 +36,22 @@ public final class S3Artifact implements Serializable {
         return bucket;
     }
 
+    public static String getBucket(String bucketName, String defaultBucketName) {
+        return (bucketName == null || "".equals(bucketName)) ? defaultBucketName : bucketName;
+    }
+
+    public String getBucket(String defaultBucketName) {
+        return getBucket(this.bucket, defaultBucketName);
+    }
+
+    public static String getJustBucketName(String bucketName, String defaultBucketName) {
+        return getBucket(bucketName, defaultBucketName).split("/", 2)[0];
+    }
+
+    public static String getPrefix(String bucketName, String defaultBucketName) {
+        return getBucket(bucketName, defaultBucketName).split("/", 2)[1];
+    }
+
     @Exported
     public String getName() {
         return name;
@@ -47,8 +63,9 @@ public final class S3Artifact implements Serializable {
     }
 
     public Boolean useFullProjectName() {
-        if (useFullProjectName == null)
+        if (useFullProjectName == null) {
             return false;
+        }
 
         return useFullProjectName;
     }

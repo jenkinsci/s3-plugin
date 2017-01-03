@@ -36,9 +36,7 @@
         <f:entry field="keepForever" title="Keep files forever">
             <f:checkbox />
         </f:entry>
-        <f:entry field="showDirectlyInBrowser" title="Show content directly in browser">
-            <f:checkbox />
-        </f:entry>
+
         <f:entry title="Metadata tags">
             <f:repeatableProperty field="userMetadata">
                 <f:entry title="">

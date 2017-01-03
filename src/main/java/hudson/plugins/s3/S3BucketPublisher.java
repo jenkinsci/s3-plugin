@@ -6,21 +6,26 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import hudson.*;
-import hudson.model.*;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Util;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Fingerprint;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
-import hudson.util.CopyOnWriteList;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
@@ -29,7 +34,11 @@ import org.kohsuke.stapler.StaplerResponse;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,7 +48,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
-    private final List<Entry> entries;
+    private final List<UploadEntry> entries;
 
     private boolean dontWaitForConcurrentBuildCompletion;
 
@@ -51,13 +60,14 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     private /*almost final*/ List<MetadataPair> userMetadata;
 
     @DataBoundConstructor
-    public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
+    public S3BucketPublisher(String profileName, List<UploadEntry> entries, List<MetadataPair> userMetadata,
                              boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint) {
         if (profileName == null) {
             // defaults to the first one
-            final S3Profile[] sites = DESCRIPTOR.getProfiles();
-            if (sites.length > 0)
+            final S3Profile[] sites = S3Profile.DESCRIPTOR.getProfiles();
+            if (sites.length > 0) {
                 profileName = sites[0].getName();
+            }
         }
 
         this.profileName = profileName;
@@ -106,7 +116,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     }
 
     @SuppressWarnings("unused")
-    public List<Entry> getEntries() {
+    public List<UploadEntry> getEntries() {
         return entries;
     }
 
@@ -143,7 +153,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     }
 
     public static S3Profile getProfile(String profileName) {
-        final S3Profile[] profiles = DESCRIPTOR.getProfiles();
+        final S3Profile[] profiles = S3Profile.DESCRIPTOR.getProfiles();
 
         if (profileName == null && profiles.length > 0)
             // default
@@ -193,7 +203,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             return;
         }
 
-
         log(console, "Using S3 profile: " + profile.getName());
 
         try {
@@ -201,22 +210,23 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final Map<String, String> record = Maps.newHashMap();
             final List<FingerprintRecord> artifacts = Lists.newArrayList();
 
-            for (Entry entry : entries) {
-                if (entry.noUploadOnFailure && Result.FAILURE.equals(run.getResult())) {
+            for (UploadEntry uploadEntry : entries) {
+                if (uploadEntry.noUploadOnFailure && Result.FAILURE.equals(run.getResult())) {
                     // build failed. don't post
                     log(Level.WARNING, console, "Skipping publishing on S3 because build failed");
                     continue;
                 }
 
-                final String expanded = Util.replaceMacro(entry.sourceFile, envVars);
-                final String exclude = Util.replaceMacro(entry.excludedFile, envVars);
+                final String expanded = Util.replaceMacro(uploadEntry.sourceFile, envVars);
+                final String exclude = Util.replaceMacro(uploadEntry.excludedFile, envVars);
                 if (expanded == null) {
                     throw new IOException();
                 }
 
-                final String bucket = Util.replaceMacro(entry.bucket, envVars);
-                final String storageClass = Util.replaceMacro(entry.storageClass, envVars);
-                final String selRegion = entry.selectedRegion;
+                String bucketName = S3Artifact.getBucket(uploadEntry.bucket, profile.getDefaultBucket());
+                final String bucket = Util.replaceMacro(bucketName, envVars);
+                final String storageClass = Util.replaceMacro(uploadEntry.storageClass, envVars);
+                final String selRegion = uploadEntry.selectedRegion;
 
                 final List<FilePath> paths = new ArrayList<>();
                 final List<String> filenames = new ArrayList<>();
@@ -231,8 +241,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                         final int workspacePath = FileHelper.getSearchPathLength(ws.getRemote(),
                                 startPath.trim(),
                                 getProfile().isKeepStructure());
-                        filenames.add(getFilename(path, entry.flatten, workspacePath));
-                        log(console, "bucket=" + bucket + ", file=" + path.getName() + " region=" + selRegion + ", will be uploaded from slave=" + entry.uploadFromSlave + " managed=" + entry.managedArtifacts + " , server encryption " + entry.useServerSideEncryption);
+                        filenames.add(getFilename(path, uploadEntry.flatten, workspacePath));
+                        log(console, "bucket=" + bucket + ", file=" + path.getName() + " region=" + selRegion + ", will be uploaded from slave=" + uploadEntry.uploadFromSlave + " managed=" + uploadEntry.managedArtifacts + " , server encryption " + uploadEntry.useServerSideEncryption);
                     }
                 }
 
@@ -242,18 +252,18 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 }
 
 
-                final Map<String, String> escapedMetadata = buildMetadata(envVars, entry);
+                final Map<String, String> escapedMetadata = buildMetadata(envVars, uploadEntry);
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
-                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
+                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, uploadEntry.uploadFromSlave, uploadEntry.managedArtifacts, uploadEntry.useServerSideEncryption, uploadEntry.gzipFiles);
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
-                    fingerprintRecord.setKeepForever(entry.keepForever);
-                    fingerprintRecord.setShowDirectlyInBrowser(entry.showDirectlyInBrowser);
+                    fingerprintRecord.setKeepForever(uploadEntry.keepForever);
+                    fingerprintRecord.setShowDirectlyInBrowser(uploadEntry.showDirectlyInBrowser);
                 }
 
-                if (entry.managedArtifacts) {
+                if (uploadEntry.managedArtifacts) {
                     artifacts.addAll(fingerprints);
                     fillFingerprints(run, listener, record, fingerprints);
                 }
@@ -296,7 +306,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
     }
 
-    private Map<String, String> buildMetadata(Map<String, String> envVars, Entry entry) {
+    private Map<String, String> buildMetadata(Map<String, String> envVars, UploadEntry uploadEntry) {
         final Map<String, String> mergedMetadata = new HashMap<>();
 
         if (userMetadata != null) {
@@ -305,8 +315,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             }
         }
 
-        if (entry.userMetadata != null) {
-            for (MetadataPair pair : entry.userMetadata) {
+        if (uploadEntry.userMetadata != null) {
+            for (MetadataPair pair : uploadEntry.userMetadata) {
                 mergedMetadata.put(pair.key, pair.value);
             }
         }
@@ -355,9 +365,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
-        private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
-        public static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
+        public static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
         private static final Result[] pluginFailureResultConstraints = { Result.FAILURE, Result.UNSTABLE, Result.SUCCESS };
 
         public DescriptorImpl(Class<? extends Publisher> clazz) {
@@ -365,9 +374,9 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             load();
         }
 
-        public List<Region> regions = Entry.regions;
+        public List<Region> regions = UploadEntry.regions;
 
-        public String[] storageClasses = Entry.storageClasses;
+        public String[] storageClasses = UploadEntry.storageClasses;
 
         public DescriptorImpl() {
             this(S3BucketPublisher.class);
@@ -383,22 +392,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             return "/plugin/s3/help.html";
         }
 
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject json) {
-            final JSONArray array = json.optJSONArray("profile");
-            if (array != null) {
-                profiles.replaceBy(req.bindJSONToList(S3Profile.class, array));
-            } else {
-                profiles.replaceBy(req.bindJSON(S3Profile.class, json.getJSONObject("profile")));
-            }
-            save();
-            return true;
-        }
 
         @SuppressWarnings("unused")
         public ListBoxModel doFillProfileNameItems() {
             final ListBoxModel model = new ListBoxModel();
-            for (S3Profile profile : profiles) {
+            for (S3Profile profile : S3Profile.DESCRIPTOR.getProfiles()) {
                 model.add(profile.getName(), profile.getName());
             }
             return model;
@@ -421,19 +419,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             return model;
         }
 
-        @SuppressWarnings("unused")
-        public void replaceProfiles(List<S3Profile> profiles) {
-            this.profiles.replaceBy(profiles);
-            save();
-        }
-
         public Level[] getConsoleLogLevels() {
             return consoleLogLevels;
-        }
-
-        public S3Profile[] getProfiles() {
-            final S3Profile[] profileArray = new S3Profile[profiles.size()];
-            return profiles.toArray(profileArray);
         }
 
         public Result[] getPluginFailureResultConstraints() {
@@ -446,6 +433,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final String accessKey = Util.fixNull(req.getParameter("accessKey"));
             final String secretKey = Util.fixNull(req.getParameter("secretKey"));
             final String useIAMCredential = Util.fixNull(req.getParameter("useRole"));
+            final String endpointUrl = req.getParameter("endpointUrl");
+            final boolean pathStyleAccess = Boolean.parseBoolean(Util.fixNull(req.getParameter("pathStyleAccess")));
+            final boolean payloadSigningEnabled = Boolean.parseBoolean(Util.fixNull(req.getParameter("payloadSigningEnabled")));
+
 
             final boolean couldBeValidated = !name.isEmpty() && !accessKey.isEmpty() && !secretKey.isEmpty();
             final boolean useRole = Boolean.parseBoolean(useIAMCredential);
@@ -464,7 +455,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     return FormValidation.ok("Please, enter secretKey");
             }
 
-            final AmazonS3Client client = ClientHelper.createClient(accessKey, secretKey, useRole, Jenkins.getActiveInstance().proxy);
+            final AmazonS3Client client = ClientHelper.createClient(accessKey, secretKey, useRole, ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME, Jenkins.getActiveInstance().proxy, endpointUrl, pathStyleAccess, payloadSigningEnabled);
 
             try {
                 client.listBuckets();
