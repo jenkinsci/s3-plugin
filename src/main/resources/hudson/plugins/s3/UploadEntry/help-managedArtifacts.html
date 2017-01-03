@@ -3,12 +3,12 @@ When enabled, this lets Jenkins fully manage the artifacts, exactly like it does
 are published to the master.
 <br>
 In this case, the artifacts are stored in the "jobs/[job]/[build-number]/" path in the selected
-bucket and prefix path. 
+bucket and prefix path.
 
 This means the following features are enabled:
 <ul>
 <li>artifacts are finger printed and linked to the build</li>
-<li>artifacts can be downloaded directly from the build page in the 
+<li>artifacts can be downloaded directly from the build page in the
 S3 Artifact section</li>
 <li>artifacts are automatically deleted when the build is deleted</li>
 <li>the <em>S3 Copy Artifact</em> build step can be used to download artifacts from S3

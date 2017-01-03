@@ -11,7 +11,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.List;
 
-public final class Entry implements Describable<Entry> {
+public final class UploadEntry implements Describable<UploadEntry> {
 
     /**
      * Destination bucket for the copy. Can contain macros.
@@ -43,7 +43,7 @@ public final class Entry implements Describable<Entry> {
      * Stores the Region Value
      */
     public String selectedRegion;
-    
+
     /**
      * Do not publish the artifacts when build fails
      */
@@ -58,7 +58,7 @@ public final class Entry implements Describable<Entry> {
      * Let Jenkins manage the S3 uploaded artifacts
      */
     public boolean managedArtifacts;
-    
+
     /**
      * Use S3 server side encryption when uploading the artifacts
      */
@@ -91,7 +91,7 @@ public final class Entry implements Describable<Entry> {
     public List<MetadataPair> userMetadata;
 
     @DataBoundConstructor
-    public Entry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
+    public UploadEntry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
                  boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, boolean keepForever,
                  boolean showDirectlyInBrowser, List<MetadataPair> userMetadata) {
@@ -112,14 +112,14 @@ public final class Entry implements Describable<Entry> {
     }
 
     @Override
-    public Descriptor<Entry> getDescriptor() {
+    public Descriptor<UploadEntry> getDescriptor() {
         return DESCRIPOR;
     }
 
     @Extension
     public static final DescriptorImpl DESCRIPOR = new DescriptorImpl();
 
-    public static class DescriptorImpl extends  Descriptor<Entry> {
+    public static class DescriptorImpl extends  Descriptor<UploadEntry> {
 
         @Override
         public String getDisplayName() {

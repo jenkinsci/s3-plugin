@@ -2,20 +2,26 @@ package hudson.plugins.s3.callable;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import hudson.FilePath;
-import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
 import hudson.plugins.s3.MD5;
+import hudson.plugins.s3.S3Profile;
 import hudson.plugins.s3.Uploads;
-import hudson.util.Secret;
 import org.apache.commons.io.IOUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 public final class S3GzipCallable extends S3BaseUploadCallable implements MasterSlaveCallable<String> {
-    public S3GzipCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy) {
-        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy);
+    public S3GzipCallable(S3Profile profile, String selregion,
+                          Destination dest, Map<String, String> userMetadata, String storageClass,
+                          boolean useServerSideEncryption) {
+        super(profile, selregion, dest, userMetadata, storageClass, useServerSideEncryption);
     }
 
     @Override
