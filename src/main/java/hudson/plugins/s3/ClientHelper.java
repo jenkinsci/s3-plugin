@@ -34,7 +34,6 @@ public class ClientHelper {
         return createClient(profile.getAccessKey(), Secret.toString(profile.getSecretKey()), profile.isUseRole(),  DEFAULT_AMAZON_S3_REGION_NAME, profile.getProxy(), profile.getEndpointUrl(), profile.isPathStyleAccess(), profile.isPayloadSigningEnabled());
     }
 
-    @Deprecated
     public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, String endpointUrl, boolean pathStyleAccess, boolean payloadSigningEnabled)
     {
         Region awsRegion = getRegionFromString(region);
