@@ -47,8 +47,9 @@ public final class S3Artifact implements Serializable {
     }
 
     public Boolean useFullProjectName() {
-        if (useFullProjectName == null)
+        if (useFullProjectName == null) {
             return false;
+        }
 
         return useFullProjectName;
     }

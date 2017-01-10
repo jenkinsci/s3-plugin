@@ -446,6 +446,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final String accessKey = Util.fixNull(req.getParameter("accessKey"));
             final String secretKey = Util.fixNull(req.getParameter("secretKey"));
             final String useIAMCredential = Util.fixNull(req.getParameter("useRole"));
+            final String endpointUrl = req.getParameter("endpointUrl");
+            final boolean pathStyleAccess = Boolean.parseBoolean(Util.fixNull(req.getParameter("pathStyleAccess")));
+            final boolean payloadSigningEnabled = Boolean.parseBoolean(Util.fixNull(req.getParameter("payloadSigningEnabled")));
+
 
             final boolean couldBeValidated = !name.isEmpty() && !accessKey.isEmpty() && !secretKey.isEmpty();
             final boolean useRole = Boolean.parseBoolean(useIAMCredential);
@@ -464,7 +468,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     return FormValidation.ok("Please, enter secretKey");
             }
 
-            final AmazonS3Client client = ClientHelper.createClient(accessKey, secretKey, useRole, Jenkins.getActiveInstance().proxy);
+            final AmazonS3Client client = ClientHelper.createClient(accessKey, secretKey, useRole, ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME, Jenkins.getActiveInstance().proxy, endpointUrl, pathStyleAccess, payloadSigningEnabled);
 
             try {
                 client.listBuckets();

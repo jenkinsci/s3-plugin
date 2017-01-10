@@ -3,10 +3,9 @@ package hudson.plugins.s3.callable;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import hudson.FilePath;
-import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
+import hudson.plugins.s3.S3Profile;
 import hudson.remoting.VirtualChannel;
-import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,10 +22,10 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
     private final boolean useServerSideEncryption;
 
 
-    public S3BaseUploadCallable(String accessKey, Secret secretKey, boolean useRole,
-                                Destination dest, Map<String, String> userMetadata, String storageClass, String selregion,
-                                boolean useServerSideEncryption, ProxyConfiguration proxy) {
-        super(accessKey, secretKey, useRole, selregion, proxy);
+    public S3BaseUploadCallable(S3Profile profile, String selregion,
+                                Destination dest, Map<String, String> userMetadata, String storageClass,
+                                boolean useServerSideEncryption) {
+        super(profile, selregion);
         this.dest = dest;
         this.storageClass = storageClass;
         this.userMetadata = userMetadata;

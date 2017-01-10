@@ -2,11 +2,10 @@ package hudson.plugins.s3.callable;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.transfer.Download;
-import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
 import hudson.plugins.s3.MD5;
+import hudson.plugins.s3.S3Profile;
 import hudson.remoting.VirtualChannel;
-import hudson.util.Secret;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,10 +14,10 @@ public final class S3DownloadCallable extends S3Callable<String>
 {
     private static final long serialVersionUID = 1L;
     private final Destination dest;
-    
-    public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, String region, ProxyConfiguration proxy)
+
+    public S3DownloadCallable(S3Profile profile, Destination dest, String region)
     {
-        super(accessKey, secretKey, useRole, region, proxy);
+        super(profile, region);
         this.dest = dest;
     }
 

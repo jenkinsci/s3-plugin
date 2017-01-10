@@ -10,10 +10,13 @@
           <f:entry title="Use IAM Role" help="/plugin/s3/help-role.html">
             <f:checkbox name="s3.useRole" value="${profile.useRole}" checked="${profile.useRole}"/>
           </f:entry>
+            <f:entry title="Endpoint URL" help="/plugin/s3/help-endpointUrl.html" description="Set this first so the login check goes to the right server.">
+              <f:textbox name="s3.endpointUrl" value="${profile.endpointUrl}" />
+            </f:entry>
           <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
             <f:textbox name="s3.accessKey" value="${profile.accessKey}"
                     checkMethod="post"
-                    checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;useRole='+encodeURIComponent(Form.findMatchingInput(this,'s3.useRole').value)"
+                    checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;useRole='+encodeURIComponent(Form.findMatchingInput(this,'s3.useRole').value)+'&amp;endpointUrl='+encodeURIComponent(Form.findMatchingInput(this,'s3.endpointUrl').value)"
             />
           </f:entry>
           <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
@@ -41,6 +44,12 @@
             </f:entry>
             <f:entry title="Keep Structure" help="/plugin/s3/help-keepStructure.html">
                 <f:checkbox name="s3.keepStructure" value="${profile.keepStructure}" checked="${profile.keepStructure}"/>
+            </f:entry>
+              <f:entry title="Use Path-Style Access" help="/plugin/s3/help-pathStyleAccess.html">
+                <f:checkbox name="s3.pathStyleAccess" value="${profile.pathStyleAccess}" checked="${profile.pathStyleAccess}"/>
+              </f:entry>
+              <f:entry title="Enable Payload Signing" help="/plugin/s3/help-payloadSigningEnabled.html">
+                <f:checkbox name="s3.payloadSigningEnabled" value="${profile.payloadSigningEnabled}" checked="${profile.payloadSigningEnabled}"/>
             </f:entry>
           </f:advanced>
 

@@ -7,12 +7,13 @@ import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.S3ClientOptions;
 import hudson.ProxyConfiguration;
-
-import java.util.regex.Pattern;
+import hudson.util.Secret;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.regex.Pattern;
 
 public class ClientHelper {
 
@@ -21,15 +22,18 @@ public class ClientHelper {
             com.amazonaws.services.s3.model.Region.US_Standard.toAWSRegion().getName());
 
     /**
-     * This method should be deprecated to always use an AWS region with {@link #createClient(String, String, boolean, String, ProxyConfiguration)}
+     * This method should be deprecated to always use an AWS region with {@link #createClient(String, String, boolean, String, ProxyConfiguration, String, boolean, boolean)}
      */
-    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, ProxyConfiguration proxy)
-    {
-        return createClient(accessKey, secretKey, useRole, DEFAULT_AMAZON_S3_REGION_NAME, proxy);
+    @Deprecated
+    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, ProxyConfiguration proxy, String endpointUrl) {
+        return createClient(accessKey, secretKey, useRole, DEFAULT_AMAZON_S3_REGION_NAME, proxy, endpointUrl, false, false);
     }
 
-    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy)
-    {
+    public static AmazonS3Client createClient(S3Profile profile) {
+        return createClient(profile.getAccessKey(), Secret.toString(profile.getSecretKey()), profile.isUseRole(), DEFAULT_AMAZON_S3_REGION_NAME, profile.getProxy(), profile.getEndpointUrl(), profile.isPathStyleAccess(), profile.isPayloadSigningEnabled());
+    }
+
+    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, String endpointUrl, boolean pathStyleAccess, boolean payloadSigningEnabled) {
         Region awsRegion = getRegionFromString(region);
 
         ClientConfiguration clientConfiguration = getClientConfiguration(proxy, awsRegion);
@@ -43,6 +47,13 @@ public class ClientHelper {
 
         client.setRegion(awsRegion);
 
+        if (endpointUrl != null) {
+            client.setEndpoint(endpointUrl);
+        }
+        client.setS3ClientOptions(S3ClientOptions.builder()
+                        .setPathStyleAccess(pathStyleAccess)
+                        .setPayloadSigningEnabled(payloadSigningEnabled).build()
+        );
         return client;
     }
 
@@ -98,13 +109,13 @@ public class ClientHelper {
     }
 
     private static boolean shouldUseProxy(ProxyConfiguration proxy, String hostname) {
-        if(proxy == null) {
+        if (proxy == null) {
             return false;
         }
 
         boolean shouldProxy = true;
-        for(Pattern p : proxy.getNoProxyHostPatterns()) {
-            if(p.matcher(hostname).matches()) {
+        for (Pattern p : proxy.getNoProxyHostPatterns()) {
+            if (p.matcher(hostname).matches()) {
                 shouldProxy = false;
                 break;
             }

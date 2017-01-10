@@ -27,7 +27,7 @@ public class S3Test {
         final S3BucketPublisher.DescriptorImpl s3Plugin = (S3BucketPublisher.DescriptorImpl)
                 instance.getDescriptor( S3BucketPublisher.class );
 
-        final S3Profile profile = new S3Profile("S3 profile random name", null, null, true, 0, "0", "0", "0", "0", true);
+        final S3Profile profile = new S3Profile("S3 profile random name", null, null, null, true, 0, "0", "0", "0", "0", true, true, true);
         final List<S3Profile> profileList = new ArrayList<>();
         profileList.add(profile);
 
