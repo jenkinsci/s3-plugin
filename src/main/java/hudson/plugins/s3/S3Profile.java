@@ -116,7 +116,7 @@ public class S3Profile {
         return uploadRetryTime;
     }
 
-    public final String getName() {
+    public /*final*/ String getName() {
         return this.name;
     }
 

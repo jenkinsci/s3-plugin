@@ -69,10 +69,16 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
         this.dontWaitForConcurrentBuildCompletion = dontWaitForConcurrentBuildCompletion;
         this.consoleLogLevel = parseLevel(consoleLogLevel);
-        this.pluginFailureResultConstraint = Result.fromString(pluginFailureResultConstraint);
+        if (pluginFailureResultConstraint == null) {
+            this.pluginFailureResultConstraint = Result.FAILURE;
+        } else {
+            this.pluginFailureResultConstraint = Result.fromString(pluginFailureResultConstraint);
+        }
     }
 
     private Level parseLevel(String lvl) {
+        if (lvl == null)
+            lvl = "";
         switch (lvl) {
         case "WARNING": return Level.WARNING;
         case "SEVERE":  return Level.SEVERE;
@@ -261,12 +267,30 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
             // don't bother adding actions if none of the artifacts are managed
             if (!artifacts.isEmpty()) {
-                run.addAction(new S3ArtifactsAction(run, profile, artifacts));
-                run.addAction(new FingerprintAction(run, record));
+                addS3ArtifactsAction(run, profile, artifacts);
+                addFingerprintAction(run, record);
             }
         } catch (AmazonClientException|IOException e) {
             e.printStackTrace(listener.error("Failed to upload files"));
             run.setResult(constrainResult(Result.UNSTABLE, listener));
+        }
+    }
+
+    private void addS3ArtifactsAction(Run<?, ?> run, S3Profile profile, List<FingerprintRecord> artifacts) {
+        S3ArtifactsAction existingAction = run.getAction(S3ArtifactsAction.class);
+        if (existingAction != null) {
+            existingAction.getArtifacts().addAll(artifacts);
+        } else {
+            run.addAction(new S3ArtifactsAction(run, profile, artifacts));
+        }
+    }
+
+    private void addFingerprintAction(Run<?, ?> run, Map<String, String> record) {
+        FingerprintAction existingAction = run.getAction(FingerprintAction.class);
+        if (existingAction != null) {
+            existingAction.add(record);
+        } else {
+            run.addAction(new FingerprintAction(run, record));
         }
     }
 

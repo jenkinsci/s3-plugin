@@ -3,13 +3,28 @@ package hudson.plugins.s3;
 
 import com.gargoylesoftware.htmlunit.WebAssert;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.model.Action;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.Run;
+import hudson.plugins.s3.S3BucketPublisher.DescriptorImpl;
+import hudson.tasks.Builder;
+import hudson.tasks.Fingerprinter.FingerprintAction;
+import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.mockito.Mockito;
 
-import java.util.ArrayList;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.toArray;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.junit.Assert.assertEquals;
 
 public class S3Test {
     @Rule
@@ -23,17 +38,79 @@ public class S3Test {
 
     @Test
     public void testConfigContainsProfiles() throws Exception {
-        final Jenkins instance = Jenkins.getInstance();
-        final S3BucketPublisher.DescriptorImpl s3Plugin = (S3BucketPublisher.DescriptorImpl)
-                instance.getDescriptor( S3BucketPublisher.class );
-
         final S3Profile profile = new S3Profile("S3 profile random name", null, null, null, true, 0, "0", "0", "0", "0", true, true, true);
-        final List<S3Profile> profileList = new ArrayList<>();
-        profileList.add(profile);
 
-        s3Plugin.replaceProfiles(profileList);
+      replaceS3PluginProfile(profile);
 
         HtmlPage page = j.createWebClient().goTo("configure");
         WebAssert.assertTextPresent(page, "S3 profile random name");
+    }
+
+    @Test
+    public void multiplePublishersUseExistingActions() throws Exception {
+        String profileName = "test profile";
+        String fileName = "testFile";
+        S3BucketPublisher publisher = new S3BucketPublisher(
+                profileName,
+                newArrayList(entryForFile(fileName)),
+                Collections.<MetadataPair>emptyList(),
+                true,
+                "INFO",
+                "SUCCESS"
+        );
+        replaceS3PluginProfile(mockS3Profile(profileName));
+
+        final FreeStyleProject project = j.createFreeStyleProject("testing");
+        project.getBuildersList().add(stepCreatingFile(fileName));
+
+        project.getPublishersList().add(publisher);
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build = j.buildAndAssertSuccess(project);
+        assertEquals(1, countActionsOfType(build, S3ArtifactsAction.class));
+        assertEquals(1, countActionsOfType(build, FingerprintAction.class));
+    }
+
+    private Entry entryForFile(String fileName) {
+        return new Entry("bucket", fileName, "", "", "", false, false, true, false, false, false, false, false, null);
+    }
+
+    private Builder stepCreatingFile(String fileName) {
+        return new Shell("touch " + fileName);
+    }
+
+    private void replaceS3PluginProfile(S3Profile s3Profile) {
+        final Jenkins instance = Jenkins.getInstance();
+        final DescriptorImpl s3Plugin = (DescriptorImpl) instance.getDescriptor(S3BucketPublisher.class);
+        s3Plugin.replaceProfiles(newArrayList(s3Profile));
+    }
+
+    private S3Profile mockS3Profile(String profileName) throws IOException, InterruptedException {
+        S3Profile profile = Mockito.mock(S3Profile.class);
+        Mockito.when(profile.getName()).thenReturn(profileName);
+        Mockito.when(profile.isKeepStructure()).thenReturn(true);
+        Mockito.when(profile.upload(
+                Mockito.any(Run.class),
+                Mockito.anyString(),
+                Mockito.anyList(),
+                Mockito.anyList(),
+                Mockito.anyMap(),
+                Mockito.anyString(),
+                Mockito.anyString(),
+                Mockito.anyBoolean(),
+                Mockito.anyBoolean(),
+                Mockito.anyBoolean(),
+                Mockito.anyBoolean()
+        )).thenReturn(newArrayList(new FingerprintRecord(true, "bucket", "path", "eu-west-1", "xxxx")));
+        return profile;
+    }
+
+    private int countActionsOfType(Run<?, ?> run, Class<?> actionClass) {
+        return getAllActionsOfType(run, actionClass).length;
+    }
+
+    private <T> T[] getAllActionsOfType(Run<?, ?> run, Class<T> actionClass) {
+        List<? extends Action> actions = run.getAllActions();
+        return toArray(filter(actions, actionClass), actionClass);
     }
 }
