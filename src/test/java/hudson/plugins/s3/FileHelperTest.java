@@ -115,6 +115,17 @@ public class FileHelperTest {
     }
 
     @Test
+    public void testGetStartIndexWithAsteriskInTheMiddle() throws Exception {
+        String workspace = "/var/lib/jenkins/jobs/workspace";
+        String folder = "tests/some_name.*.0.extension";
+
+        final String shouldBeCut = "/var/lib/jenkins/jobs/workspace/tests/";
+
+        int startIndex = FileHelper.getSearchPathLength(workspace, folder, false);
+        assertEquals(shouldBeCut.length(), startIndex);
+    }
+
+    @Test
     public void testGetStartIndexWithAsteriskInsideButKeepStructure() throws Exception {
         String workspace = "/var/lib/jenkins/jobs/workspace";
         String folder = "tests/*/folder";

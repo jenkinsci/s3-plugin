@@ -51,8 +51,8 @@ public class FileHelper {
 
 
         if (indexOfWildCard > 0) {
-            final String s = pathWithFilter.substring(0, indexOfWildCard);
-            return s.length();
+            int folderNameEnds = pathWithFilter.substring(0, indexOfWildCard).lastIndexOf(File.separatorChar);
+            return pathWithFilter.substring(0, folderNameEnds).length() + 1;
         } else {
             return file2.getParent().length() + 1;
         }
