@@ -24,7 +24,7 @@ build action called `S3 Copy Artifact` for downloading artifacts,
 and a post-build action called `Publish Artifacts to S3 Bucket`.
 
 For Pipeline users, the same two actions are available via the
-`step` step. You can use the snippet generator to get started.
+`s3CopyArtifact` and `s3Upload` step. You can use the snippet generator to get started.
 
 When using an Amazon S3 compatible storage system (OpenStack Swift, EMC Atmos...),
 the list of AWS regions can be overridden specifying a file 

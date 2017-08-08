@@ -22,6 +22,7 @@ import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -126,12 +127,17 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         return this.profileName;
     }
 
+    /**
+     * for data binding only
+     *
+     * @return pluginFailureResultConstraint string representation
+     */
     @SuppressWarnings("unused")
-    public Result getPluginFailureResultConstraint() {
+    public String getPluginFailureResultConstraint() {
         if (pluginFailureResultConstraint == null) {
-            return Result.FAILURE;
+            return Result.FAILURE.toString();
         }
-        return pluginFailureResultConstraint;
+        return pluginFailureResultConstraint.toString();
     }
 
     @SuppressWarnings("unused")
@@ -139,9 +145,14 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         return dontWaitForConcurrentBuildCompletion;
     }
 
+    /**
+     * for data binding only
+     *
+     * @return consoleLogLevel string representation
+     */
     @SuppressWarnings("unused")
-    public Level getConsoleLogLevel() {
-        return consoleLogLevel;
+    public String getConsoleLogLevel() {
+        return consoleLogLevel.toString();
     }
 
     public S3Profile getProfile() {
@@ -377,6 +388,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         return dontWaitForConcurrentBuildCompletion ? BuildStepMonitor.NONE : BuildStepMonitor.STEP;
     }
 
+    @Symbol("s3Upload")
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
