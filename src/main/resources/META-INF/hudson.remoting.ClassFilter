@@ -1,0 +1,9 @@
+# Model object classes, no deserialization logic
+com.amazonaws.regions.Region
+com.amazonaws.regions.InMemoryRegionImpl
+com.amazonaws.partitions.PartitionRegionImpl
+com.amazonaws.partitions.model.Partition
+com.amazonaws.partitions.model.Service
+com.amazonaws.partitions.model.Endpoint
+com.amazonaws.partitions.model.CredentialScope
+com.amazonaws.partitions.model.Region
