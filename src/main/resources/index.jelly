@@ -1,6 +1,7 @@
 <!--
   This view is used to render the plugin list page.
 -->
+<?jelly escape-by-default='true'?>
 <div>
   This is a plugin to upload files to Amazon S3 buckets.
 </div>

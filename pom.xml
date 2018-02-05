@@ -1,39 +1,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.609.3</version>
+        <version>3.4</version>
     </parent>
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
     <version>0.11.0-SNAPSHOT</version>
     <name>Jenkins S3 publisher plugin</name>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/S3+Plugin</url>
+    <url>https://wiki.jenkins.io/display/JENKINS/S3+Plugin</url>
 
-    <distributionManagement>
-        <repository>
-            <id>maven.jenkins-ci.org</id>
-            <url>https://repo.jenkins-ci.org/releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>maven.jenkins-ci.org</id>
-            <url>https://repo.jenkins-ci.org/snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
+    <properties>
+        <jenkins.version>1.625.3</jenkins.version>
+        <java.level>7</java.level>
+        <!-- TODO: remove once FindBugs issues are fixed -->
+        <findbugs.failOnError>false</findbugs.failOnError>
+    </properties>
 
     <developers>
         <developer>
@@ -75,12 +59,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
             <version>1.10.19</version>
@@ -89,7 +67,12 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.11.37</version>
+            <version>1.11.264</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>apache-httpcomponents-client-4-api</artifactId>
+            <version>4.5.3-2.1</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -99,7 +82,7 @@
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
-            <version>2.0</version>
+            <version>3.1</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
