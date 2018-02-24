@@ -1,5 +1,6 @@
 package hudson.plugins.s3;
 
+import com.google.common.base.Joiner;
 import hudson.FilePath;
 
 import java.io.IOException;
@@ -116,7 +117,7 @@ public class S3Profile {
     }
 
     public List<FingerprintRecord> upload(Run<?, ?> run,
-                                    final String bucketName,
+                                    final String mainBucketName,
                                     final List<FilePath> filePaths,
                                     final List<String> fileNames,
                                     final Map<String, String> userMetadata,
@@ -131,7 +132,21 @@ public class S3Profile {
         try {
             for (int i = 0; i < fileNames.size(); i++) {
                 final FilePath filePath = filePaths.get(i);
-                final String fileName = fileNames.get(i);
+                final String bucketName;
+                final String fileName;
+                if (fileNames.get(i) == null) {
+                    final String[] bucketNameArray = mainBucketName.split("/");
+                    if (bucketNameArray.length > 1) {
+                        fileName = bucketNameArray[bucketNameArray.length - 1];
+                        bucketNameArray[bucketNameArray.length - 1] = null;
+                        bucketName = Joiner.on('/').skipNulls().join(bucketNameArray);
+                    } else {
+                        throw new IllegalArgumentException("Destination bucket must contains file name when Single file is enabled");
+                    }
+                } else {
+                    bucketName = mainBucketName;
+                    fileName = fileNames.get(i);
+                }
 
                 final Destination dest;
                 final boolean produced;

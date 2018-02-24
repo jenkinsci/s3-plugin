@@ -70,6 +70,11 @@ public final class Entry implements Describable<Entry> {
     public boolean flatten;
 
     /**
+     * Upload a single file (so the file-name is not appended to the destination bucket)
+     */
+    public boolean singleFile;
+
+    /**
     * use GZIP to compress files
     */
     public boolean gzipFiles;
@@ -93,8 +98,8 @@ public final class Entry implements Describable<Entry> {
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
-                 boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, boolean keepForever,
-                 boolean showDirectlyInBrowser, List<MetadataPair> userMetadata) {
+                 boolean useServerSideEncryption, boolean flatten, boolean singleFile, boolean gzipFiles,
+                 boolean keepForever, boolean showDirectlyInBrowser, List<MetadataPair> userMetadata) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
         this.excludedFile = excludedFile;
@@ -105,6 +110,7 @@ public final class Entry implements Describable<Entry> {
         this.managedArtifacts = managedArtifacts;
         this.useServerSideEncryption = useServerSideEncryption;
         this.flatten = flatten;
+        this.singleFile = singleFile;
         this.gzipFiles = gzipFiles;
         this.keepForever = keepForever;
         this.userMetadata = userMetadata;
