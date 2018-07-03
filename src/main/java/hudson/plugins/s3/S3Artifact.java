@@ -16,9 +16,9 @@ public final class S3Artifact implements Serializable {
     private /*almost final*/ Boolean useFullProjectName;
 
     public S3Artifact(String region, String bucket, String name) {
-        this.bucket = bucket;
-        this.name = name;
-        this.region = region;
+        this.bucket = bucket.intern();
+        this.name = name.intern();
+        this.region = region.intern();
         this.useFullProjectName = true;
     }
 

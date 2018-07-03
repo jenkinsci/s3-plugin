@@ -136,8 +136,12 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         return optional != null && optional;
     }
 
-    private void setResult(@Nonnull Run<?, ?> run, boolean result) {
-        if (result)
+    private void setResult(@Nonnull Run<?, ?> run, boolean isOk) {
+        if (isOptional()) {
+            return;
+        }
+
+        if (isOk)
             run.setResult(Result.SUCCESS);
         else
             run.setResult(Result.FAILURE);
@@ -173,13 +177,13 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             final Run src = getBuildSelector().getBuild(job.job, env, job.filter, dst);
             if (src == null) {
                 console.println(Messages.CopyArtifact_MissingBuild(expandedProject));
-                setResult(dst,  isOptional());  // Fail build unless copy is optional
+                setResult(dst,  false);  // Fail build unless copy is optional
                 return;
             }
 
             if (!targetDir.exists()) {
                 console.println(Messages.CopyArtifact_MissingSrcWorkspace()); // (see JENKINS-3330)
-                setResult(dst, isOptional());  // Fail build unless copy is optional
+                setResult(dst, false);  // Fail build unless copy is optional
                 return;
             }
 
