@@ -311,6 +311,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 addFingerprintAction(run, record);
             }
             
+            
+            
         } catch (AmazonClientException|IOException e) {
             e.printStackTrace(listener.error("Failed to upload files"));
             run.setResult(constrainResult(Result.UNSTABLE, listener));
