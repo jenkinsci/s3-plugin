@@ -1,25 +1,18 @@
 package hudson.plugins.s3;
 
 import java.io.File;
-import java.io.IOException;
-
 import java.util.Date;
 import java.util.List;
 
-import javax.servlet.ServletException;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
-import jenkins.model.RunAction2;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 
 import hudson.model.Run;
-import org.kohsuke.stapler.export.Exported;
-import org.kohsuke.stapler.export.ExportedBean;
-
-import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import jenkins.model.RunAction2;
 
 @ExportedBean
 public class S3ArtifactsAction implements RunAction2 {
@@ -66,26 +59,6 @@ public class S3ArtifactsAction implements RunAction2 {
         return artifacts;
     }
 
-    public void doDownload(final StaplerRequest request, final StaplerResponse response) throws IOException, ServletException {
-        final String restOfPath = request.getRestOfPath();
-        if (restOfPath == null) {
-            return;
-        }
-
-        // skip the leading /
-        final String artifact = restOfPath.substring(1);
-        for (FingerprintRecord record : artifacts) {
-            if (record.getArtifact().getName().equals(artifact)) {
-                final S3Profile s3 = S3BucketPublisher.getProfile(profile);
-                final AmazonS3Client client = s3.getClient(record.getArtifact().getRegion());
-                final String url = getDownloadURL(client, s3.getSignedUrlExpirySeconds(), build, record);
-                response.sendRedirect2(url);
-                return;
-            }
-        }
-        response.sendError(SC_NOT_FOUND, "This artifact is not available");
-    }
-
     /**
      * Generate a signed download request for a redirect from s3/download.
      *
@@ -94,7 +67,7 @@ public class S3ArtifactsAction implements RunAction2 {
      * download and there's no need for the user to have credentials to
      * access S3.
      */
-    private String getDownloadURL(AmazonS3Client client, int signedUrlExpirySeconds, Run run, FingerprintRecord record) {
+    public String getDownloadURL(AmazonS3Client client, int signedUrlExpirySeconds, Run run, FingerprintRecord record) {
         final Destination dest = Destination.newFromRun(run, record.getArtifact());
         final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
         request.setExpiration(new Date(System.currentTimeMillis() + signedUrlExpirySeconds*1000));

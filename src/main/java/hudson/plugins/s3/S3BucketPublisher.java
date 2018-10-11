@@ -1,19 +1,48 @@
 package hudson.plugins.s3;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.annotation.Nonnull;
+
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.envinject.EnvInjectPluginAction;
+import org.jenkinsci.plugins.envinject.util.RunHelper;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import hudson.*;
-import hudson.model.*;
+
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Util;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Fingerprint;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
+import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.CopyOnWriteList;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -21,18 +50,6 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
 
@@ -263,24 +280,37 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
                 final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
+                
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
                     fingerprintRecord.setKeepForever(entry.keepForever);
                     fingerprintRecord.setShowDirectlyInBrowser(entry.showDirectlyInBrowser);
+                    
                 }
-
                 if (entry.managedArtifacts) {
                     artifacts.addAll(fingerprints);
                     fillFingerprints(run, listener, record, fingerprints);
                 }
+                addS3ArtifactsAction(run, profile, fingerprints);
+                if(entry.injectPresignedUrl) {
+                    String links = "";
+                	for (FingerprintRecord fingerprintRecord : fingerprints) {
+                		links+="http://"+fingerprintRecord.getArtifact().getBucket()+"/"+fingerprintRecord.getArtifact().getName()+"\n";
+	                	EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
+		                if (envInjectAction != null) {
+		                    Map<String, String> envMap = new HashMap<String, String>();
+		                    envMap.put(entry.buildVariable, links);
+							envInjectAction.overrideAll(RunHelper.getSensitiveBuildVariables(run), envMap);
+		                }
+                	}
+                }
             }
-
             // don't bother adding actions if none of the artifacts are managed
             if (!artifacts.isEmpty()) {
-                addS3ArtifactsAction(run, profile, artifacts);
                 addFingerprintAction(run, record);
             }
+            
         } catch (AmazonClientException|IOException e) {
             e.printStackTrace(listener.error("Failed to upload files"));
             run.setResult(constrainResult(Result.UNSTABLE, listener));
