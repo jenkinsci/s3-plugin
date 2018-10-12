@@ -41,10 +41,17 @@
             <f:checkbox />
         </f:entry>
         
-        <f:optionalBlock field="injectPresignedUrl" title="Inject artifacts URLs to variable" inline="true">
+        <f:optionalBlock field="injectUrl" title="Inject artifacts URLs to variable" inline="true">
             <f:entry title="Build variable" field="buildVariable">
-                <f:textbox />
+                <f:textbox clazz="required"/>
             </f:entry>
+            
+            <f:optionalBlock field="preSignedUrl" title="Generate pre-signed URLs" inline="true">
+	            <f:entry title="Expiry in seconds" field="signedUrlExpirySeconds">
+	                <f:number clazz="required positive-number"/>
+	            </f:entry>
+             </f:optionalBlock>
+            
         </f:optionalBlock>
         
         <f:entry title="Metadata tags">

@@ -78,7 +78,7 @@ public class S3ArtifactsAction implements RunAction2 {
             if (record.getArtifact().getName().equals(artifact)) {
                 final S3Profile s3 = S3BucketPublisher.getProfile(profile);
                 final AmazonS3Client client = s3.getClient(record.getArtifact().getRegion());
-                final String url = getDownloadURL(client, s3.getSignedUrlExpirySeconds(), build, record);
+                final String url = getDownloadURL(client, s3.getSignedUrlExpirySeconds(), record);
                 response.sendRedirect2(url);
                 return;
             }
@@ -94,16 +94,15 @@ public class S3ArtifactsAction implements RunAction2 {
      * download and there's no need for the user to have credentials to
      * access S3.
      */
-    public String getDownloadURL(AmazonS3Client client, int signedUrlExpirySeconds, Run run, FingerprintRecord record) {
-        final Destination dest = Destination.newFromRun(run, record.getArtifact());
-        final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
+    public String getDownloadURL(AmazonS3Client client, long signedUrlExpirySeconds, FingerprintRecord record) {
+        final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(record.getArtifact().getBucket(), record.getArtifact().getName());
         request.setExpiration(new Date(System.currentTimeMillis() + signedUrlExpirySeconds*1000));
 
         if (!record.isShowDirectlyInBrowser()) {
             // let the browser use the last part of the name, not the full path
             // when saving.
             final ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
-            final String fileName = (new File(dest.objectName)).getName().trim();
+            final String fileName = (new File(record.getArtifact().getName())).getName().trim();
             headers.setContentDisposition("attachment; filename=\"" + fileName + '"');
             request.setResponseHeaders(headers);
         }

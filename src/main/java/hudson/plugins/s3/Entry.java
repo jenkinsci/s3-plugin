@@ -90,15 +90,26 @@ public final class Entry implements Describable<Entry> {
     */
     public List<MetadataPair> userMetadata;
     
-    /**
-     * Inject pre-signed artifacts URL after upload was completed
-     */
-    public boolean injectPresignedUrl;
+    public boolean injectUrl; 
     
-    /**
-     * Build variable where artifacts URLs will be stored 
-     */
+      
     public String buildVariable;
+    
+    
+    public boolean preSignedUrl;
+    
+    
+    public Long signedUrlExpirySeconds;
+    
+//    /**
+//     * Indicates whether the S3 pre-signed URLs should be generated
+//     */
+//    public boolean preSignedUrl;
+//    
+//    /**
+//     * This is an expiration time for pre-signed URLs 
+//     */
+//    public long signedUrlExpirySeconds;
 
     /**
      * @param bucket
@@ -115,13 +126,15 @@ public final class Entry implements Describable<Entry> {
      * @param keepForever
      * @param showDirectlyInBrowser
      * @param injectPresignedUrl
+     * @param preSignedUrl
+     * @param signedUrlExpirySeconds
      * @param userMetadata
      */
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
                  boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, boolean keepForever,
-                 boolean showDirectlyInBrowser, boolean injectPresignedUrl, String buildVariable, List<MetadataPair> userMetadata) {
+                 boolean showDirectlyInBrowser, boolean injectUrl, String buildVariable, boolean preSignedUrl, Long signedUrlExpirySeconds, List<MetadataPair> userMetadata) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
         this.excludedFile = excludedFile;
@@ -135,9 +148,38 @@ public final class Entry implements Describable<Entry> {
         this.gzipFiles = gzipFiles;
         this.keepForever = keepForever;
         this.showDirectlyInBrowser = showDirectlyInBrowser;
-        this.userMetadata = userMetadata;
-        this.injectPresignedUrl = injectPresignedUrl;
+        this.injectUrl = injectUrl;
         this.buildVariable = buildVariable;
+        this.preSignedUrl = preSignedUrl;
+        this.signedUrlExpirySeconds = signedUrlExpirySeconds;
+        this.userMetadata = userMetadata;
+    }
+    
+	public static class EnableInjectVariable
+	{
+	    private String buildVariable;
+	    private boolean preSignedUrl;
+	    private Long signedUrlExpirySeconds;
+	    
+	    @DataBoundConstructor
+	    public EnableInjectVariable(String buildVariable, boolean preSignedUrl, Long signedUrlExpirySeconds)
+	    {
+	        this.buildVariable = buildVariable;
+	        this.preSignedUrl = preSignedUrl;
+	        this.signedUrlExpirySeconds = signedUrlExpirySeconds;
+	    }
+	        
+	}
+	
+    public static class EnableSignedUrl {
+    	
+    	private Long signedUrlExpirySeconds;
+
+	    @DataBoundConstructor
+	    public EnableSignedUrl(Long signedUrlExpirySeconds)
+	    {
+	        this.signedUrlExpirySeconds = signedUrlExpirySeconds;
+	    }
     }
 
     @Override

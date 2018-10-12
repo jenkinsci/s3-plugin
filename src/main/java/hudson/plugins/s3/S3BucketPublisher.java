@@ -293,17 +293,30 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     fillFingerprints(run, listener, record, fingerprints);
                 }
                 addS3ArtifactsAction(run, profile, fingerprints);
-                if(entry.injectPresignedUrl) {
+                if(entry.injectUrl) {
                     String links = "";
-                	for (FingerprintRecord fingerprintRecord : fingerprints) {
-                		links+="http://"+fingerprintRecord.getArtifact().getBucket()+"/"+fingerprintRecord.getArtifact().getName()+"\n";
-	                	EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
-		                if (envInjectAction != null) {
-		                    Map<String, String> envMap = new HashMap<String, String>();
-		                    envMap.put(entry.buildVariable, links);
-							envInjectAction.overrideAll(RunHelper.getSensitiveBuildVariables(run), envMap);
-		                }
-                	}
+                    if(!entry.preSignedUrl) {
+	                	for (FingerprintRecord fingerprintRecord : fingerprints) {
+	                		links+="http://"+fingerprintRecord.getArtifact().getBucket()+"/"+fingerprintRecord.getArtifact().getName()+"\n";
+	                	}
+                    } else {
+                    	S3ArtifactsAction existingAction = run.getAction(S3ArtifactsAction.class);
+                        if (existingAction != null) {
+                        	final S3Profile s3 = getProfile(existingAction.getProfile());
+                            for (FingerprintRecord fingerprintRecord : fingerprints) {
+                            	final AmazonS3Client client = s3.getClient(fingerprintRecord.getArtifact().getRegion());
+    	                		links+=existingAction.getDownloadURL(client, entry.signedUrlExpirySeconds, fingerprintRecord)+"\n";
+    	                	}
+                        } else {
+                        	throw new IllegalStateException("Existing S3 Artifact action is null");
+                        }
+                    }
+                    EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
+	                if (envInjectAction != null) {
+	                    Map<String, String> envMap = new HashMap<String, String>();
+	                    envMap.put(entry.buildVariable, links);
+						envInjectAction.overrideAll(RunHelper.getSensitiveBuildVariables(run), envMap);
+	                }
                 }
             }
             // don't bother adding actions if none of the artifacts are managed
