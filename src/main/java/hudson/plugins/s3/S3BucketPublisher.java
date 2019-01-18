@@ -24,6 +24,7 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -391,7 +392,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     @Symbol("s3Upload")
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
-        private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
+        private List<S3Profile> profiles = new ArrayList<S3Profile>();
         public static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
         private static final Result[] pluginFailureResultConstraints = { Result.FAILURE, Result.UNSTABLE, Result.SUCCESS };
@@ -409,6 +410,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             this(S3BucketPublisher.class);
         }
 
+        @DataBoundSetter
+        public void setProfiles(List<S3Profile> profiles) {
+            this.profiles = profiles;
+        }
+
         @Override
         public String getDisplayName() {
             return "Publish artifacts to S3 Bucket";
@@ -423,9 +429,9 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         public boolean configure(StaplerRequest req, JSONObject json) {
             final JSONArray array = json.optJSONArray("profile");
             if (array != null) {
-                profiles.replaceBy(req.bindJSONToList(S3Profile.class, array));
+                profiles = new ArrayList<>(req.bindJSONToList(S3Profile.class, array));
             } else {
-                profiles.replaceBy(req.bindJSON(S3Profile.class, json.getJSONObject("profile")));
+                profiles = new ArrayList<>(Arrays.asList(req.bindJSON(S3Profile.class, json.getJSONObject("profile"))));
             }
             save();
             return true;
@@ -459,7 +465,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
         @SuppressWarnings("unused")
         public void replaceProfiles(List<S3Profile> profiles) {
-            this.profiles.replaceBy(profiles);
+            this.profiles = new ArrayList<>(profiles);
             save();
         }
 
