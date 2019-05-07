@@ -43,6 +43,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     private final List<Entry> entries;
 
     private boolean dontWaitForConcurrentBuildCompletion;
+    private boolean dontSetBuildResultOnFailure;
 
     private Level consoleLogLevel;
     private Result pluginFailureResultConstraint;
@@ -53,7 +54,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     @DataBoundConstructor
     public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
-                             boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint) {
+                             boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint,
+                             boolean dontSetBuildResultOnFailure) {
         if (profileName == null) {
             // defaults to the first one
             final S3Profile[] sites = DESCRIPTOR.getProfiles();
@@ -69,6 +71,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.userMetadata = userMetadata;
 
         this.dontWaitForConcurrentBuildCompletion = dontWaitForConcurrentBuildCompletion;
+        this.dontSetBuildResultOnFailure = dontSetBuildResultOnFailure;
         this.consoleLogLevel = parseLevel(consoleLogLevel);
         if (pluginFailureResultConstraint == null) {
             this.pluginFailureResultConstraint = Result.FAILURE;
@@ -145,6 +148,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         return dontWaitForConcurrentBuildCompletion;
     }
 
+    @SuppressWarnings("unused")
+    public boolean isDontSetBuildResultOnFailure() {
+        return dontSetBuildResultOnFailure;
+    }
+
     /**
      * for data binding only
      *
@@ -191,7 +199,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath ws, @Nonnull Launcher launcher, @Nonnull TaskListener listener)
-            throws InterruptedException {
+            throws InterruptedException, IOException {
         final PrintStream console = listener.getLogger();
         if (Result.ABORTED.equals(run.getResult())) {
             log(Level.SEVERE, console, "Skipping publishing on S3 because build aborted");
@@ -206,10 +214,12 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
         if (profile == null) {
             log(Level.SEVERE, console, "No S3 profile is configured.");
-            run.setResult(constrainResult(Result.UNSTABLE, listener));
-            return;
+            if (!isDontSetBuildResultOnFailure()) {
+                run.setResult(constrainResult(Result.UNSTABLE, listener));
+                return;
+            }
+            throw new AbortException("No S3 profile is configured.");
         }
-
 
         log(console, "Using S3 profile: " + profile.getName());
 
@@ -282,8 +292,13 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 addFingerprintAction(run, record);
             }
         } catch (AmazonClientException|IOException e) {
-            e.printStackTrace(listener.error("Failed to upload files"));
-            run.setResult(constrainResult(Result.UNSTABLE, listener));
+            if (!isDontSetBuildResultOnFailure()) {
+                e.printStackTrace(listener.error("Failed to upload files"));
+                run.setResult(constrainResult(Result.UNSTABLE, listener));
+            } else {
+                throw new IOException("Failed to upload files", e);
+            }
+
         }
     }
 
