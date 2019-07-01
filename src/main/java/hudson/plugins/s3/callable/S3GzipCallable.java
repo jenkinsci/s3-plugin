@@ -1,5 +1,6 @@
 package hudson.plugins.s3.callable;
 
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.event.ProgressListener;
@@ -17,8 +18,8 @@ import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 public final class S3GzipCallable extends S3BaseUploadCallable implements MasterSlaveCallable<String> {
-    public S3GzipCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy) {
-        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy);
+    public S3GzipCallable(String accessKey, Secret secretKey, boolean useRole, String assumeRoleArn, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, String cannedACL, ProxyConfiguration proxy) {
+        super(accessKey, secretKey, useRole, assumeRoleArn, dest, userMetadata, storageClass, selregion, useServerSideEncryption, cannedACL, proxy);
     }
 
     // Return a File containing the gzipped contents of the input file.
@@ -67,8 +68,9 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
             final ObjectMetadata metadata = buildMetadata(file);
             metadata.setContentEncoding("gzip");
             metadata.setContentLength(localFile.length());
+            final CannedAccessControlList cannedAcl = getCannedAcl();
 
-            upload = Uploads.getInstance().startUploading(getTransferManager(), file, gzipedStream, getDest().bucketName, getDest().objectName, metadata);
+            upload = Uploads.getInstance().startUploading(getTransferManager(), file, gzipedStream, getDest().bucketName, getDest().objectName, metadata, cannedAcl);
 
             String md5 = MD5.generateFromFile(localFile);
 

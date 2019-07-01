@@ -30,6 +30,7 @@ public class S3Profile {
     private final String name;
     private final String accessKey;
     private final Secret secretKey;
+    private final String assumeRoleArn;
     private final int maxUploadRetries;
     private final int uploadRetryTime;
     private final int maxDownloadRetries;
@@ -40,9 +41,10 @@ public class S3Profile {
     private final int signedUrlExpirySeconds;
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, String assumeRoleArn, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
         this.name = name;
         this.useRole = useRole;
+        this.assumeRoleArn = assumeRoleArn;
         this.maxUploadRetries = parseWithDefault(maxUploadRetries, 5);
         this.uploadRetryTime = parseWithDefault(uploadRetryTime, 5);
         this.maxDownloadRetries = parseWithDefault(maxDownloadRetries, 5);
@@ -83,6 +85,8 @@ public class S3Profile {
         return accessKey;
     }
 
+    public final String getAssumeRoleArn() { return assumeRoleArn; }
+
     public final Secret getSecretKey() {
         return secretKey;
     }
@@ -112,7 +116,7 @@ public class S3Profile {
     }
 
     public AmazonS3Client getClient(String region) {
-        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy());
+        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, assumeRoleArn, region, getProxy());
     }
 
     public List<FingerprintRecord> upload(Run<?, ?> run,
@@ -125,6 +129,7 @@ public class S3Profile {
                                     final boolean uploadFromSlave,
                                     final boolean managedArtifacts,
                                     final boolean useServerSideEncryption,
+                                    final String cannedACL,
                                     final boolean gzipFiles) throws IOException, InterruptedException {
         final List<FingerprintRecord> fingerprints = new ArrayList<>(fileNames.size());
 
@@ -145,11 +150,11 @@ public class S3Profile {
 
                 final MasterSlaveCallable<String> upload;
                 if (gzipFiles) {
-                    upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata,
-                            storageClass, selregion, useServerSideEncryption, getProxy());
+                    upload = new S3GzipCallable(accessKey, secretKey, useRole, assumeRoleArn, dest, userMetadata,
+                            storageClass, selregion, useServerSideEncryption, cannedACL, getProxy());
                 } else {
-                    upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata,
-                            storageClass, selregion, useServerSideEncryption, getProxy());
+                    upload = new S3UploadCallable(accessKey, secretKey, useRole, assumeRoleArn, dest, userMetadata,
+                            storageClass, selregion, useServerSideEncryption, cannedACL, getProxy());
                 }
 
                 final FingerprintRecord fingerprintRecord = repeat(maxUploadRetries, uploadRetryTime, dest, new Callable<FingerprintRecord>() {
@@ -241,7 +246,7 @@ public class S3Profile {
                   fingerprints.add(repeat(maxDownloadRetries, downloadRetryTime, dest, new Callable<FingerprintRecord>() {
                       @Override
                       public FingerprintRecord call() throws IOException, InterruptedException {
-                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, artifact.getRegion(), getProxy()));
+                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, assumeRoleArn, dest, artifact.getRegion(), getProxy()));
                           return new FingerprintRecord(true, dest.bucketName, target.getName(), artifact.getRegion(), md5);
                       }
                   }));
@@ -292,6 +297,7 @@ public class S3Profile {
                 ", accessKey='" + accessKey + '\'' +
                 ", secretKey=" + secretKey +
                 ", useRole=" + useRole +
+                ", assumeRoleArn=" + assumeRoleArn +
                 '}';
     }
 

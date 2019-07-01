@@ -1,6 +1,7 @@
 package hudson.plugins.s3.callable;
 
 import com.amazonaws.services.s3.internal.Mimetypes;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
@@ -21,16 +22,18 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
     private final String storageClass;
     private final Map<String, String> userMetadata;
     private final boolean useServerSideEncryption;
+    private final String cannedACLName;
 
 
-    public S3BaseUploadCallable(String accessKey, Secret secretKey, boolean useRole,
+    public S3BaseUploadCallable(String accessKey, Secret secretKey, boolean useRole, String assumeRoleArn,
                                 Destination dest, Map<String, String> userMetadata, String storageClass, String selregion,
-                                boolean useServerSideEncryption, ProxyConfiguration proxy) {
-        super(accessKey, secretKey, useRole, selregion, proxy);
+                                boolean useServerSideEncryption, String cannedACLName, ProxyConfiguration proxy) {
+        super(accessKey, secretKey, useRole, assumeRoleArn, selregion, proxy);
         this.dest = dest;
         this.storageClass = storageClass;
         this.userMetadata = userMetadata;
         this.useServerSideEncryption = useServerSideEncryption;
+        this.cannedACLName = cannedACLName;
     }
 
     /**
@@ -88,5 +91,12 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
 
     public Destination getDest() {
         return dest;
+    }
+
+    public CannedAccessControlList getCannedAcl() {
+        if (cannedACLName == null) {
+            return CannedAccessControlList.Private;
+        }
+        return CannedAccessControlList.valueOf(cannedACLName);
     }
 }

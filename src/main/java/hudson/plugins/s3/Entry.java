@@ -3,6 +3,7 @@ package hudson.plugins.s3;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -43,7 +44,7 @@ public final class Entry implements Describable<Entry> {
      * Stores the Region Value
      */
     public String selectedRegion;
-    
+
     /**
      * Do not publish the artifacts when build fails
      */
@@ -58,11 +59,16 @@ public final class Entry implements Describable<Entry> {
      * Let Jenkins manage the S3 uploaded artifacts
      */
     public boolean managedArtifacts;
-    
+
     /**
      * Use S3 server side encryption when uploading the artifacts
      */
     public boolean useServerSideEncryption;
+
+    /**
+     * Use this canned ACL when uploading
+     */
+    public String cannedACL;
 
     /**
      * Flatten directories
@@ -93,7 +99,7 @@ public final class Entry implements Describable<Entry> {
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
-                 boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, boolean keepForever,
+                 boolean useServerSideEncryption, String cannedACL, boolean flatten, boolean gzipFiles, boolean keepForever,
                  boolean showDirectlyInBrowser, List<MetadataPair> userMetadata) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
@@ -104,6 +110,7 @@ public final class Entry implements Describable<Entry> {
         this.uploadFromSlave = uploadFromSlave;
         this.managedArtifacts = managedArtifacts;
         this.useServerSideEncryption = useServerSideEncryption;
+        this.cannedACL = cannedACL;
         this.flatten = flatten;
         this.gzipFiles = gzipFiles;
         this.keepForever = keepForever;
@@ -130,6 +137,14 @@ public final class Entry implements Describable<Entry> {
             final ListBoxModel model = new ListBoxModel();
             for (String s : storageClasses) {
                 model.add(s, s);
+            }
+            return model;
+        }
+
+        public ListBoxModel doFillCannedACLItems() {
+            final ListBoxModel model = new ListBoxModel();
+            for (CannedAccessControlList cacl : CannedAccessControlList.values()) {
+                model.add(cacl.toString(), cacl.name());
             }
             return model;
         }

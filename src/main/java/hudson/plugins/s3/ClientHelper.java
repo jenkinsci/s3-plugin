@@ -1,7 +1,11 @@
 package hudson.plugins.s3;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
@@ -18,20 +22,32 @@ public class ClientHelper {
     public final static String DEFAULT_AMAZON_S3_REGION_NAME = System.getProperty(
             "hudson.plugins.s3.DEFAULT_AMAZON_S3_REGION",
             com.amazonaws.services.s3.model.Region.US_Standard.toAWSRegion().getName());
+    /**
+     * An identifier for the assumed role session.
+     */
+    public final static String DEFAULT_ROLE_SESSION_NAME = "jenkins-s3-plugin";
 
-    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy)
-    {
+    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String assumeRoleArn, String region, ProxyConfiguration proxy) {
         Region awsRegion = getRegionFromString(region);
 
         ClientConfiguration clientConfiguration = getClientConfiguration(proxy, awsRegion);
 
-        final AmazonS3Client client;
-        if (useRole) {
-            client = new AmazonS3Client(clientConfiguration);
+        final AWSCredentialsProvider credentials;
+        if (assumeRoleArn.isEmpty()) {
+            if (useRole) {
+                credentials = InstanceProfileCredentialsProvider.getInstance();
+            } else {
+                credentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey));
+            }
         } else {
-            client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), clientConfiguration);
+            if (useRole) {
+                credentials = new STSAssumeRoleSessionCredentialsProvider(assumeRoleArn, DEFAULT_ROLE_SESSION_NAME);
+            } else {
+                credentials = new STSAssumeRoleSessionCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey), assumeRoleArn, DEFAULT_ROLE_SESSION_NAME);
+            }
         }
 
+        final AmazonS3Client client = new AmazonS3Client(credentials, clientConfiguration);
         client.setRegion(awsRegion);
 
         return client;
@@ -89,13 +105,13 @@ public class ClientHelper {
     }
 
     private static boolean shouldUseProxy(ProxyConfiguration proxy, String hostname) {
-        if(proxy == null) {
+        if (proxy == null) {
             return false;
         }
 
         boolean shouldProxy = true;
-        for(Pattern p : proxy.getNoProxyHostPatterns()) {
-            if(p.matcher(hostname).matches()) {
+        for (Pattern p : proxy.getNoProxyHostPatterns()) {
+            if (p.matcher(hostname).matches()) {
                 shouldProxy = false;
                 break;
             }

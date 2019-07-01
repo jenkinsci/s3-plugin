@@ -23,6 +23,11 @@
                     onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
             />
           </f:entry>
+          <f:entry title="Assume role" help="/plugin/s3/help-assumeRoleArn.html">
+            <f:textbox name="s3.assumeRoleArn" value="${profile.assumeRoleArn}" checkMethod="post"
+                    checkUrl="'${rootURL}/publisher/S3BucketPublisher/assumeRoleArnCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;useRole='+encodeURIComponent(Form.findMatchingInput(this,'s3.useRole').value)"
+            />
+          </f:entry>
           <f:advanced>
             <f:entry title="Max upload retries">
                 <f:number name="s3.maxUploadRetries" value="${profile.maxUploadRetries}"/>

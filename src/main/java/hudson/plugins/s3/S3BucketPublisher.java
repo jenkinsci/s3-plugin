@@ -33,6 +33,7 @@ import java.io.PrintStream;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
 
@@ -272,7 +273,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 final Map<String, String> escapedMetadata = buildMetadata(envVars, entry);
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
-                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
+                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.cannedACL, entry.gzipFiles);
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
@@ -517,7 +518,45 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
             final AmazonS3Client client = ClientHelper.createClient(
-                    accessKey, secretKey, useRole, defaultRegion, Jenkins.getActiveInstance().proxy);
+                    accessKey, secretKey, useRole, "", defaultRegion, Jenkins.getActiveInstance().proxy);
+
+            try {
+                client.listBuckets();
+            } catch (AmazonClientException e) {
+                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                return FormValidation.error("Can't connect to S3 service: " + e.getMessage());
+            }
+            return FormValidation.ok("Check passed!");
+        }
+
+        @SuppressWarnings("unused")
+        public FormValidation doAssumeRoleArnCheck(final StaplerRequest req, StaplerResponse rsp) {
+            final String assumeRoleArn = Util.fixNull(req.getParameter("assumeRoleArn"));
+            if (assumeRoleArn.isEmpty()) {
+                return FormValidation.ok();
+            }
+            if (!Pattern.matches("(?i)arn:aws:iam::\\d+:role/.+", assumeRoleArn.toLowerCase())) {
+                return FormValidation.error("Does not look like a ARN");
+            }
+
+            final String useIAMCredential = Util.fixNull(req.getParameter("useRole"));
+            final boolean useRole = Boolean.parseBoolean(useIAMCredential);
+            if (useRole) {
+                // Won't be able to validate this because IAM role on master could be different on slave(s)
+                return FormValidation.ok();
+            }
+
+            final String accessKey = Util.fixNull(req.getParameter("accessKey"));
+            if (accessKey.isEmpty())
+                return FormValidation.ok("Please, enter accessKey");
+
+            final String secretKey = Util.fixNull(req.getParameter("secretKey"));
+            if (secretKey.isEmpty())
+                return FormValidation.ok("Please, enter secretKey");
+
+            final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
+            final AmazonS3Client client = ClientHelper.createClient(
+                    accessKey, secretKey, useRole, assumeRoleArn, defaultRegion, Jenkins.getActiveInstance().proxy);
 
             try {
                 client.listBuckets();
