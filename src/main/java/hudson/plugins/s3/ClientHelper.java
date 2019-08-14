@@ -19,7 +19,7 @@ public class ClientHelper {
             "hudson.plugins.s3.DEFAULT_AMAZON_S3_REGION",
             com.amazonaws.services.s3.model.Region.US_Standard.toAWSRegion().getName());
 
-    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy)
+    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String endpoint, String region, ProxyConfiguration proxy)
     {
         Region awsRegion = getRegionFromString(region);
 
@@ -33,6 +33,9 @@ public class ClientHelper {
         }
 
         client.setRegion(awsRegion);
+        if (endpoint != null && !endpoint.trim().isEmpty()){
+            client.setEndpoint(endpoint);
+        }
 
         return client;
     }

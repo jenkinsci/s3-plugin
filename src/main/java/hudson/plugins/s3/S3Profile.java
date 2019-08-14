@@ -30,6 +30,7 @@ public class S3Profile {
     private final String name;
     private final String accessKey;
     private final Secret secretKey;
+    private final String endpoint;
     private final int maxUploadRetries;
     private final int uploadRetryTime;
     private final int maxDownloadRetries;
@@ -40,7 +41,7 @@ public class S3Profile {
     private final int signedUrlExpirySeconds;
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, String endpoint, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
         this.name = name;
         this.useRole = useRole;
         this.maxUploadRetries = parseWithDefault(maxUploadRetries, 5);
@@ -48,6 +49,7 @@ public class S3Profile {
         this.maxDownloadRetries = parseWithDefault(maxDownloadRetries, 5);
         this.downloadRetryTime = parseWithDefault(downloadRetryTime, 5);
         this.signedUrlExpirySeconds = signedUrlExpirySeconds;
+        this.endpoint = endpoint;
         if (useRole) {
             this.accessKey = "";
             this.secretKey = null;
@@ -87,6 +89,10 @@ public class S3Profile {
         return secretKey;
     }
 
+    public final String getEndpoint() {
+        return endpoint;
+    }
+
     public final int getMaxUploadRetries() {
         return maxUploadRetries;
     }
@@ -112,7 +118,7 @@ public class S3Profile {
     }
 
     public AmazonS3Client getClient(String region) {
-        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy());
+        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, endpoint, region, getProxy());
     }
 
     public List<FingerprintRecord> upload(Run<?, ?> run,
@@ -145,10 +151,10 @@ public class S3Profile {
 
                 final MasterSlaveCallable<String> upload;
                 if (gzipFiles) {
-                    upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata,
+                    upload = new S3GzipCallable(accessKey, secretKey, useRole, endpoint, dest, userMetadata,
                             storageClass, selregion, useServerSideEncryption, getProxy());
                 } else {
-                    upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata,
+                    upload = new S3UploadCallable(accessKey, secretKey, useRole, endpoint, dest, userMetadata,
                             storageClass, selregion, useServerSideEncryption, getProxy());
                 }
 
@@ -241,7 +247,7 @@ public class S3Profile {
                   fingerprints.add(repeat(maxDownloadRetries, downloadRetryTime, dest, new Callable<FingerprintRecord>() {
                       @Override
                       public FingerprintRecord call() throws IOException, InterruptedException {
-                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, artifact.getRegion(), getProxy()));
+                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, endpoint, dest, artifact.getRegion(), getProxy()));
                           return new FingerprintRecord(true, dest.bucketName, target.getName(), artifact.getRegion(), md5);
                       }
                   }));
@@ -292,6 +298,7 @@ public class S3Profile {
                 ", accessKey='" + accessKey + '\'' +
                 ", secretKey=" + secretKey +
                 ", useRole=" + useRole +
+                ", endpoint=" + endpoint +
                 '}';
     }
 

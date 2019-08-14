@@ -14,7 +14,7 @@
           <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
             <f:textbox name="s3.accessKey" value="${profile.accessKey}"
                     checkMethod="post"
-                    checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;useRole='+encodeURIComponent(Form.findMatchingInput(this,'s3.useRole').value)"
+                    checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;useRole='+encodeURIComponent(Form.findMatchingInput(this,'s3.useRole').value)+'&amp;endpoint='+encodeURIComponent(Form.findMatchingInput(this,'s3.endpoint').value)"
             />
           </f:entry>
           <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
@@ -24,6 +24,9 @@
             />
           </f:entry>
           <f:advanced>
+            <f:entry title="Endpoint URL" help="/plugin/s3/help-endpoint.html">
+              <f:textbox name="s3.endpoint" value="${profile.endpoint}" onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()" />
+            </f:entry>
             <f:entry title="Max upload retries">
                 <f:number name="s3.maxUploadRetries" value="${profile.maxUploadRetries}"/>
             </f:entry>

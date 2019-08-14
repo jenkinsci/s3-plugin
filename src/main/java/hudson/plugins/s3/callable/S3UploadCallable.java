@@ -14,8 +14,8 @@ import java.util.Map;
 public final class S3UploadCallable extends S3BaseUploadCallable implements MasterSlaveCallable<String> {
     private static final long serialVersionUID = 1L;
 
-    public S3UploadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy) {
-        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy);
+    public S3UploadCallable(String accessKey, Secret secretKey, boolean useRole, String endpoint, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy) {
+        super(accessKey, secretKey, useRole, endpoint, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy);
     }
 
     /**

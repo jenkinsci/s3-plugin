@@ -16,9 +16,9 @@ public final class S3DownloadCallable extends S3Callable<String>
     private static final long serialVersionUID = 1L;
     private final Destination dest;
     
-    public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, String region, ProxyConfiguration proxy)
+    public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, String endpoint, Destination dest, String region, ProxyConfiguration proxy)
     {
-        super(accessKey, secretKey, useRole, region, proxy);
+        super(accessKey, secretKey, useRole, endpoint, region, proxy);
         this.dest = dest;
     }
 

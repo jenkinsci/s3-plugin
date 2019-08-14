@@ -496,6 +496,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final String name = Util.fixNull(req.getParameter("name"));
             final String accessKey = Util.fixNull(req.getParameter("accessKey"));
             final String secretKey = Util.fixNull(req.getParameter("secretKey"));
+            final String endpoint = Util.fixNull(req.getParameter("endpoint"));
             final String useIAMCredential = Util.fixNull(req.getParameter("useRole"));
 
             final boolean couldBeValidated = !name.isEmpty() && !accessKey.isEmpty() && !secretKey.isEmpty();
@@ -517,7 +518,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
             final AmazonS3Client client = ClientHelper.createClient(
-                    accessKey, secretKey, useRole, defaultRegion, Jenkins.getActiveInstance().proxy);
+                    accessKey, secretKey, useRole, endpoint, defaultRegion, Jenkins.getActiveInstance().proxy);
 
             try {
                 client.listBuckets();

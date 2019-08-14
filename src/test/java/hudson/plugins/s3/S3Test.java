@@ -28,7 +28,9 @@ import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 
+
 public class S3Test {
+
     @Rule
     public JenkinsRule j = new JenkinsRule();
 
@@ -40,7 +42,7 @@ public class S3Test {
 
     @Test
     public void testConfigContainsProfiles() throws Exception {
-        final S3Profile profile = new S3Profile("S3 profile random name", null, null, true, 0, "0", "0", "0", "0", true);
+        final S3Profile profile = new S3Profile("S3 profile random name", null, null, true, "", 0, "0", "0", "0", "0", true);
 
         replaceS3PluginProfile(profile);
 
@@ -97,6 +99,18 @@ public class S3Test {
 
         QueueTaskFuture<FreeStyleBuild> r = project.scheduleBuild2(0);
         j.assertBuildStatus(Result.FAILURE, r);
+    }
+
+    @Test
+    public void setEndpointTest() throws Exception {
+        String newEndpoint = "http://s3.example.com";
+        HtmlPage page = j.createWebClient().goTo("configure");
+        final S3Profile profile = new S3Profile("S3 profile random name", null, null, true, newEndpoint, 0, "0", "0", "0", "0", true);
+        WebAssert.assertTextNotPresent(page, newEndpoint);
+        replaceS3PluginProfile(profile);
+        page = j.createWebClient().goTo("configure");
+        WebAssert.assertTextPresent(page, newEndpoint);
+        assertEquals(newEndpoint, profile.getEndpoint());
     }
 
     private Entry entryForFile(String fileName) {
