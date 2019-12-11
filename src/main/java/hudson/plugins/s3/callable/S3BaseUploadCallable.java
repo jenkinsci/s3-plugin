@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
+import hudson.plugins.s3.MD5;
 import hudson.remoting.VirtualChannel;
 import hudson.util.Secret;
 
@@ -50,6 +51,7 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
         final ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(Mimetypes.getInstance().getMimetype(filePath.getName()));
         metadata.setContentLength(filePath.length());
+        metadata.setContentMD5(MD5.generateBase64FromFile(filePath));
         metadata.setLastModified(new Date(filePath.lastModified()));
         if (storageClass != null && !storageClass.isEmpty()) {
             metadata.setHeader("x-amz-storage-class", storageClass);
