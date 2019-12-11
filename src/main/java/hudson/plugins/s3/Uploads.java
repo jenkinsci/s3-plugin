@@ -15,13 +15,17 @@ import java.util.logging.Logger;
 public final class Uploads {
     private Uploads() {}
     private static final Logger LOGGER = Logger.getLogger(Uploads.class.getName());
-    private static final int MULTIPART_UPLOAD_THRESHOLD = 16*1024*1024; // 16 MB
+    private static final int MULTIPART_UPLOAD_THRESHOLD = 5*1024*1024; // 5 MB
 
     private static transient volatile Uploads instance;
     private final transient HashMap<FilePath, Upload> startedUploads = new HashMap<>();
     private final transient HashMap<FilePath, InputStream> openedStreams = new HashMap<>();
 
     public Upload startUploading(TransferManager manager, FilePath file, InputStream inputsStream, String bucketName, String objectName, ObjectMetadata metadata) throws AmazonServiceException {
+        if (file.length() > MULTIPART_UPLOAD_THRESHOLD) {
+            metadata.setContentMD5(null);
+        }
+
         final PutObjectRequest request = new PutObjectRequest(bucketName, objectName, inputsStream, metadata);
 
         // Set the buffer size (ReadLimit) equal to the multipart upload size,
