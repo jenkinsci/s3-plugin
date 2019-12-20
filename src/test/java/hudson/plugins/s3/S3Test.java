@@ -3,6 +3,7 @@ package hudson.plugins.s3;
 
 import com.gargoylesoftware.htmlunit.WebAssert;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.Functions;
 import hudson.model.Action;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -10,6 +11,7 @@ import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.plugins.s3.S3BucketPublisher.DescriptorImpl;
+import hudson.tasks.BatchFile;
 import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Shell;
@@ -104,7 +106,11 @@ public class S3Test {
     }
 
     private Builder stepCreatingFile(String fileName) {
-        return new Shell("touch " + fileName);
+        if (Functions.isWindows()) {
+            new BatchFile("echo.> " + fileName);
+        } else {
+            return new Shell("touch " + fileName);
+        }
     }
 
     private void replaceS3PluginProfile(S3Profile s3Profile) {
