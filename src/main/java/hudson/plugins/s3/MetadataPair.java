@@ -26,11 +26,11 @@ public final class MetadataPair implements Describable<MetadataPair> {
     }
 
     public Descriptor<MetadataPair> getDescriptor() {
-        return DESCRIPTOR;
+        return DESCRIPOR;
     }
 
     @Extension
-    public final static DescriptorImpl DESCRIPTOR = new DescriptorImpl();
+    public final static DescriptorImpl DESCRIPOR = new DescriptorImpl();
 
     public static class DescriptorImpl extends Descriptor<MetadataPair> {
 

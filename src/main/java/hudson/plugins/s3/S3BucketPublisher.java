@@ -18,7 +18,7 @@ import hudson.model.Fingerprint;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.model. listeners.RunListener;
+import hudson.model.listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Fingerprinter.FingerprintAction;

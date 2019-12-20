@@ -113,11 +113,11 @@ public final class Entry implements Describable<Entry> {
 
     @Override
     public Descriptor<Entry> getDescriptor() {
-        return DESCRIPTOR;
+        return DESCRIPOR;
     }
 
     @Extension
-    public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
+    public static final DescriptorImpl DESCRIPOR = new DescriptorImpl();
 
     public static class DescriptorImpl extends  Descriptor<Entry> {
 
