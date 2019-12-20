@@ -10,7 +10,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import hudson.ProxyConfiguration;
-import hudson.plugins.s3.callable.*;
+import hudson.plugins.s3.callable.MasterSlaveCallable;
+import hudson.plugins.s3.callable.S3CleanupUploadCallable;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3GzipCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.callable.S3WaitUploadCallable;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.stapler.DataBoundConstructor;

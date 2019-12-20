@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.4</version>
+        <version>3.54</version>
     </parent>
 
     <artifactId>s3</artifactId>
@@ -13,10 +13,7 @@
     <url>https://wiki.jenkins.io/display/JENKINS/S3+Plugin</url>
 
     <properties>
-        <jenkins.version>1.625.3</jenkins.version>
-        <java.level>7</java.level>
-        <!-- TODO: remove once FindBugs issues are fixed -->
-        <findbugs.failOnError>false</findbugs.failOnError>
+        <java.level>8</java.level>
     </properties>
 
     <developers>
@@ -73,41 +70,47 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.11.264</version>
+            <version>1.11.687</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>apache-httpcomponents-client-4-api</artifactId>
-            <version>4.5.3-2.1</version>
+            <version>4.5.10-2.0</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
-            <version>1.37</version>
+            <version>1.43</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
-            <version>3.1</version>
+            <version>3.4</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-io</groupId>
+                    <artifactId>commons-io</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.2</version>
+            <version>1.20</version>
         </dependency>
     </dependencies>
 
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </repository>
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
 </project>

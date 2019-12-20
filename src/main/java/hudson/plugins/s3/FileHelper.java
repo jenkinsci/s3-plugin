@@ -1,10 +1,13 @@
 package hudson.plugins.s3;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.tools.ant.types.selectors.FilenameSelector;
 
 import java.io.File;
 
 public class FileHelper {
+
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     public static boolean selected(String includeFilter, String excludeFilter, String filename) {
         if (includeFilter == null) {
             return false;

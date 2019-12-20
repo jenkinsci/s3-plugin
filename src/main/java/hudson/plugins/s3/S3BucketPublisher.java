@@ -6,9 +6,19 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import hudson.*;
-import hudson.model.*;
-import hudson.model.listeners.RunListener;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Util;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Fingerprint;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.model. listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Fingerprinter.FingerprintAction;
@@ -30,7 +40,11 @@ import org.kohsuke.stapler.StaplerResponse;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -66,9 +80,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.profileName = profileName;
         this.entries = entries;
 
-        if (userMetadata == null)
-            userMetadata = new ArrayList<>();
         this.userMetadata = userMetadata;
+        if (this.userMetadata == null) {
+            this.userMetadata = new ArrayList<>();
+        }
 
         this.dontWaitForConcurrentBuildCompletion = dontWaitForConcurrentBuildCompletion;
         this.dontSetBuildResultOnFailure = dontSetBuildResultOnFailure;
@@ -334,6 +349,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private void fillFingerprints(@Nonnull Run<?, ?> run, @Nonnull TaskListener listener, Map<String, String> record, List<FingerprintRecord> fingerprints) throws IOException {
         for (FingerprintRecord r : fingerprints) {
             final Fingerprint fp = r.addRecord(run);
@@ -407,7 +423,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
-        public static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
+        static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
         private static final Result[] pluginFailureResultConstraints = { Result.FAILURE, Result.UNSTABLE, Result.SUCCESS };
 
@@ -479,7 +495,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         public Level[] getConsoleLogLevels() {
-            return consoleLogLevels;
+            return consoleLogLevels.clone();
         }
 
         public S3Profile[] getProfiles() {
@@ -488,7 +504,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         public Result[] getPluginFailureResultConstraints() {
-            return pluginFailureResultConstraints;
+            return pluginFailureResultConstraints.clone();
         }
 
         @SuppressWarnings("unused")
@@ -502,17 +518,21 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final boolean useRole = Boolean.parseBoolean(useIAMCredential);
 
             if (!couldBeValidated) {
-                if (name.isEmpty())
+                if (name.isEmpty()) {
                     return FormValidation.ok("Please, enter name");
+                }
 
-                if (useRole)
+                if (useRole) {
                     return FormValidation.ok();
+                }
 
-                if (accessKey.isEmpty())
+                if (accessKey.isEmpty()) {
                     return FormValidation.ok("Please, enter accessKey");
+                }
 
-                if (secretKey.isEmpty())
+                if (secretKey.isEmpty()) {
                     return FormValidation.ok("Please, enter secretKey");
+                }
             }
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
