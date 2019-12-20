@@ -346,11 +346,11 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
                 result = FormValidation.warning(Messages.CopyArtifact_ParameterizedName());
             }
             else {
-                AbstractProject nearName = AbstractProject.findNearest(value);
-                if (nearName != null) {
+                AbstractProject nearProject = AbstractProject.findNearest(value);
+                if (nearProject != null) {
                     result = FormValidation.error(
                             Messages.BuildTrigger_NoSuchProjectWithSuggestion(
-                                    value, nearName.getName()));
+                                    value, nearProject.getName()));
                 } else {
                     result = FormValidation.error(
                             Messages.BuildTrigger_NoSuchProject(value));
