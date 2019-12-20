@@ -537,7 +537,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
             final AmazonS3Client client = ClientHelper.createClient(
-                    accessKey, secretKey, useRole, defaultRegion, Jenkins.getActiveInstance().proxy);
+                    accessKey, secretKey, useRole, defaultRegion, Jenkins.get().proxy);
 
             try {
                 client.listBuckets();

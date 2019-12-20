@@ -301,6 +301,6 @@ public class S3Profile {
     }
 
     private ProxyConfiguration getProxy() {
-        return Jenkins.getActiveInstance().proxy;
+        return Jenkins.get().proxy;
     }
 }
