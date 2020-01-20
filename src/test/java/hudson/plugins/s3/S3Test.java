@@ -107,7 +107,7 @@ public class S3Test {
 
     private Builder stepCreatingFile(String fileName) {
         if (Functions.isWindows()) {
-            new BatchFile("echo.> " + fileName);
+            return new BatchFile("echo.> " + fileName);
         } else {
             return new Shell("touch " + fileName);
         }
