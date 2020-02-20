@@ -6,23 +6,20 @@
       <f:repeatable var="profile" items="${descriptor.profiles}">
         <table width="100%">
           <f:entry title="Profile name" help="/plugin/s3/help-profile.html">
-            <f:textbox name="s3.name" value="${profile.name}" onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"/>
+            <f:textbox name="name" value="${profile.name}" />
           </f:entry>
           <f:entry title="Use IAM Role" help="/plugin/s3/help-role.html">
-            <f:checkbox name="s3.useRole" value="${profile.useRole}" checked="${profile.useRole}"/>
+            <f:checkbox name="useRole" value="${profile.useRole}" />
           </f:entry>
           <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
-            <f:textbox name="s3.accessKey" value="${profile.accessKey}"
-                    checkMethod="post"
-                    checkUrl="'${rootURL}/publisher/S3BucketPublisher/loginCheck?name='+encodeURIComponent(Form.findMatchingInput(this,'s3.name').value)+'&amp;secretKey='+encodeURIComponent(Form.findMatchingInput(this,'s3.secretKey').value)+'&amp;accessKey='+encodeURIComponent(this.value)+'&amp;useRole='+encodeURIComponent(Form.findMatchingInput(this,'s3.useRole').value)"
-            />
+            <f:textbox name="accessKey" value="${profile.accessKey}" />
           </f:entry>
           <f:entry title="Secret key" help="/plugin/s3/help-secretkey.html">
-            <input class="setting-input" name="s3.secretKey"
-                    type="password" value="${profile.secretKey}"
-                    onchange="Form.findMatchingInput(this,'s3.accessKey').onchange()"
-            />
+            <f:password name="secretKey" value="${profile.secretKey}" />
           </f:entry>
+          <f:validateButton
+             title="${%Test Connection}" progress="${%Testing...}"
+             method="loginCheck" with="name,useRole,accessKey,secretKey" />
           <f:advanced>
             <f:entry title="Max upload retries">
                 <f:number name="s3.maxUploadRetries" value="${profile.maxUploadRetries}"/>

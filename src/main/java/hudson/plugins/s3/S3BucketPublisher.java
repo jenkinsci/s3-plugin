@@ -17,8 +17,9 @@ import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.envinject.EnvInjectPluginAction;
 import org.jenkinsci.plugins.envinject.util.RunHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.regions.Region;
@@ -27,6 +28,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -46,10 +49,12 @@ import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.CopyOnWriteList;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+
 
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
 
@@ -60,6 +65,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     private final List<Entry> entries;
 
     private boolean dontWaitForConcurrentBuildCompletion;
+    private boolean dontSetBuildResultOnFailure;
 
     private Level consoleLogLevel;
     private Result pluginFailureResultConstraint;
@@ -70,7 +76,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     @DataBoundConstructor
     public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
-                             boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint) {
+                             boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint,
+                             boolean dontSetBuildResultOnFailure) {
         if (profileName == null) {
             // defaults to the first one
             final S3Profile[] sites = DESCRIPTOR.getProfiles();
@@ -81,11 +88,13 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.profileName = profileName;
         this.entries = entries;
 
-        if (userMetadata == null)
-            userMetadata = new ArrayList<>();
         this.userMetadata = userMetadata;
+        if (this.userMetadata == null) {
+            this.userMetadata = new ArrayList<>();
+        }
 
         this.dontWaitForConcurrentBuildCompletion = dontWaitForConcurrentBuildCompletion;
+        this.dontSetBuildResultOnFailure = dontSetBuildResultOnFailure;
         this.consoleLogLevel = parseLevel(consoleLogLevel);
         if (pluginFailureResultConstraint == null) {
             this.pluginFailureResultConstraint = Result.FAILURE;
@@ -162,6 +171,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         return dontWaitForConcurrentBuildCompletion;
     }
 
+    @SuppressWarnings("unused")
+    public boolean isDontSetBuildResultOnFailure() {
+        return dontSetBuildResultOnFailure;
+    }
+
     /**
      * for data binding only
      *
@@ -208,7 +222,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath ws, @Nonnull Launcher launcher, @Nonnull TaskListener listener)
-            throws InterruptedException {
+            throws InterruptedException, IOException {
         final PrintStream console = listener.getLogger();
         if (Result.ABORTED.equals(run.getResult())) {
             log(Level.SEVERE, console, "Skipping publishing on S3 because build aborted");
@@ -223,10 +237,12 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
         if (profile == null) {
             log(Level.SEVERE, console, "No S3 profile is configured.");
-            run.setResult(constrainResult(Result.UNSTABLE, listener));
-            return;
+            if (!isDontSetBuildResultOnFailure()) {
+                run.setResult(constrainResult(Result.UNSTABLE, listener));
+                return;
+            }
+            throw new AbortException("No S3 profile is configured.");
         }
-
 
         log(console, "Using S3 profile: " + profile.getName());
 
@@ -327,8 +343,13 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             
             
         } catch (AmazonClientException|IOException e) {
-            e.printStackTrace(listener.error("Failed to upload files"));
-            run.setResult(constrainResult(Result.UNSTABLE, listener));
+            if (!isDontSetBuildResultOnFailure()) {
+                e.printStackTrace(listener.error("Failed to upload files"));
+                run.setResult(constrainResult(Result.UNSTABLE, listener));
+            } else {
+                throw new IOException("Failed to upload files", e);
+            }
+
         }
     }
 
@@ -364,6 +385,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private void fillFingerprints(@Nonnull Run<?, ?> run, @Nonnull TaskListener listener, Map<String, String> record, List<FingerprintRecord> fingerprints) throws IOException {
         for (FingerprintRecord r : fingerprints) {
             final Fingerprint fp = r.addRecord(run);
@@ -437,7 +459,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
-        public static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
+        static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
         private static final Result[] pluginFailureResultConstraints = { Result.FAILURE, Result.UNSTABLE, Result.SUCCESS };
 
@@ -509,7 +531,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         public Level[] getConsoleLogLevels() {
-            return consoleLogLevels;
+            return consoleLogLevels.clone();
         }
 
         public S3Profile[] getProfiles() {
@@ -518,36 +540,42 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         public Result[] getPluginFailureResultConstraints() {
-            return pluginFailureResultConstraints;
+            return pluginFailureResultConstraints.clone();
         }
 
         @SuppressWarnings("unused")
-        public FormValidation doLoginCheck(final StaplerRequest req, StaplerResponse rsp) {
-            final String name = Util.fixNull(req.getParameter("name"));
-            final String accessKey = Util.fixNull(req.getParameter("accessKey"));
-            final String secretKey = Util.fixNull(req.getParameter("secretKey"));
-            final String useIAMCredential = Util.fixNull(req.getParameter("useRole"));
+        @RequirePOST
+        public FormValidation doLoginCheck(@QueryParameter String name, @QueryParameter String accessKey,
+                                           @QueryParameter Secret secretKey, @QueryParameter boolean useRole) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
-            final boolean couldBeValidated = !name.isEmpty() && !accessKey.isEmpty() && !secretKey.isEmpty();
-            final boolean useRole = Boolean.parseBoolean(useIAMCredential);
+            final String checkedName = Util.fixNull(name);
+            final String checkedAccessKey = Util.fixNull(accessKey);
+            final String checkedSecretKey = secretKey != null ? secretKey.getPlainText() : "";
+
+            final boolean couldBeValidated = !checkedName.isEmpty() && !checkedAccessKey.isEmpty() && !checkedSecretKey.isEmpty();
 
             if (!couldBeValidated) {
-                if (name.isEmpty())
+                if (checkedName.isEmpty()) {
                     return FormValidation.ok("Please, enter name");
+                }
 
-                if (useRole)
+                if (useRole) {
                     return FormValidation.ok();
+                }
 
-                if (accessKey.isEmpty())
+                if (checkedAccessKey.isEmpty()) {
                     return FormValidation.ok("Please, enter accessKey");
+                }
 
-                if (secretKey.isEmpty())
+                if (checkedSecretKey.isEmpty()) {
                     return FormValidation.ok("Please, enter secretKey");
+                }
             }
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
             final AmazonS3Client client = ClientHelper.createClient(
-                    accessKey, secretKey, useRole, defaultRegion, Jenkins.getActiveInstance().proxy);
+                    checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().proxy);
 
             try {
                 client.listBuckets();

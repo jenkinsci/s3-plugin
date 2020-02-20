@@ -3,11 +3,15 @@ package hudson.plugins.s3;
 
 import com.gargoylesoftware.htmlunit.WebAssert;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.Functions;
 import hudson.model.Action;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Result;
 import hudson.model.Run;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.plugins.s3.S3BucketPublisher.DescriptorImpl;
+import hudson.tasks.BatchFile;
 import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Shell;
@@ -56,7 +60,8 @@ public class S3Test {
                 Collections.<MetadataPair>emptyList(),
                 true,
                 "INFO",
-                "SUCCESS"
+                "SUCCESS",
+                false
         );
         replaceS3PluginProfile(mockS3Profile(profileName));
 
@@ -71,12 +76,41 @@ public class S3Test {
         assertEquals(1, countActionsOfType(build, FingerprintAction.class));
     }
 
+    @Test
+    public void dontSetBuildResultTest() throws Exception {
+        String profileName = "test profile";
+        String missingProfileName = "test profile missing";
+        String fileName = "testFile";
+        S3BucketPublisher missingPublisher = new S3BucketPublisher(
+                missingProfileName,
+                newArrayList(entryForFile(fileName)),
+                Collections.<MetadataPair>emptyList(),
+                true,
+                "DEBUG",
+                "SUCCESS",
+                true
+        );
+        replaceS3PluginProfile(mockS3Profile(profileName));
+
+        final FreeStyleProject project = j.createFreeStyleProject("testing");
+        project.getBuildersList().add(stepCreatingFile(fileName));
+
+        project.getPublishersList().add(missingPublisher);
+
+        QueueTaskFuture<FreeStyleBuild> r = project.scheduleBuild2(0);
+        j.assertBuildStatus(Result.FAILURE, r);
+    }
+
     private Entry entryForFile(String fileName) {
         return new Entry("bucket", fileName, "", "", "", false, false, true, false, false, false, false, false, false, null, false, 0l, null);
     }
 
     private Builder stepCreatingFile(String fileName) {
-        return new Shell("touch " + fileName);
+        if (Functions.isWindows()) {
+            return new BatchFile("echo.> " + fileName);
+        } else {
+            return new Shell("touch " + fileName);
+        }
     }
 
     private void replaceS3PluginProfile(S3Profile s3Profile) {

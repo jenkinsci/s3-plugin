@@ -34,6 +34,10 @@
     <f:checkbox title="Don't wait for completion of concurrent builds before publishing to S3" />
   </f:entry>
 
+  <f:entry field="dontSetBuildResultOnFailure" title="">
+    <f:checkbox title="Do Not Set Build Result on Failure" />
+  </f:entry>
+
   <f:entry title="Build console log level" field="consoleLogLevel">
     <f:select />
   </f:entry>

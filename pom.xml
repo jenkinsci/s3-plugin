@@ -3,20 +3,18 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.4</version>
+        <version>3.54</version>
     </parent>
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
-    <version>0.11.3-SNAPSHOT</version>
+    <version>0.11.6-SNAPSHOT</version>
     <name>Jenkins S3 publisher plugin</name>
     <url>https://wiki.jenkins.io/display/JENKINS/S3+Plugin</url>
 
     <properties>
-        <jenkins.version>1.625.3</jenkins.version>
-        <java.level>7</java.level>
-        <!-- TODO: remove once FindBugs issues are fixed -->
-        <findbugs.failOnError>false</findbugs.failOnError>
+        <java.level>8</java.level>
+        <jenkins.version>2.138.4</jenkins.version>
     </properties>
 
     <developers>
@@ -51,8 +49,8 @@
     </developers>
 
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/s3-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/s3-plugin.git</developerConnection>
+        <connection>scm:git:git://github.com/jenkinsci/s3-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:jenkinsci/s3-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/s3-plugin</url>
         <tag>HEAD</tag>
     </scm>
@@ -60,34 +58,46 @@
     <dependencies>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
+            <artifactId>mockito-core</artifactId>
             <version>1.10.19</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hamcrest</groupId>
+                    <artifactId>hamcrest-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.11.264</version>
+            <version>1.11.687</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>apache-httpcomponents-client-4-api</artifactId>
-            <version>4.5.3-2.1</version>
+            <version>4.5.10-2.0</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
-            <version>1.37</version>
+            <version>1.43</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
-            <version>3.1</version>
+            <version>3.4</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-io</groupId>
+                    <artifactId>commons-io</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.2</version>
+            <version>1.20</version>
         </dependency>
         <dependency>
          	<groupId>org.jenkins-ci.plugins</groupId>
@@ -105,14 +115,14 @@
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </repository>
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
 </project>
