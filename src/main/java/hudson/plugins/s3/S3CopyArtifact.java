@@ -55,6 +55,7 @@ import hudson.plugins.copyartifact.BuildSelector;
 import hudson.plugins.copyartifact.ParametersBuildFilter;
 import hudson.plugins.copyartifact.StatusBuildSelector;
 import hudson.plugins.copyartifact.WorkspaceSelector;
+import hudson.plugins.copyartifact.Messages;
 import hudson.security.AccessControlled;
 import hudson.security.SecurityRealm;
 import hudson.tasks.BuildStepDescriptor;
@@ -344,16 +345,15 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             }
             else if (value.indexOf('$') >= 0) {
                 result = FormValidation.warning(Messages.CopyArtifact_ParameterizedName());
-            }
-            else {
+            }  else {
                 AbstractProject nearProject = AbstractProject.findNearest(value);
                 if (nearProject != null) {
                     result = FormValidation.error(
-                            Messages.BuildTrigger_NoSuchProjectWithSuggestion(
+                            Messages.BuildTrigger_NoSuchProject(
                                     value, nearProject.getName()));
                 } else {
                     result = FormValidation.error(
-                            Messages.BuildTrigger_NoSuchProject(value));
+                            Messages.BuildTrigger_NoSuchProject(value,""));
                 }
             }
             return result;
