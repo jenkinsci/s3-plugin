@@ -2,6 +2,7 @@ package hudson.plugins.s3.callable;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import hudson.FilePath.FileCallable;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.ClientHelper;
@@ -33,7 +34,7 @@ abstract class S3Callable<T> implements FileCallable<T> {
         final String uniqueKey = getUniqueKey();
         if (transferManagers.get(uniqueKey) == null) {
             final AmazonS3 client = ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, proxy);
-            transferManagers.put(uniqueKey, new TransferManager(client));
+            transferManagers.put(uniqueKey, TransferManagerBuilder.standard().withS3Client(client).build());
         }
 
         return transferManagers.get(uniqueKey);

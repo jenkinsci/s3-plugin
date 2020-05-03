@@ -5,8 +5,10 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,7 +17,6 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.envinject.EnvInjectPluginAction;
-import org.jenkinsci.plugins.envinject.util.RunHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -23,7 +24,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -34,9 +35,12 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.Fingerprint;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -310,18 +314,27 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 }
                 addS3ArtifactsAction(run, profile, fingerprints);
                 if(entry.injectUrl) {
-                    String links = "";
+                    
+                    StringBuilder links = new StringBuilder();
                     if(!entry.preSignedUrl) {
+                    	
 	                	for (FingerprintRecord fingerprintRecord : fingerprints) {
-	                		links+="http://"+fingerprintRecord.getArtifact().getBucket()+"/"+fingerprintRecord.getArtifact().getName()+"\n";
+	                		links
+	                		.append("http://")
+	                		.append(fingerprintRecord.getArtifact().getBucket())
+	                		.append("/")
+	                		.append(fingerprintRecord.getArtifact().getName())
+	                		.append("\n");
 	                	}
                     } else {
                     	S3ArtifactsAction existingAction = run.getAction(S3ArtifactsAction.class);
                         if (existingAction != null) {
                         	final S3Profile s3 = getProfile(existingAction.getProfile());
                             for (FingerprintRecord fingerprintRecord : fingerprints) {
-                            	final AmazonS3Client client = s3.getClient(fingerprintRecord.getArtifact().getRegion());
-    	                		links+=existingAction.getDownloadURL(client, entry.signedUrlExpirySeconds, fingerprintRecord)+"\n";
+                            	final AmazonS3 client = s3.getClient(fingerprintRecord.getArtifact().getRegion());
+    	                		links
+    	                		.append(existingAction.getDownloadURL(client, entry.signedUrlExpirySeconds, fingerprintRecord))
+    	                		.append("\n");
     	                	}
                         } else {
                         	throw new IllegalStateException("Existing S3 Artifact action is null");
@@ -330,8 +343,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
 	                if (envInjectAction != null) {
 	                    Map<String, String> envMap = new HashMap<String, String>();
-	                    envMap.put(entry.buildVariable, links);
-						envInjectAction.overrideAll(RunHelper.getSensitiveBuildVariables(run), envMap);
+	                    envMap.put(entry.buildVariable, links.toString());
+						envInjectAction.overrideAll(getSensitiveBuildVariables(run), envMap);
 	                }
                 }
             }
@@ -351,6 +364,29 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             }
 
         }
+    }
+    
+    /**
+     * Compatible version of {@link AbstractBuild#getSensitiveBuildVariables()}
+     * @param run Run
+     * @return List of sensitive variables
+     */
+    private static Set<String> getSensitiveBuildVariables(@Nonnull Run<?,? > run) {
+        if (run instanceof AbstractBuild) {
+            return ((AbstractBuild<?, ?>)run).getSensitiveBuildVariables();
+        }
+        
+        Set<String> s = new HashSet<String>();
+        ParametersAction parameters = run.getAction(ParametersAction.class);
+        if (parameters != null) {
+            for (ParameterValue p : parameters) {
+                if (p.isSensitive()) {
+                    s.add(p.getName());
+                }
+            }
+        }
+        
+        return s;
     }
 
     private void addS3ArtifactsAction(Run<?, ?> run, S3Profile profile, List<FingerprintRecord> artifacts) {
@@ -574,7 +610,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             }
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
-            final AmazonS3Client client = ClientHelper.createClient(
+            final AmazonS3 client = ClientHelper.createClient(
                     checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().proxy);
 
             try {

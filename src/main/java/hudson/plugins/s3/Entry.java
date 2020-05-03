@@ -1,15 +1,17 @@
 package hudson.plugins.s3;
 
+import java.util.List;
+
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
+
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import java.util.List;
 
 public final class Entry implements Describable<Entry> {
 
@@ -155,33 +157,6 @@ public final class Entry implements Describable<Entry> {
         this.userMetadata = userMetadata;
     }
     
-	public static class EnableInjectVariable
-	{
-	    private String buildVariable;
-	    private boolean preSignedUrl;
-	    private Long signedUrlExpirySeconds;
-	    
-	    @DataBoundConstructor
-	    public EnableInjectVariable(String buildVariable, boolean preSignedUrl, Long signedUrlExpirySeconds)
-	    {
-	        this.buildVariable = buildVariable;
-	        this.preSignedUrl = preSignedUrl;
-	        this.signedUrlExpirySeconds = signedUrlExpirySeconds;
-	    }
-	        
-	}
-	
-    public static class EnableSignedUrl {
-    	
-    	private Long signedUrlExpirySeconds;
-
-	    @DataBoundConstructor
-	    public EnableSignedUrl(Long signedUrlExpirySeconds)
-	    {
-	        this.signedUrlExpirySeconds = signedUrlExpirySeconds;
-	    }
-    }
-
     @Override
     public Descriptor<Entry> getDescriptor() {
         return DESCRIPOR;

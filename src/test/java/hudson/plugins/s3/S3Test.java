@@ -114,7 +114,7 @@ public class S3Test {
     }
 
     private void replaceS3PluginProfile(S3Profile s3Profile) {
-        final Jenkins instance = Jenkins.getInstance();
+        final Jenkins instance = Jenkins.get();
         final DescriptorImpl s3Plugin = (DescriptorImpl) instance.getDescriptor(S3BucketPublisher.class);
         s3Plugin.replaceProfiles(newArrayList(s3Profile));
     }

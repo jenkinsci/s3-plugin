@@ -23,7 +23,27 @@
  */
 package hudson.plugins.s3;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.annotation.Nonnull;
+
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+
 import com.google.common.collect.Maps;
+
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -35,7 +55,6 @@ import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
 import hudson.maven.MavenModuleSetBuild;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Build;
 import hudson.model.Descriptor;
@@ -54,8 +73,6 @@ import hudson.plugins.copyartifact.BuildFilter;
 import hudson.plugins.copyartifact.BuildSelector;
 import hudson.plugins.copyartifact.ParametersBuildFilter;
 import hudson.plugins.copyartifact.StatusBuildSelector;
-import hudson.plugins.copyartifact.WorkspaceSelector;
-import hudson.plugins.copyartifact.Messages;
 import hudson.security.AccessControlled;
 import hudson.security.SecurityRealm;
 import hudson.tasks.BuildStepDescriptor;
@@ -63,28 +80,8 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.DescribableList;
 import hudson.util.FormValidation;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.text.MessageFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import jenkins.model.Jenkins;
-
 import jenkins.tasks.SimpleBuildStep;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
-import javax.annotation.Nonnull;
 
 /**
  * This is a S3 variant of the CopyArtifact plugin:
@@ -102,7 +99,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
     private final Boolean flatten;
     private final Boolean optional;
 
-    private static final BuildSelector DEFAULT_BUILD_SELECTOR = new StatusBuildSelector(true);
+    private static final BuildSelector DEFAULT_BUILD_SELECTOR = new StatusBuildSelector();
 
     @DataBoundConstructor
     public S3CopyArtifact(String projectName, BuildSelector buildSelector, String filter,
@@ -272,7 +269,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
 
         final Map<String, String> fingerprints = Maps.newHashMap();
         for(FingerprintRecord record : records) {
-            final FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
+            final FingerprintMap map = Jenkins.get().getFingerprintMap();
 
             final Fingerprint f = map.getOrCreate(src, record.getName(), record.getFingerprint());
             f.addFor(src);
@@ -289,7 +286,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             if (fa != null) {
                 fa.add(fingerprints);
             } else  {
-                r.getActions().add(new FingerprintAction(r, fingerprints));
+                r.addAction(new FingerprintAction(r, fingerprints));
             }
         }
 
@@ -349,11 +346,11 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
                 AbstractProject nearProject = AbstractProject.findNearest(value);
                 if (nearProject != null) {
                     result = FormValidation.error(
-                            Messages.BuildTrigger_NoSuchProject(
+                            Messages.BuildTrigger_NoSuchProjectWithSuggestion(
                                     value, nearProject.getName()));
                 } else {
                     result = FormValidation.error(
-                            Messages.BuildTrigger_NoSuchProject(value,""));
+                    		Messages.BuildTrigger_NoSuchProject(value));
                 }
             }
             return result;
@@ -370,9 +367,9 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         }
 
         public DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> getBuildSelectors() {
-            final DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> list = DescriptorExtensionList.createDescriptorList(Jenkins.getInstance(), BuildSelector.class);
+            final DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> list = DescriptorExtensionList.createDescriptorList(Jenkins.get(), BuildSelector.class);
             // remove from list some of the CopyArchiver build selector that we can't deal with
-            list.remove(WorkspaceSelector.DESCRIPTOR);
+            list.remove(Jenkins.get().getDescriptor());
             return list;
         }
     }
@@ -448,11 +445,13 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         }
 
         @Override
-        public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
+        public void buildEnvironment(@Nonnull Run<?, ?> run, EnvVars env) {
             if (data!=null) {
                 env.putAll(data);
             }
         }
+        
+
 
         @Override
         public String getIconFileName() { return null; }

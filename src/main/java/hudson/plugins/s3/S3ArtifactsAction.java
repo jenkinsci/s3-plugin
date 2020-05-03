@@ -1,25 +1,25 @@
 package hudson.plugins.s3;
 
+import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+
 import java.io.File;
 import java.io.IOException;
-
 import java.util.Date;
 import java.util.List;
 
 import javax.servlet.ServletException;
 
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
-import jenkins.model.RunAction2;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-
-import hudson.model.Run;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
-import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
+
+import hudson.model.Run;
+import jenkins.model.RunAction2;
 
 @ExportedBean
 public class S3ArtifactsAction implements RunAction2 {
@@ -77,7 +77,7 @@ public class S3ArtifactsAction implements RunAction2 {
         for (FingerprintRecord record : artifacts) {
             if (record.getArtifact().getName().equals(artifact)) {
                 final S3Profile s3 = S3BucketPublisher.getProfile(profile);
-                final AmazonS3Client client = s3.getClient(record.getArtifact().getRegion());
+                final AmazonS3 client = s3.getClient(record.getArtifact().getRegion());
                 final String url = getDownloadURL(client, s3.getSignedUrlExpirySeconds(), record);
                 response.sendRedirect2(url);
                 return;
@@ -94,7 +94,7 @@ public class S3ArtifactsAction implements RunAction2 {
      * download and there's no need for the user to have credentials to
      * access S3.
      */
-    public String getDownloadURL(AmazonS3Client client, long signedUrlExpirySeconds, FingerprintRecord record) {
+    public String getDownloadURL(AmazonS3 client, long signedUrlExpirySeconds, FingerprintRecord record) {
         final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(record.getArtifact().getBucket(), record.getArtifact().getName());
         request.setExpiration(new Date(System.currentTimeMillis() + signedUrlExpirySeconds*1000));
 
