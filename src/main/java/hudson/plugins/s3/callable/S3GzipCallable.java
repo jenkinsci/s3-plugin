@@ -4,6 +4,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.event.ProgressEvent;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
@@ -12,7 +13,12 @@ import hudson.plugins.s3.Uploads;
 import hudson.util.Secret;
 import org.apache.commons.io.IOUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
@@ -22,6 +28,7 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
     }
 
     // Return a File containing the gzipped contents of the input file.
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     private File gzipFile(FilePath file) throws IOException, InterruptedException {
         final File localFile = File.createTempFile("s3plugin", ".bin");
         try (InputStream inputStream = file.read()) {
@@ -31,7 +38,7 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
                     gzipStream.flush();
                 }
             }
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             localFile.delete();
             throw ex;
         }
@@ -39,7 +46,7 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
     }
 
     // Hook to ensure that the file is deleted once the upload finishes.
-    private class CleanupHook implements ProgressListener {
+    private static class CleanupHook implements ProgressListener {
         private final File localFile;
 
         CleanupHook(File localFile) {
@@ -47,6 +54,7 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
         }
 
         @Override
+        @SuppressFBWarnings({ "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", "SF_SWITCH_NO_DEFAULT" })
         public void progressChanged(ProgressEvent event) {
             switch (event.getEventType()) {
             case TRANSFER_CANCELED_EVENT:
@@ -58,17 +66,17 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
     }
 
     @Override
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     public String invoke(FilePath file) throws IOException, InterruptedException {
         final File localFile = gzipFile(file);
         Upload upload = null;
 
-        try {
-            final InputStream gzipedStream = new FileInputStream(localFile);
+        try (final InputStream gzippedStream = new FileInputStream(localFile)) {
             final ObjectMetadata metadata = buildMetadata(file);
             metadata.setContentEncoding("gzip");
             metadata.setContentLength(localFile.length());
 
-            upload = Uploads.getInstance().startUploading(getTransferManager(), file, gzipedStream, getDest().bucketName, getDest().objectName, metadata);
+            upload = Uploads.getInstance().startUploading(getTransferManager(), file, gzippedStream, getDest().bucketName, getDest().objectName, metadata);
 
             String md5 = MD5.generateFromFile(localFile);
 

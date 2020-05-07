@@ -6,8 +6,18 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import hudson.*;
-import hudson.model.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Util;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Fingerprint;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -17,6 +27,7 @@ import hudson.tasks.Recorder;
 import hudson.util.CopyOnWriteList;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
@@ -24,13 +35,19 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -66,9 +83,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.profileName = profileName;
         this.entries = entries;
 
-        if (userMetadata == null)
-            userMetadata = new ArrayList<>();
         this.userMetadata = userMetadata;
+        if (this.userMetadata == null) {
+            this.userMetadata = new ArrayList<>();
+        }
 
         this.dontWaitForConcurrentBuildCompletion = dontWaitForConcurrentBuildCompletion;
         this.dontSetBuildResultOnFailure = dontSetBuildResultOnFailure;
@@ -334,6 +352,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private void fillFingerprints(@Nonnull Run<?, ?> run, @Nonnull TaskListener listener, Map<String, String> record, List<FingerprintRecord> fingerprints) throws IOException {
         for (FingerprintRecord r : fingerprints) {
             final Fingerprint fp = r.addRecord(run);
@@ -407,7 +426,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
         private final CopyOnWriteList<S3Profile> profiles = new CopyOnWriteList<S3Profile>();
-        public static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
+        static final Level[] consoleLogLevels = { Level.INFO, Level.WARNING, Level.SEVERE };
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
         private static final Result[] pluginFailureResultConstraints = { Result.FAILURE, Result.UNSTABLE, Result.SUCCESS };
 
@@ -479,7 +498,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         public Level[] getConsoleLogLevels() {
-            return consoleLogLevels;
+            return consoleLogLevels.clone();
         }
 
         public S3Profile[] getProfiles() {
@@ -488,36 +507,42 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         public Result[] getPluginFailureResultConstraints() {
-            return pluginFailureResultConstraints;
+            return pluginFailureResultConstraints.clone();
         }
 
         @SuppressWarnings("unused")
-        public FormValidation doLoginCheck(final StaplerRequest req, StaplerResponse rsp) {
-            final String name = Util.fixNull(req.getParameter("name"));
-            final String accessKey = Util.fixNull(req.getParameter("accessKey"));
-            final String secretKey = Util.fixNull(req.getParameter("secretKey"));
-            final String useIAMCredential = Util.fixNull(req.getParameter("useRole"));
+        @RequirePOST
+        public FormValidation doLoginCheck(@QueryParameter String name, @QueryParameter String accessKey,
+                                           @QueryParameter Secret secretKey, @QueryParameter boolean useRole) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
-            final boolean couldBeValidated = !name.isEmpty() && !accessKey.isEmpty() && !secretKey.isEmpty();
-            final boolean useRole = Boolean.parseBoolean(useIAMCredential);
+            final String checkedName = Util.fixNull(name);
+            final String checkedAccessKey = Util.fixNull(accessKey);
+            final String checkedSecretKey = secretKey != null ? secretKey.getPlainText() : "";
+
+            final boolean couldBeValidated = !checkedName.isEmpty() && !checkedAccessKey.isEmpty() && !checkedSecretKey.isEmpty();
 
             if (!couldBeValidated) {
-                if (name.isEmpty())
+                if (checkedName.isEmpty()) {
                     return FormValidation.ok("Please, enter name");
+                }
 
-                if (useRole)
+                if (useRole) {
                     return FormValidation.ok();
+                }
 
-                if (accessKey.isEmpty())
+                if (checkedAccessKey.isEmpty()) {
                     return FormValidation.ok("Please, enter accessKey");
+                }
 
-                if (secretKey.isEmpty())
+                if (checkedSecretKey.isEmpty()) {
                     return FormValidation.ok("Please, enter secretKey");
+                }
             }
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
             final AmazonS3Client client = ClientHelper.createClient(
-                    accessKey, secretKey, useRole, defaultRegion, Jenkins.getActiveInstance().proxy);
+                    checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().proxy);
 
             try {
                 client.listBuckets();
