@@ -9,7 +9,7 @@
             <f:textbox name="name" value="${profile.name}" />
           </f:entry>
           <f:entry title="Use IAM Role" help="/plugin/s3/help-role.html">
-            <f:checkbox name="useRole" value="${profile.useRole}" />
+            <f:checkbox name="useRole" default="false" checked="${profile.useRole}" />
           </f:entry>
           <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
             <f:textbox name="accessKey" value="${profile.accessKey}" />
