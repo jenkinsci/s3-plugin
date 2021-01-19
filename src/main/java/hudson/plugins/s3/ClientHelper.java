@@ -1,16 +1,20 @@
 package hudson.plugins.s3;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import org.apache.commons.lang.StringUtils;
 import hudson.ProxyConfiguration;
 
 import java.util.regex.Pattern;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -19,20 +23,67 @@ public class ClientHelper {
             "hudson.plugins.s3.DEFAULT_AMAZON_S3_REGION",
             com.amazonaws.services.s3.model.Region.US_Standard.toAWSRegion().getName());
 
-    public static AmazonS3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy)
-    {
-        Region awsRegion = getRegionFromString(region);
+    public static class Builder {
+        private final ProxyConfiguration proxyConfiguration;
+        private final String region;
 
-        ClientConfiguration clientConfiguration = getClientConfiguration(proxy, awsRegion);
-
-        final AmazonS3Client client;
-        if (useRole) {
-            client = new AmazonS3Client(clientConfiguration);
-        } else {
-            client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), clientConfiguration);
+        public Builder(String region, ProxyConfiguration proxyConfiguration) {
+            this.region = region;
+            this.proxyConfiguration = proxyConfiguration;
         }
 
-        client.setRegion(awsRegion);
+        public AmazonS3 build(String accessKey, String secretKey) {
+            return this.buildClient(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)));
+        }
+
+        public AmazonS3 build(String assumeRole) {
+            return this.buildClient(new STSAssumeRoleSessionCredentialsProvider.Builder(assumeRole, "jenkins-s3-plugin").build());
+        }
+
+        public AmazonS3 build() {
+            return this.buildClient(null);
+        }
+
+        private AmazonS3 buildClient(@Nullable AWSCredentialsProvider awsCredentialsProvider) {
+            Region awsRegion = getRegionFromString(region);
+
+            ClientConfiguration clientConfiguration = getClientConfiguration(proxyConfiguration, awsRegion);
+
+            final AmazonS3 client;
+            if (awsCredentialsProvider != null) {
+                client = new AmazonS3Client(awsCredentialsProvider, clientConfiguration);
+            } else {
+                client = new AmazonS3Client(clientConfiguration);
+            }
+
+            client.setRegion(awsRegion);
+
+            return client;
+        }
+    }
+
+    /**
+     * @deprecated use {@link ClientHelper.Builder} instead
+     */
+    @Deprecated
+    public static AmazonS3 createClient(
+        String accessKey,
+        String secretKey,
+        boolean useRole,
+        String assumeRole,
+        String region,
+        ProxyConfiguration proxy
+    ) {
+        Builder builder = new Builder(region, proxy);
+
+        final AmazonS3 client;
+        if (StringUtils.isNotEmpty(assumeRole)) {
+            client = builder.build(assumeRole);
+        } else if (useRole) {
+            client = builder.build();
+        } else {
+            client = builder.build(accessKey, secretKey);
+        }
 
         return client;
     }

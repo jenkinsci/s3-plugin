@@ -24,6 +24,13 @@
 package hudson.plugins.s3;
 
 import com.google.common.collect.Maps;
+
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -62,6 +69,8 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.DescribableList;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildStep;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -72,17 +81,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import jenkins.model.Jenkins;
-
-import jenkins.tasks.SimpleBuildStep;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
 import javax.annotation.Nonnull;
 
 /**

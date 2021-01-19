@@ -24,9 +24,9 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
 
 
     public S3BaseUploadCallable(String accessKey, Secret secretKey, boolean useRole,
-                                Destination dest, Map<String, String> userMetadata, String storageClass, String selregion,
+                                String assumeRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion,
                                 boolean useServerSideEncryption, ProxyConfiguration proxy) {
-        super(accessKey, secretKey, useRole, selregion, proxy);
+        super(accessKey, secretKey, useRole, assumeRole, selregion, proxy);
         this.dest = dest;
         this.storageClass = storageClass;
         this.userMetadata = userMetadata;

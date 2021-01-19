@@ -11,6 +11,9 @@
           <f:entry title="Use IAM Role" help="/plugin/s3/help-role.html">
             <f:checkbox name="useRole" value="${profile.useRole}" />
           </f:entry>
+          <f:entry title="Assume IAM Role" help="/plugin/s3/help-assumeRole.html" field="assumeRole">
+            <f:textbox name="assumeRole" value="${profile.assumeRole}"/>
+          </f:entry>
           <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
             <f:textbox name="accessKey" value="${profile.accessKey}" />
           </f:entry>
@@ -19,7 +22,7 @@
           </f:entry>
           <f:validateButton
              title="${%Test Connection}" progress="${%Testing...}"
-             method="loginCheck" with="name,useRole,accessKey,secretKey" />
+             method="loginCheck" with="name,useRole,accessKey,secretKey,assumeRole" />
           <f:advanced>
             <f:entry title="Max upload retries">
                 <f:number name="s3.maxUploadRetries" value="${profile.maxUploadRetries}"/>

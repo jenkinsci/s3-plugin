@@ -1,11 +1,20 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.regions.Region;
+import com.amazonaws.services.s3.AmazonS3;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
@@ -30,17 +39,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-import org.kohsuke.stapler.interceptor.RequirePOST;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -50,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
 
@@ -510,14 +511,33 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             return pluginFailureResultConstraints.clone();
         }
 
+        private FormValidation doCheckAssumeRole(String assumeRole) {
+            if(StringUtils.isEmpty(assumeRole)) {
+                return FormValidation.ok();
+            }
+
+            final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
+            final AmazonS3 client = new ClientHelper.Builder(defaultRegion, Jenkins.get().proxy).build(assumeRole);
+
+            try {
+                client.listBuckets();
+            } catch (AmazonClientException e) {
+                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                return FormValidation.error("Cannot list buckets from S3: " + e.getMessage());
+            }
+            return FormValidation.ok("Successfully assumed role: " + assumeRole);
+        }
+
         @SuppressWarnings("unused")
         @RequirePOST
         public FormValidation doLoginCheck(@QueryParameter String name, @QueryParameter String accessKey,
-                                           @QueryParameter Secret secretKey, @QueryParameter boolean useRole) {
+                                           @QueryParameter Secret secretKey, @QueryParameter String assumeRole,
+                                           @QueryParameter boolean useRole) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
             final String checkedName = Util.fixNull(name);
             final String checkedAccessKey = Util.fixNull(accessKey);
+            final String checkedAssumeRole = Util.fixNull(assumeRole);
             final String checkedSecretKey = secretKey != null ? secretKey.getPlainText() : "";
 
             final boolean couldBeValidated = !checkedName.isEmpty() && !checkedAccessKey.isEmpty() && !checkedSecretKey.isEmpty();
@@ -531,6 +551,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     return FormValidation.ok();
                 }
 
+                if (!checkedAssumeRole.isEmpty()) {
+                    return doCheckAssumeRole(checkedAssumeRole);
+                }
+
+
                 if (checkedAccessKey.isEmpty()) {
                     return FormValidation.ok("Please, enter accessKey");
                 }
@@ -541,8 +566,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             }
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
-            final AmazonS3Client client = ClientHelper.createClient(
-                    checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().proxy);
+            final AmazonS3 client = ClientHelper.createClient(
+                    checkedAccessKey, checkedSecretKey, useRole, assumeRole, defaultRegion, Jenkins.get().proxy);
 
             try {
                 client.listBuckets();

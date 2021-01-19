@@ -3,14 +3,14 @@ package hudson.plugins.s3;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.util.UrlUtils;
-import hudson.model.Item;
-import hudson.security.SecurityRealm;
-import jenkins.model.Jenkins;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import hudson.model.Item;
+import hudson.security.SecurityRealm;
+import jenkins.model.Jenkins;
 
 public class S3BucketPublisherTest {
     @Rule

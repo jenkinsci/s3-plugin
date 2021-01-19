@@ -3,11 +3,11 @@ package hudson.plugins.s3;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
+import org.kohsuke.stapler.DataBoundConstructor;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.List;
 

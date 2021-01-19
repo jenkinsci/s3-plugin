@@ -1,6 +1,26 @@
 package hudson.plugins.s3;
 
+import com.google.common.collect.Lists;
+
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import org.apache.commons.io.FilenameUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
 import hudson.FilePath;
+import hudson.ProxyConfiguration;
+import hudson.model.Run;
+import hudson.plugins.s3.callable.MasterSlaveCallable;
+import hudson.plugins.s3.callable.S3CleanupUploadCallable;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3GzipCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.callable.S3WaitUploadCallable;
+import hudson.util.Secret;
+import jenkins.model.Jenkins;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,28 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-
-import hudson.ProxyConfiguration;
-import hudson.plugins.s3.callable.MasterSlaveCallable;
-import hudson.plugins.s3.callable.S3CleanupUploadCallable;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3GzipCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.plugins.s3.callable.S3WaitUploadCallable;
-import jenkins.model.Jenkins;
-import org.apache.commons.io.FilenameUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.collect.Lists;
-
-import hudson.model.Run;
-import hudson.util.Secret;
 
 public class S3Profile {
     private final String name;
@@ -42,12 +40,14 @@ public class S3Profile {
     private final boolean keepStructure;
 
     private final boolean useRole;
+    private final String assumeRole;
     private final int signedUrlExpirySeconds;
 
     @DataBoundConstructor
-    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
+    public S3Profile(String name, String accessKey, String secretKey, boolean useRole, String assumeRole, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
         this.name = name;
         this.useRole = useRole;
+        this.assumeRole = assumeRole;
         this.maxUploadRetries = parseWithDefault(maxUploadRetries, 5);
         this.uploadRetryTime = parseWithDefault(uploadRetryTime, 5);
         this.maxDownloadRetries = parseWithDefault(maxDownloadRetries, 5);
@@ -108,6 +108,10 @@ public class S3Profile {
         return this.useRole;
     }
 
+    public final String getAssumeRole() {
+        return assumeRole;
+    }
+
     public boolean isUseRole() {
         return useRole;
     }
@@ -116,8 +120,8 @@ public class S3Profile {
         return signedUrlExpirySeconds;
     }
 
-    public AmazonS3Client getClient(String region) {
-        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy());
+    public AmazonS3 getClient(String region) {
+        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, assumeRole, region, getProxy());
     }
 
     public List<FingerprintRecord> upload(Run<?, ?> run,
@@ -150,10 +154,10 @@ public class S3Profile {
 
                 final MasterSlaveCallable<String> upload;
                 if (gzipFiles) {
-                    upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata,
-                            storageClass, selregion, useServerSideEncryption, getProxy());
+                    upload = new S3GzipCallable(accessKey, secretKey, useRole, assumeRole, dest,
+                        userMetadata, storageClass, selregion, useServerSideEncryption, getProxy());
                 } else {
-                    upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata,
+                    upload = new S3UploadCallable(accessKey, secretKey, useRole, assumeRole, dest, userMetadata,
                             storageClass, selregion, useServerSideEncryption, getProxy());
                 }
 
@@ -202,7 +206,7 @@ public class S3Profile {
     }
 
     public List<String> list(Run build, String bucket) {
-        final AmazonS3Client s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
+        final AmazonS3 s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
 
         final String buildName = build.getDisplayName();
         final int buildID = build.getNumber();
@@ -246,7 +250,7 @@ public class S3Profile {
                   fingerprints.add(repeat(maxDownloadRetries, downloadRetryTime, dest, new Callable<FingerprintRecord>() {
                       @Override
                       public FingerprintRecord call() throws IOException, InterruptedException {
-                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, artifact.getRegion(), getProxy()));
+                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, assumeRole, dest, artifact.getRegion(), getProxy()));
                           return new FingerprintRecord(true, dest.bucketName, target.getName(), artifact.getRegion(), md5);
                       }
                   }));
@@ -286,7 +290,7 @@ public class S3Profile {
       public void delete(Run run, FingerprintRecord record) {
           final Destination dest = Destination.newFromRun(run, record.getArtifact());
           final DeleteObjectRequest req = new DeleteObjectRequest(dest.bucketName, dest.objectName);
-          final AmazonS3Client client = getClient(record.getArtifact().getRegion());
+          final AmazonS3 client = getClient(record.getArtifact().getRegion());
           client.deleteObject(req);
       }
 

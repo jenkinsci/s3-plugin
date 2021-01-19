@@ -1,11 +1,11 @@
 package hudson.plugins.s3;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import org.junit.Test;
 
 import java.net.URLDecoder;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 public class FingerprintRecordTest {
 

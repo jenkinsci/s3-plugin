@@ -1,8 +1,17 @@
 package hudson.plugins.s3;
 
 
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.toArray;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.junit.Assert.assertEquals;
+
 import com.gargoylesoftware.htmlunit.WebAssert;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.mockito.Mockito;
 import hudson.Functions;
 import hudson.model.Action;
 import hudson.model.FreeStyleBuild;
@@ -16,19 +25,10 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.toArray;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.junit.Assert.assertEquals;
 
 public class S3Test {
     @Rule
@@ -42,7 +42,7 @@ public class S3Test {
 
     @Test
     public void testConfigContainsProfiles() throws Exception {
-        final S3Profile profile = new S3Profile("S3 profile random name", null, null, true, 0, "0", "0", "0", "0", true);
+        final S3Profile profile = new S3Profile("S3 profile random name", null, null, true, null, 0, "0", "0", "0", "0", true);
 
         replaceS3PluginProfile(profile);
 
