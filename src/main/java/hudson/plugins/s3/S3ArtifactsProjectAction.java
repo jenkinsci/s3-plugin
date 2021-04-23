@@ -2,8 +2,8 @@ package hudson.plugins.s3;
 
 import java.util.List;
 
-import hudson.model.Action;
 import hudson.model.AbstractProject;
+import hudson.model.Action;
 import hudson.model.Run;
 
 public class S3ArtifactsProjectAction implements Action {

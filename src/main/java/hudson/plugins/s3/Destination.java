@@ -1,8 +1,8 @@
 package hudson.plugins.s3;
 
-import hudson.model.Run;
-
 import java.io.Serializable;
+
+import hudson.model.Run;
 
 
 /**

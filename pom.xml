@@ -81,7 +81,13 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
-            <version>1.43</version>
+            <version>1.43.1</version>
+            <exclusions>
+		    	<exclusion>  <!-- declare the exclusion here -->
+		          <groupId>org.jenkins-ci.plugins</groupId>
+		          <artifactId>matrix-project</artifactId>
+		        </exclusion>
+		    </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
@@ -99,6 +105,11 @@
             <artifactId>structs</artifactId>
             <version>1.20</version>
         </dependency>
+        <dependency>
+         	<groupId>org.jenkins-ci.plugins</groupId>
+	        <artifactId>envinject</artifactId>
+		    <version>2.3.0</version>
+	    </dependency>
     </dependencies>
 
     <repositories>
@@ -114,4 +125,6 @@
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
+    
+   
 </project>

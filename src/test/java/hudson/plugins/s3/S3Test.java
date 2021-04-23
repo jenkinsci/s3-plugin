@@ -102,7 +102,7 @@ public class S3Test {
     }
 
     private Entry entryForFile(String fileName) {
-        return new Entry("bucket", fileName, "", "", "", false, false, true, false, false, false, false, false, null);
+        return new Entry("bucket", fileName, "", "", "", false, false, true, false, false, false, false, false, false, null, false, 0l, null);
     }
 
     private Builder stepCreatingFile(String fileName) {
@@ -114,7 +114,7 @@ public class S3Test {
     }
 
     private void replaceS3PluginProfile(S3Profile s3Profile) {
-        final Jenkins instance = Jenkins.getInstance();
+        final Jenkins instance = Jenkins.get();
         final DescriptorImpl s3Plugin = (DescriptorImpl) instance.getDescriptor(S3BucketPublisher.class);
         s3Plugin.replaceProfiles(newArrayList(s3Profile));
     }

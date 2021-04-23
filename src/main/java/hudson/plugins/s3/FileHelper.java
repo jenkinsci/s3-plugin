@@ -1,9 +1,10 @@
 package hudson.plugins.s3;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.File;
+
 import org.apache.tools.ant.types.selectors.FilenameSelector;
 
-import java.io.File;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class FileHelper {
 

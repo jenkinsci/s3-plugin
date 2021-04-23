@@ -1,7 +1,5 @@
 package hudson.plugins.s3;
 
-import hudson.FilePath;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,18 +7,10 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import hudson.ProxyConfiguration;
-import hudson.plugins.s3.callable.MasterSlaveCallable;
-import hudson.plugins.s3.callable.S3CleanupUploadCallable;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3GzipCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.plugins.s3.callable.S3WaitUploadCallable;
-import jenkins.model.Jenkins;
 import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -28,8 +18,17 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 
+import hudson.FilePath;
+import hudson.ProxyConfiguration;
 import hudson.model.Run;
+import hudson.plugins.s3.callable.MasterSlaveCallable;
+import hudson.plugins.s3.callable.S3CleanupUploadCallable;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3GzipCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.callable.S3WaitUploadCallable;
 import hudson.util.Secret;
+import jenkins.model.Jenkins;
 
 public class S3Profile {
     private final String name;
@@ -116,7 +115,7 @@ public class S3Profile {
         return signedUrlExpirySeconds;
     }
 
-    public AmazonS3Client getClient(String region) {
+    public AmazonS3 getClient(String region) {
         return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy());
     }
 
@@ -202,7 +201,7 @@ public class S3Profile {
     }
 
     public List<String> list(Run build, String bucket) {
-        final AmazonS3Client s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
+        final AmazonS3 s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
 
         final String buildName = build.getDisplayName();
         final int buildID = build.getNumber();
@@ -286,7 +285,7 @@ public class S3Profile {
       public void delete(Run run, FingerprintRecord record) {
           final Destination dest = Destination.newFromRun(run, record.getArtifact());
           final DeleteObjectRequest req = new DeleteObjectRequest(dest.bucketName, dest.objectName);
-          final AmazonS3Client client = getClient(record.getArtifact().getRegion());
+          final AmazonS3 client = getClient(record.getArtifact().getRegion());
           client.deleteObject(req);
       }
 
