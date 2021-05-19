@@ -61,6 +61,8 @@ import net.sf.json.JSONObject;
 
 
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
+	
+	public static final String AWS_DOMAIN_NAME = "s3.amazonaws.com";
 
     private String profileName;
     @Extension
@@ -320,7 +322,9 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     	
 	                	for (FingerprintRecord fingerprintRecord : fingerprints) {
 	                		links
-	                		.append("http://")
+	                		.append("https://")
+	                		.append(AWS_DOMAIN_NAME)
+	                		.append("/")
 	                		.append(fingerprintRecord.getArtifact().getBucket())
 	                		.append("/")
 	                		.append(fingerprintRecord.getArtifact().getName())
