@@ -220,10 +220,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath ws, @Nonnull Launcher launcher, @Nonnull TaskListener listener)
             throws InterruptedException, IOException {
         final PrintStream console = listener.getLogger();
-        if (Result.ABORTED.equals(run.getResult())) {
-            log(Level.SEVERE, console, "Skipping publishing on S3 because build aborted");
-            return;
-        }
 
         if (run.isBuilding()) {
             log(console, "Build is still running");
@@ -253,6 +249,12 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     log(Level.WARNING, console, "Skipping publishing on S3 because build failed");
                     continue;
                 }
+
+                if (entry.noUploadOnAborted && Result.ABORTED.equals(run.getResult())) {
+                    log(Level.SEVERE, console, "Skipping publishing on S3 because build aborted");
+                    return;
+                }
+
 
                 final String expanded = Util.replaceMacro(entry.sourceFile, envVars);
                 final String exclude = Util.replaceMacro(entry.excludedFile, envVars);
