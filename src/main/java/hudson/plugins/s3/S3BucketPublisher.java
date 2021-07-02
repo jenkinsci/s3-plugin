@@ -277,7 +277,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                         final int workspacePath = FileHelper.getSearchPathLength(ws.getRemote(),
                                 startPath.trim(),
                                 getProfile().isKeepStructure());
-                        filenames.add(getFilename(path, entry.flatten, workspacePath));
+                        filenames.add(entry.singleFile ? null : getFilename(path, entry.flatten, workspacePath));
                         log(console, "bucket=" + bucket + ", file=" + path.getName() + " region=" + selRegion + ", will be uploaded from slave=" + entry.uploadFromSlave + " managed=" + entry.managedArtifacts + " , server encryption " + entry.useServerSideEncryption);
                     }
                 }
