@@ -1,7 +1,9 @@
 package hudson.plugins.s3;
 
 import com.gargoylesoftware.htmlunit.HttpMethod;
+import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
+import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.util.UrlUtils;
 import hudson.model.Item;
 import hudson.security.SecurityRealm;
@@ -37,6 +39,7 @@ public class S3BucketPublisherTest {
         Assert.assertEquals(403, webClient.getPage(request).getWebResponse().getStatusCode());
 
         webClient = j.createWebClient().login("alice", "alice");
+        webClient.setThrowExceptionOnFailingStatusCode(false);
         Assert.assertEquals(200, webClient.getPage(request).getWebResponse().getStatusCode());
     }
 }

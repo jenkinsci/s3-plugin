@@ -146,6 +146,8 @@ public class MinIOTest {
                         false,
                         true,
                         false,
+                        false,
+                        "",
                         Collections.emptyList())),
                 Collections.emptyList(),
                 true,

@@ -1,10 +1,10 @@
 package hudson.plugins.s3;
 
-import org.kohsuke.stapler.export.Exported;
-import org.kohsuke.stapler.export.ExportedBean;
-
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 @ExportedBean
 public final class S3Artifact implements Serializable {

@@ -1,15 +1,17 @@
 package hudson.plugins.s3;
 
+import java.util.List;
+
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
+
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import java.util.List;
 
 public final class Entry implements Describable<Entry> {
 
@@ -93,12 +95,13 @@ public final class Entry implements Describable<Entry> {
     /**
      * Inject pre-signed artifacts URL after upload was completed
      */
-    public boolean injectPresignedUrl;
+    public boolean injectUrl;
     
     /**
      * Build variable where artifacts URLs will be stored 
      */
     public String buildVariable="";
+    
 
     /**
      * @param bucket
@@ -120,7 +123,7 @@ public final class Entry implements Describable<Entry> {
     public Entry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,
                  boolean useServerSideEncryption, boolean flatten, boolean gzipFiles, boolean keepForever,
-                 boolean showDirectlyInBrowser, List<MetadataPair> userMetadata) {
+                 boolean showDirectlyInBrowser, boolean injectUrl, String buildVariable, List<MetadataPair> userMetadata) {
         this.bucket = bucket;
         this.sourceFile = sourceFile;
         this.excludedFile = excludedFile;
@@ -133,10 +136,12 @@ public final class Entry implements Describable<Entry> {
         this.flatten = flatten;
         this.gzipFiles = gzipFiles;
         this.keepForever = keepForever;
-        this.userMetadata = userMetadata;
         this.showDirectlyInBrowser = showDirectlyInBrowser;
+        this.injectUrl = injectUrl;
+        this.buildVariable = buildVariable;
+        this.userMetadata = userMetadata;
     }
-
+    
     @Override
     public Descriptor<Entry> getDescriptor() {
         return DESCRIPOR;
