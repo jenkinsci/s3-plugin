@@ -302,7 +302,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
                 final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
-                
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
