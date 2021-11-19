@@ -1,15 +1,15 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:s3="/lib/s3Plugin">
   <!-- nothing to configure -->
   <f:section title="Amazon S3 profiles">
     <f:entry title="S3 profiles" description="Profiles for publishing to S3 buckets">
       <f:repeatable var="profile" items="${descriptor.profiles}">
-        <table width="100%">
+        <s3:blockWrapper>
           <f:entry title="Profile name" help="/plugin/s3/help-profile.html">
             <f:textbox name="name" value="${profile.name}" />
           </f:entry>
           <f:entry title="Use IAM Role" help="/plugin/s3/help-role.html">
-            <f:checkbox name="useRole" value="${profile.useRole}" />
+            <f:checkbox name="useRole" checked="${profile.useRole}"/>
           </f:entry>
           <f:entry title="Access key" help="/plugin/s3/help-accesskey.html">
             <f:textbox name="accessKey" value="${profile.accessKey}" />
@@ -48,7 +48,7 @@
             </div>
           </f:entry>
 
-        </table>
+        </s3:blockWrapper>
       </f:repeatable>
     </f:entry>
   </f:section>

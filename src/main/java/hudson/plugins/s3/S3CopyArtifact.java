@@ -248,7 +248,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         }
     }
 
-    private boolean perform(Run src, Run<?,?> dst, String includeFilter, String excludeFilter, FilePath targetDir, PrintStream console)
+    private boolean perform(Run<?,?> src, Run<?,?> dst, String includeFilter, String excludeFilter, FilePath targetDir, PrintStream console)
             throws IOException, InterruptedException {
 
         final S3ArtifactsAction action = src.getAction(S3ArtifactsAction.class);
@@ -277,7 +277,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             fingerprints.put(record.getName(), record.getFingerprint());
         }
 
-        for (Run r : new Run[]{src, dst}) {
+        for (Run<?,?> r : new Run<?,?>[]{src, dst}) {
             if (r == null) {
                 continue;
             }

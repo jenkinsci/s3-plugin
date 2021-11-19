@@ -3,18 +3,18 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.54</version>
+        <version>4.29</version>
     </parent>
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
-    <version>0.11.6-SNAPSHOT</version>
+    <version>0.12.2-SNAPSHOT</version>
     <name>Jenkins S3 publisher plugin</name>
-    <url>https://wiki.jenkins.io/display/JENKINS/S3+Plugin</url>
+    <url>https://github.com/jenkinsci/s3-plugin</url>
 
     <properties>
         <java.level>8</java.level>
-        <jenkins.version>2.138.4</jenkins.version>
+        <jenkins.version>2.289.3</jenkins.version>
     </properties>
 
     <developers>
@@ -59,7 +59,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.10.19</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -69,30 +68,23 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.11.687</version>
+            <groupId>org.jenkins-ci.plugins.aws-java-sdk</groupId>
+            <artifactId>aws-java-sdk-minimal</artifactId>
+            <version>1.12.80</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>apache-httpcomponents-client-4-api</artifactId>
-            <version>4.5.10-2.0</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
-            <version>1.43.1</version>
-            <exclusions>
-		    	<exclusion>  <!-- declare the exclusion here -->
-		          <groupId>org.jenkins-ci.plugins</groupId>
-		          <artifactId>matrix-project</artifactId>
-		        </exclusion>
-		    </exclusions>
+            <version>1.46.2</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
-            <version>3.4</version>
+            <version>3.13</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-io</groupId>
@@ -103,14 +95,46 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.20</version>
         </dependency>
         <dependency>
          	<groupId>org.jenkins-ci.plugins</groupId>
 	        <artifactId>envinject</artifactId>
 		    <version>2.3.0</version>
 	    </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>1.16.0</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-compress</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.jenkins.tools.bom</groupId>
+                <artifactId>bom-2.289.x</artifactId>
+                <version>961.vf0c9f6f59827</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-net</groupId>
+                <artifactId>commons-net</artifactId>
+                <version>3.8.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <repositories>
         <repository>

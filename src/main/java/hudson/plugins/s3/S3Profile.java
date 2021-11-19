@@ -1,5 +1,8 @@
 package hudson.plugins.s3;
 
+import com.amazonaws.services.s3.AmazonS3;
+import hudson.FilePath;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,10 +10,18 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
+import hudson.ProxyConfiguration;
+import hudson.plugins.s3.callable.MasterSlaveCallable;
+import hudson.plugins.s3.callable.S3CleanupUploadCallable;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3GzipCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.callable.S3WaitUploadCallable;
+import jenkins.model.Jenkins;
 import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -18,17 +29,8 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 
-import hudson.FilePath;
-import hudson.ProxyConfiguration;
 import hudson.model.Run;
-import hudson.plugins.s3.callable.MasterSlaveCallable;
-import hudson.plugins.s3.callable.S3CleanupUploadCallable;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3GzipCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.plugins.s3.callable.S3WaitUploadCallable;
 import hudson.util.Secret;
-import jenkins.model.Jenkins;
 
 public class S3Profile {
     private final String name;
@@ -229,7 +231,7 @@ public class S3Profile {
       /**
        * Download all artifacts from a given build
        */
-      public List<FingerprintRecord> downloadAll(Run build,
+      public List<FingerprintRecord> downloadAll(Run<?,?> build,
                                                  final List<FingerprintRecord> artifacts,
                                                  final String includeFilter,
                                                  final String excludeFilter,

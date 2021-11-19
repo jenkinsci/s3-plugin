@@ -2,8 +2,9 @@ package hudson.plugins.s3;
 
 import java.util.List;
 
-import hudson.model.AbstractProject;
+import hudson.Functions;
 import hudson.model.Action;
+import hudson.model.AbstractProject;
 import hudson.model.Run;
 
 public class S3ArtifactsProjectAction implements Action {
@@ -20,6 +21,9 @@ public class S3ArtifactsProjectAction implements Action {
 
     @SuppressWarnings("unused")
     public S3ArtifactsAction getLatestDeployedArtifacts() {
+        if (Functions.isArtifactsPermissionEnabled() && !project.hasPermission(Run.ARTIFACTS)) {
+            return null;
+        }
         Run latestSuccessfulBuild = getLastSuccessfulBuild();
         if (latestSuccessfulBuild == null) {
             return null;

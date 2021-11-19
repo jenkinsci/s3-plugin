@@ -102,7 +102,18 @@ public class S3Test {
     }
 
     private Entry entryForFile(String fileName) {
-        return new Entry("bucket", fileName, "", "", "", false, false, true, false, false, false, false, false, false, null, false, 0l, null);
+        return new Entry("bucket", fileName, "", "", "",
+                false,
+                true,
+                true,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                "",
+                null);
     }
 
     private Builder stepCreatingFile(String fileName) {

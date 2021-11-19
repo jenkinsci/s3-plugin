@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,6 +18,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.envinject.EnvInjectPluginAction;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -29,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
@@ -41,6 +44,7 @@ import hudson.model.Action;
 import hudson.model.Fingerprint;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
+import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -211,7 +215,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         throw new IllegalArgumentException("Can't find profile: " + profileName);
     }
 
-    @Override
+    @Override @NonNull
     public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
         return ImmutableList.of(new S3ArtifactsProjectAction(project));
     }
@@ -255,7 +259,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         try {
             final Map<String, String> envVars = run.getEnvironment(listener);
             final Map<String, String> record = Maps.newHashMap();
-            final List<FingerprintRecord> artifacts = Lists.newArrayList();
+            final List<FingerprintRecord> artifacts = new CopyOnWriteArrayList<FingerprintRecord>();
 
             for (Entry entry : entries) {
                 if (entry.noUploadOnFailure && Result.FAILURE.equals(run.getResult())) {
@@ -316,39 +320,21 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 }
                 addS3ArtifactsAction(run, profile, fingerprints);
                 if(entry.injectUrl) {
-                    
-                    StringBuilder links = new StringBuilder();
-                    if(!entry.preSignedUrl) {
-                    	
-	                	for (FingerprintRecord fingerprintRecord : fingerprints) {
-	                		links
-	                		.append("https://")
-	                		.append(AWS_DOMAIN_NAME)
-	                		.append("/")
-	                		.append(fingerprintRecord.getArtifact().getBucket())
-	                		.append("/")
-	                		.append(fingerprintRecord.getArtifact().getName())
-	                		.append("\n");
-	                	}
-                    } else {
-                    	S3ArtifactsAction existingAction = run.getAction(S3ArtifactsAction.class);
-                        if (existingAction != null) {
-                        	final S3Profile s3 = getProfile(existingAction.getProfile());
-                            for (FingerprintRecord fingerprintRecord : fingerprints) {
-                            	final AmazonS3 client = s3.getClient(fingerprintRecord.getArtifact().getRegion());
-    	                		links
-    	                		.append(existingAction.getDownloadURL(client, entry.signedUrlExpirySeconds, fingerprintRecord))
-    	                		.append("\n");
-    	                	}
-                        } else {
-                        	throw new IllegalStateException("Existing S3 Artifact action is null");
-                        }
-                    }
-                    EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
+                    StringBuilder links = new StringBuilder("");
+                	for (FingerprintRecord fingerprintRecord : fingerprints) {
+                		StringBuffer sb = new StringBuffer("http://");
+                		sb.append(fingerprintRecord.getArtifact().getBucket())
+                		.append("/")
+                		.append(fingerprintRecord.getArtifact().getName())
+                		.append("\n");
+                		links.append(sb.toString());
+                	}
+                	EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
 	                if (envInjectAction != null) {
 	                    Map<String, String> envMap = new HashMap<String, String>();
 	                    envMap.put(entry.buildVariable, links.toString());
-						envInjectAction.overrideAll(getSensitiveBuildVariables(run), envMap);
+	                    Set<String> set = run.getEnvironment(listener).keySet();
+						envInjectAction.overrideAll(set, envMap);
 	                }
                 }
             }
@@ -356,8 +342,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             if (!artifacts.isEmpty()) {
                 addFingerprintAction(run, record);
             }
-            
-            
             
         } catch (AmazonClientException|IOException e) {
             if (!isDontSetBuildResultOnFailure()) {
@@ -539,8 +523,16 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         @SuppressWarnings("unused")
-        public ListBoxModel doFillProfileNameItems() {
+        public ListBoxModel doFillProfileNameItems(@AncestorInPath Item item) {
             final ListBoxModel model = new ListBoxModel();
+            if (item != null && !item.hasPermission(Item.CONFIGURE)) {
+                return model;
+            }
+            if (item == null && !Jenkins.get().hasPermission(Item.CREATE)) {
+                // accessing from $JENKINS_URL/pipeline-syntax
+                return model;
+            }
+
             for (S3Profile profile : profiles) {
                 model.add(profile.getName(), profile.getName());
             }

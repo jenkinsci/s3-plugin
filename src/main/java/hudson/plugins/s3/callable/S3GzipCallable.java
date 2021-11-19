@@ -66,12 +66,17 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
     }
 
     @Override
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
+    @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE","OBL_UNSATISFIED_OBLIGATION"})
     public String invoke(FilePath file) throws IOException, InterruptedException {
         final File localFile = gzipFile(file);
         Upload upload = null;
 
-        try (final InputStream gzippedStream = new FileInputStream(localFile)) {
+        try {
+            // This stream is asynchronously used in startUploading,
+            // so we cannot use its AutoCloseable behaviour with a
+            // try-with-resources statement, as that would likely
+            // close the stream before the upload has succeeded.
+            final InputStream gzippedStream = new FileInputStream(localFile);
             final ObjectMetadata metadata = buildMetadata(file);
             metadata.setContentEncoding("gzip");
             metadata.setContentLength(localFile.length());
