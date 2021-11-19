@@ -23,27 +23,7 @@
  */
 package hudson.plugins.s3;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.text.MessageFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.annotation.Nonnull;
-
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
 import com.google.common.collect.Maps;
-
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -55,6 +35,7 @@ import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.maven.MavenModuleSet;
 import hudson.maven.MavenModuleSetBuild;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Build;
 import hudson.model.Descriptor;
@@ -73,6 +54,7 @@ import hudson.plugins.copyartifact.BuildFilter;
 import hudson.plugins.copyartifact.BuildSelector;
 import hudson.plugins.copyartifact.ParametersBuildFilter;
 import hudson.plugins.copyartifact.StatusBuildSelector;
+import hudson.plugins.copyartifact.WorkspaceSelector;
 import hudson.security.AccessControlled;
 import hudson.security.SecurityRealm;
 import hudson.tasks.BuildStepDescriptor;
@@ -80,8 +62,28 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.util.DescribableList;
 import hudson.util.FormValidation;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import jenkins.model.Jenkins;
+
 import jenkins.tasks.SimpleBuildStep;
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+
+import javax.annotation.Nonnull;
 
 /**
  * This is a S3 variant of the CopyArtifact plugin:
