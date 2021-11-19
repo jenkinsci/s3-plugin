@@ -255,7 +255,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         try {
             final Map<String, String> envVars = run.getEnvironment(listener);
             final Map<String, String> record = Maps.newHashMap();
-            final List<FingerprintRecord> artifacts = new CopyOnWriteArrayList<FingerprintRecord>();
+            final List<FingerprintRecord> artifacts = new CopyOnWriteArrayList<>();
 
             for (Entry entry : entries) {
                 if (entry.noUploadOnFailure && Result.FAILURE.equals(run.getResult())) {
