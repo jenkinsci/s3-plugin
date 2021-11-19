@@ -1,10 +1,9 @@
 package hudson.plugins.s3;
 
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public final class MetadataPair implements Describable<MetadataPair> {
 
