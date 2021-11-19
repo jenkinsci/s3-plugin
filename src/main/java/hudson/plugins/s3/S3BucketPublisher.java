@@ -307,7 +307,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     records.add(fingerprintRecord);
                     fingerprintRecord.setKeepForever(entry.keepForever);
                     fingerprintRecord.setShowDirectlyInBrowser(entry.showDirectlyInBrowser);
-                    
                 }
                 if (entry.managedArtifacts) {
                     artifacts.addAll(fingerprints);
