@@ -1,15 +1,14 @@
 package hudson.plugins.s3;
 
-import java.io.IOException;
-import java.io.Serializable;
-
-import org.kohsuke.stapler.export.Exported;
-import org.kohsuke.stapler.export.ExportedBean;
-
 import hudson.model.Fingerprint;
 import hudson.model.FingerprintMap;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
+
+import java.io.IOException;
+import java.io.Serializable;
 
 @ExportedBean
 public class FingerprintRecord implements Serializable {
