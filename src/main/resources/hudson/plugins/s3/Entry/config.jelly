@@ -41,9 +41,9 @@
             <f:checkbox />
         </f:entry>
 
-        <f:optionalBlock field="injectUrl" title="Inject artifacts URLs to variable">
+        <f:optionalBlock field="injectUrl" title="Inject artifacts URLs to variable" inline="true" checked="${instance.buildVariable != null}">
             <f:entry title="Build variable" field="buildVariable">
-                <f:textarea />
+                <f:textbox/>
             </f:entry>
         </f:optionalBlock>
         
