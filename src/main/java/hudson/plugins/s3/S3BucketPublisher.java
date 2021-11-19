@@ -5,7 +5,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,12 +37,9 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.Fingerprint;
-import hudson.model.ParameterValue;
-import hudson.model.ParametersAction;
 import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -356,29 +352,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
     }
     
-    /**
-     * Compatible version of {@link AbstractBuild#getSensitiveBuildVariables()}
-     * @param run Run
-     * @return List of sensitive variables
-     */
-    private static Set<String> getSensitiveBuildVariables(@Nonnull Run<?,? > run) {
-        if (run instanceof AbstractBuild) {
-            return ((AbstractBuild<?, ?>)run).getSensitiveBuildVariables();
-        }
-        
-        Set<String> s = new HashSet<String>();
-        ParametersAction parameters = run.getAction(ParametersAction.class);
-        if (parameters != null) {
-            for (ParameterValue p : parameters) {
-                if (p.isSensitive()) {
-                    s.add(p.getName());
-                }
-            }
-        }
-        
-        return s;
-    }
-
     private void addS3ArtifactsAction(Run<?, ?> run, S3Profile profile, List<FingerprintRecord> artifacts) {
         S3ArtifactsAction existingAction = run.getAction(S3ArtifactsAction.class);
         if (existingAction != null) {
