@@ -3,7 +3,6 @@ package hudson.plugins.s3;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,6 +36,8 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.envinject.EnvInjectPluginAction;
+import org.jenkinsci.plugins.envinject.util.RunHelper;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -51,9 +52,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
 
@@ -295,24 +298,43 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
                 final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
+                
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
                     fingerprintRecord.setKeepForever(entry.keepForever);
                     fingerprintRecord.setShowDirectlyInBrowser(entry.showDirectlyInBrowser);
+                    
                 }
-
                 if (entry.managedArtifacts) {
                     artifacts.addAll(fingerprints);
                     fillFingerprints(run, listener, record, fingerprints);
                 }
+                addS3ArtifactsAction(run, profile, fingerprints);
+                if(entry.injectPresignedUrl) {
+                    StringBuilder links = new StringBuilder("");
+                	for (FingerprintRecord fingerprintRecord : fingerprints) {
+                		StringBuffer sb = new StringBuffer("http://");
+                		sb.append(fingerprintRecord.getArtifact().getBucket())
+                		.append("/")
+                		.append(fingerprintRecord.getArtifact().getName())
+                		.append("\n");
+                		links.append(sb.toString());
+                	}
+                	EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
+	                if (envInjectAction != null) {
+	                    Map<String, String> envMap = new HashMap<String, String>();
+	                    envMap.put(entry.buildVariable, links.toString());
+	                    Set<String> set = run.getEnvironment(listener).keySet();
+						envInjectAction.overrideAll(set, envMap);
+	                }
+                }
             }
-
             // don't bother adding actions if none of the artifacts are managed
             if (!artifacts.isEmpty()) {
-                addS3ArtifactsAction(run, profile, artifacts);
                 addFingerprintAction(run, record);
             }
+            
         } catch (AmazonClientException|IOException e) {
             if (!isDontSetBuildResultOnFailure()) {
                 e.printStackTrace(listener.error("Failed to upload files"));

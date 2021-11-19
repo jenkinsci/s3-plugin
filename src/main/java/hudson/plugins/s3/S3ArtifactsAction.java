@@ -75,6 +75,7 @@ public class S3ArtifactsAction implements RunAction2 {
         return artifacts;
     }
 
+
     public void doDownload(final StaplerRequest request, final StaplerResponse response) throws IOException, ServletException {
         if (Functions.isArtifactsPermissionEnabled()) {
             build.getParent().checkPermission(Run.ARTIFACTS);
@@ -98,6 +99,7 @@ public class S3ArtifactsAction implements RunAction2 {
         response.sendError(SC_NOT_FOUND, "This artifact is not available");
     }
 
+
     /**
      * Generate a signed download request for a redirect from s3/download.
      *
@@ -106,7 +108,9 @@ public class S3ArtifactsAction implements RunAction2 {
      * download and there's no need for the user to have credentials to
      * access S3.
      */
+
     private String getDownloadURL(AmazonS3 client, int signedUrlExpirySeconds, Run run, FingerprintRecord record) {
+
         final Destination dest = Destination.newFromRun(run, record.getArtifact());
         final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
         request.setExpiration(new Date(System.currentTimeMillis() + signedUrlExpirySeconds*1000));

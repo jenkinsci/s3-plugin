@@ -89,7 +89,33 @@ public final class Entry implements Describable<Entry> {
     * Metadata overrides
     */
     public List<MetadataPair> userMetadata;
+    
+    /**
+     * Inject pre-signed artifacts URL after upload was completed
+     */
+    public boolean injectPresignedUrl;
+    
+    /**
+     * Build variable where artifacts URLs will be stored 
+     */
+    public String buildVariable="";
 
+    /**
+     * @param bucket
+     * @param sourceFile
+     * @param excludedFile
+     * @param storageClass
+     * @param selectedRegion
+     * @param noUploadOnFailure
+     * @param uploadFromSlave
+     * @param managedArtifacts
+     * @param useServerSideEncryption
+     * @param flatten
+     * @param gzipFiles
+     * @param keepForever
+     * @param showDirectlyInBrowser
+     * @param userMetadata
+     */
     @DataBoundConstructor
     public Entry(String bucket, String sourceFile, String excludedFile, String storageClass, String selectedRegion,
                  boolean noUploadOnFailure, boolean uploadFromSlave, boolean managedArtifacts,

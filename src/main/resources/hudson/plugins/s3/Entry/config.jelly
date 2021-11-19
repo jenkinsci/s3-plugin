@@ -40,6 +40,13 @@
         <f:entry field="showDirectlyInBrowser" title="Show content directly in browser">
             <f:checkbox />
         </f:entry>
+        
+        <f:optionalBlock field="injectPresignedUrl" title="Inject artifacts URLs to variable">
+            <f:entry title="Build variable">
+                <f:textarea field="buildVariable" />
+            </f:entry>
+        </f:optionalBlock>
+        
         <f:entry title="Metadata tags">
             <f:repeatableProperty field="userMetadata">
                 <f:entry title="">
