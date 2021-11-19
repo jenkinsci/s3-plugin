@@ -59,7 +59,7 @@ import java.util.logging.Logger;
 
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
 	
-	public static final String AWS_DOMAIN_NAME = "s3.amazonaws.com";
+	public static final String S3_DEFAULT_ENDPOINT = "https://s3.amazonaws.com";
 
     private String profileName;
     @Extension
@@ -312,10 +312,15 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 addS3ArtifactsAction(run, profile, fingerprints);
                 if(entry.injectUrl) {
                     StringBuilder links = new StringBuilder("");
+                    final String s3Endpoint;
+                    if (StringUtils.isNotEmpty(ClientHelper.ENDPOINT)) {
+                        s3Endpoint = ClientHelper.ENDPOINT;
+                    } else {
+                        s3Endpoint = S3_DEFAULT_ENDPOINT;
+                    }
                 	for (FingerprintRecord fingerprintRecord : fingerprints) {
-                		StringBuffer sb = new StringBuffer("https://");
-                		sb.append(AWS_DOMAIN_NAME)
-                		.append("/")
+                		StringBuffer sb = new StringBuffer(s3Endpoint);
+                		sb.append("/")
                 		.append(fingerprintRecord.getArtifact().getBucket())
                 		.append("/")
                 		.append(fingerprintRecord.getArtifact().getName())
