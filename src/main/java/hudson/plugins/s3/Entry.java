@@ -98,7 +98,7 @@ public final class Entry implements Describable<Entry> {
     /**
      * Build variable where artifacts URLs will be stored 
      */
-    public String buildVariable="";
+    public String buildVariable;
     
 
     /**
@@ -136,7 +136,11 @@ public final class Entry implements Describable<Entry> {
         this.keepForever = keepForever;
         this.showDirectlyInBrowser = showDirectlyInBrowser;
         this.injectUrl = injectUrl;
-        this.buildVariable = buildVariable;
+        if(injectUrl) {
+        	this.buildVariable = buildVariable;
+        } else {
+        	this.buildVariable = null;
+        }
         this.userMetadata = userMetadata;
     }
     

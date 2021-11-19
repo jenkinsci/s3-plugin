@@ -42,8 +42,8 @@
         </f:entry>
 
         <f:optionalBlock field="injectUrl" title="Inject artifacts URLs to variable">
-            <f:entry title="Build variable">
-                <f:textarea field="buildVariable" />
+            <f:entry title="Build variable" field="buildVariable">
+                <f:textarea />
             </f:entry>
         </f:optionalBlock>
         
