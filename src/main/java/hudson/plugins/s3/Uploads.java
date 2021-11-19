@@ -1,17 +1,16 @@
 package hudson.plugins.s3;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.logging.Logger;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
-
 import hudson.FilePath;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.logging.Logger;
 
 public final class Uploads {
     private Uploads() {}
