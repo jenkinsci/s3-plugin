@@ -1,17 +1,15 @@
 package hudson.plugins.s3;
 
-import java.util.List;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3;
-
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import java.util.List;
 
 public final class Entry implements Describable<Entry> {
 

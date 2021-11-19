@@ -4,6 +4,7 @@ import hudson.model.Run;
 
 import java.io.Serializable;
 
+
 /**
  * Provides a way to construct a destination bucket name and object name based
  * on the bucket name provided by the user.
