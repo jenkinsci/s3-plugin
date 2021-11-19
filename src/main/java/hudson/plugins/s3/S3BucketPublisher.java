@@ -322,8 +322,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 if(entry.injectUrl) {
                     StringBuilder links = new StringBuilder("");
                 	for (FingerprintRecord fingerprintRecord : fingerprints) {
-                		StringBuffer sb = new StringBuffer("http://");
-                		sb.append(fingerprintRecord.getArtifact().getBucket())
+                		StringBuffer sb = new StringBuffer("https://");
+                		sb.append(AWS_DOMAIN_NAME)
+                		.append("/")
+                		.append(fingerprintRecord.getArtifact().getBucket())
                 		.append("/")
                 		.append(fingerprintRecord.getArtifact().getName())
                 		.append("\n");
