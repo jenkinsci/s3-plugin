@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.33</version>
+        <version>4.40</version>
     </parent>
 
     <artifactId>s3</artifactId>
@@ -13,7 +13,6 @@
     <url>https://github.com/jenkinsci/s3-plugin</url>
 
     <properties>
-        <java.level>8</java.level>
         <jenkins.version>2.289.3</jenkins.version>
     </properties>
 
@@ -71,6 +70,12 @@
             <groupId>org.jenkins-ci.plugins.aws-java-sdk</groupId>
             <artifactId>aws-java-sdk-minimal</artifactId>
             <version>1.12.131-302.vbef9650c6521</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                    <artifactId>jackson-dataformat-cbor</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -104,7 +109,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.16.2</version>
+            <version>1.17.1</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -124,7 +129,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.289.x</artifactId>
-                <version>1090.v0a_33df40457a_</version>
+                <version>1342.v729ca_3818e88</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -132,6 +137,11 @@
                 <groupId>commons-net</groupId>
                 <artifactId>commons-net</artifactId>
                 <version>3.8.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jenkins-ci</groupId>
+                <artifactId>symbol-annotation</artifactId>
+                <version>1.17</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

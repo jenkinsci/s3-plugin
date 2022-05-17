@@ -4,7 +4,7 @@
     <st:include it="${it.build}" page="sidepanel.jelly" />
     <l:main-panel>
       <h1>
-        <img src="${imagesURL}/48x48/fingerprint.png" alt="" height="48" width="48"/>
+        <l:icon class="icon-fingerprint icon-xlg" alt=""/>
         S3 Artifacts
       </h1>
       <table class="fingerprint-in-build sortable bigtable">
@@ -19,7 +19,7 @@
             </td>
             <td>
               <a href="${rootURL}/fingerprint/${e.fingerprint}/">
-                <img src="${imagesURL}/16x16/fingerprint.png" alt="" height="16" width="16"/> ${%more details}
+                <l:icon class="icon-fingerprint icon-sm" alt=""/> ${%more details}
               </a>
             </td>
           </tr>
