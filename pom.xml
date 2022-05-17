@@ -69,7 +69,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.aws-java-sdk</groupId>
             <artifactId>aws-java-sdk-minimal</artifactId>
-            <version>1.12.131-302.vbef9650c6521</version>
+            <version>1.12.215-339.vdc07efc5320c</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
