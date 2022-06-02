@@ -89,7 +89,7 @@
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
-            <version>3.18</version>
+            <version>3.19</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-io</groupId>
