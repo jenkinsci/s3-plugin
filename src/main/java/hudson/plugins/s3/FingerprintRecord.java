@@ -29,7 +29,7 @@ public class FingerprintRecord implements Serializable {
     }
 
     Fingerprint addRecord(Run<?, ?> run) throws IOException {
-        final FingerprintMap map = Jenkins.getInstance().getFingerprintMap();
+    	final FingerprintMap map = Jenkins.get().getFingerprintMap();
         return map.getOrCreate(produced ? run : null, artifact.getName(), md5sum);
     }
 

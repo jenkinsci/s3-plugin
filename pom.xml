@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.40</version>
+        <version>4.46</version>
     </parent>
 
     <artifactId>s3</artifactId>
@@ -69,7 +69,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.aws-java-sdk</groupId>
             <artifactId>aws-java-sdk-minimal</artifactId>
-            <version>1.12.80</version>
+            <version>1.12.246-349.v96b_b_f7eb_a_c3c</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -84,12 +84,12 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
-            <version>1.46.2</version>
+            <version>1.47</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
             <artifactId>maven-plugin</artifactId>
-            <version>3.16</version>
+            <version>3.19</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-io</groupId>
@@ -102,9 +102,14 @@
             <artifactId>structs</artifactId>
         </dependency>
         <dependency>
+         	<groupId>org.jenkins-ci.plugins</groupId>
+	        <artifactId>envinject</artifactId>
+		    <version>2.875.v9b_9e962da_a_ec</version>
+	    </dependency>
+        <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.17.1</version>
+            <version>1.17.3</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -124,7 +129,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.289.x</artifactId>
-                <version>1342.v729ca_3818e88</version>
+                <version>1500.ve4d05cd32975</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -136,7 +141,7 @@
             <dependency>
                 <groupId>org.jenkins-ci</groupId>
                 <artifactId>symbol-annotation</artifactId>
-                <version>1.17</version>
+                <version>1.23</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

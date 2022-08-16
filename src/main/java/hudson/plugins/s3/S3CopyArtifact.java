@@ -101,7 +101,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
     private final Boolean flatten;
     private final Boolean optional;
 
-    private static final BuildSelector DEFAULT_BUILD_SELECTOR = new StatusBuildSelector(true);
+    private static final BuildSelector DEFAULT_BUILD_SELECTOR = new StatusBuildSelector();
 
     @DataBoundConstructor
     public S3CopyArtifact(String projectName, BuildSelector buildSelector, String filter,
@@ -344,8 +344,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             }
             else if (value.indexOf('$') >= 0) {
                 result = FormValidation.warning(Messages.CopyArtifact_ParameterizedName());
-            }
-            else {
+            }  else {
                 AbstractProject nearProject = AbstractProject.findNearest(value);
                 if (nearProject != null) {
                     result = FormValidation.error(
@@ -353,7 +352,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
                                     value, nearProject.getName()));
                 } else {
                     result = FormValidation.error(
-                            Messages.BuildTrigger_NoSuchProject(value));
+                    		Messages.BuildTrigger_NoSuchProject(value));
                 }
             }
             return result;
@@ -370,9 +369,9 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         }
 
         public DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> getBuildSelectors() {
-            final DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> list = DescriptorExtensionList.createDescriptorList(Jenkins.getInstance(), BuildSelector.class);
+            final DescriptorExtensionList<BuildSelector, Descriptor<BuildSelector>> list = DescriptorExtensionList.createDescriptorList(Jenkins.get(), BuildSelector.class);
             // remove from list some of the CopyArchiver build selector that we can't deal with
-            list.remove(WorkspaceSelector.DESCRIPTOR);
+            list.remove(Jenkins.get().getDescriptor());
             return list;
         }
     }
@@ -448,11 +447,13 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         }
 
         @Override
-        public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
+        public void buildEnvironment(@Nonnull Run<?, ?> run, EnvVars env) {
             if (data!=null) {
                 env.putAll(data);
             }
         }
+        
+
 
         @Override
         public String getIconFileName() { return null; }

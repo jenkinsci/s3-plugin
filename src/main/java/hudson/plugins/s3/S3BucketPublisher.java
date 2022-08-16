@@ -3,7 +3,6 @@ package hudson.plugins.s3;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,6 +36,7 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.envinject.EnvInjectPluginAction;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -51,11 +51,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 public final class S3BucketPublisher extends Recorder implements SimpleBuildStep {
+	
+	public static final String S3_DEFAULT_ENDPOINT = "https://s3.amazonaws.com";
 
     private String profileName;
     @Extension
@@ -248,7 +252,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         try {
             final Map<String, String> envVars = run.getEnvironment(listener);
             final Map<String, String> record = Maps.newHashMap();
-            final List<FingerprintRecord> artifacts = new CopyOnWriteArrayList();
+            final List<FingerprintRecord> artifacts = new CopyOnWriteArrayList<>();
 
             for (Entry entry : entries) {
                 if (entry.noUploadOnFailure && Result.FAILURE.equals(run.getResult())) {
@@ -301,18 +305,42 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                     fingerprintRecord.setKeepForever(entry.keepForever);
                     fingerprintRecord.setShowDirectlyInBrowser(entry.showDirectlyInBrowser);
                 }
-
                 if (entry.managedArtifacts) {
                     artifacts.addAll(fingerprints);
                     fillFingerprints(run, listener, record, fingerprints);
                 }
+                addS3ArtifactsAction(run, profile, fingerprints);
+                if(entry.injectUrl) {
+                    StringBuilder links = new StringBuilder("");
+                    final String s3Endpoint;
+                    if (StringUtils.isNotEmpty(ClientHelper.ENDPOINT)) {
+                        s3Endpoint = ClientHelper.ENDPOINT;
+                    } else {
+                        s3Endpoint = S3_DEFAULT_ENDPOINT;
+                    }
+                	for (FingerprintRecord fingerprintRecord : fingerprints) {
+                		StringBuffer sb = new StringBuffer(s3Endpoint);
+                		sb.append("/")
+                		.append(fingerprintRecord.getArtifact().getBucket())
+                		.append("/")
+                		.append(fingerprintRecord.getArtifact().getName())
+                		.append("\n");
+                		links.append(sb.toString());
+                	}
+                	EnvInjectPluginAction envInjectAction = run.getAction(EnvInjectPluginAction.class);
+	                if (envInjectAction != null) {
+	                    Map<String, String> envMap = new HashMap<String, String>();
+	                    envMap.put(entry.buildVariable, links.toString());
+	                    Set<String> set = run.getEnvironment(listener).keySet();
+						envInjectAction.overrideAll(set, envMap);
+	                }
+                }
             }
-
             // don't bother adding actions if none of the artifacts are managed
             if (!artifacts.isEmpty()) {
-                addS3ArtifactsAction(run, profile, artifacts);
                 addFingerprintAction(run, record);
             }
+            
         } catch (AmazonClientException|IOException e) {
             if (!isDontSetBuildResultOnFailure()) {
                 e.printStackTrace(listener.error("Failed to upload files"));
@@ -323,7 +351,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
         }
     }
-
+    
     private void addS3ArtifactsAction(Run<?, ?> run, S3Profile profile, List<FingerprintRecord> artifacts) {
         S3ArtifactsAction existingAction = run.getAction(S3ArtifactsAction.class);
         if (existingAction != null) {
