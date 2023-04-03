@@ -217,7 +217,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
 
             excludeFilter = env.expand(excludeFilter);
 
-            if (src instanceof MavenModuleSetBuild) {
+            if (Jenkins.getInstanceOrNull().getPlugin("maven-plugin") != null && src instanceof MavenModuleSetBuild) {
                 // Copy artifacts from the build (ArchiveArtifacts build step)
                 boolean ok = perform(src, dst, includeFilter, excludeFilter, targetDir, console);
 
@@ -335,12 +335,13 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             final FormValidation result;
             final Item item = new JobResolver(value).job;
             if (item != null) {
-                
-                result = item instanceof MavenModuleSet
-                       ? FormValidation.warning(Messages.CopyArtifact_MavenProject())
-                        : (item instanceof MatrixProject
-                        ? FormValidation.warning(Messages.CopyArtifact_MatrixProject())
-                        : FormValidation.ok());
+                if (Jenkins.getInstanceOrNull().getPlugin("maven-plugin") != null && item instanceof MavenModuleSet) {
+                    result = FormValidation.warning(Messages.CopyArtifact_MavenProject());
+                } else {
+                    result = (item instanceof MatrixProject)
+                          ? FormValidation.warning(Messages.CopyArtifact_MatrixProject())
+                          : FormValidation.ok();
+                }
             }
             else if (value.indexOf('$') >= 0) {
                 result = FormValidation.warning(Messages.CopyArtifact_ParameterizedName());
