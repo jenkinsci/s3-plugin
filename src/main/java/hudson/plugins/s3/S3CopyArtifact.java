@@ -161,6 +161,11 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         else
             run.setResult(Result.FAILURE);
     }
+    
+    private static boolean isMavenPluginInstalled() {
+      Jenkins instance = Jenkins.getInstanceOrNull();
+      return instance != null && instance.getPlugin("maven-plugin") != null;
+    }
 
     @Override
     public void perform(@Nonnull Run<?, ?> dst, @Nonnull FilePath targetDir, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
@@ -217,7 +222,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
 
             excludeFilter = env.expand(excludeFilter);
 
-            if (Jenkins.getInstanceOrNull().getPlugin("maven-plugin") != null && src instanceof MavenModuleSetBuild) {
+            if (isMavenPluginInstalled() && src instanceof MavenModuleSetBuild) {
                 // Copy artifacts from the build (ArchiveArtifacts build step)
                 boolean ok = perform(src, dst, includeFilter, excludeFilter, targetDir, console);
 
@@ -335,7 +340,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             final FormValidation result;
             final Item item = new JobResolver(value).job;
             if (item != null) {
-                if (Jenkins.getInstanceOrNull().getPlugin("maven-plugin") != null && item instanceof MavenModuleSet) {
+                if (isMavenPluginInstalled() && item instanceof MavenModuleSet) {
                     result = FormValidation.warning(Messages.CopyArtifact_MavenProject());
                 } else {
                     result = (item instanceof MatrixProject)
