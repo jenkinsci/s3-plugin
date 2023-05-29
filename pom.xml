@@ -16,7 +16,7 @@
         <revision>0.12.3</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/s3-plugin</gitHubRepo>
-        <jenkins.version>2.289.3</jenkins.version>
+        <jenkins.version>2.361.4</jenkins.version>
     </properties>
 
     <developers>
@@ -72,7 +72,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.aws-java-sdk</groupId>
             <artifactId>aws-java-sdk-minimal</artifactId>
-            <version>1.12.287-357.vf82d85a_6eefd</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -87,7 +86,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>copyartifact</artifactId>
-            <version>1.46.2</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.main</groupId>
@@ -126,20 +124,10 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.289.x</artifactId>
-                <version>1500.ve4d05cd32975</version>
+                <artifactId>bom-2.361.x</artifactId>
+                <version>2102.v854b_fec19c92</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>commons-net</groupId>
-                <artifactId>commons-net</artifactId>
-                <version>3.8.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jenkins-ci</groupId>
-                <artifactId>symbol-annotation</artifactId>
-                <version>1.23</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
