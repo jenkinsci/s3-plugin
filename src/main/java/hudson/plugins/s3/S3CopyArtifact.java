@@ -33,8 +33,6 @@ import hudson.Util;
 import hudson.console.HyperlinkNote;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
-import hudson.maven.MavenModuleSet;
-import hudson.maven.MavenModuleSetBuild;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Build;
@@ -222,16 +220,18 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
 
             excludeFilter = env.expand(excludeFilter);
 
-            if (isMavenPluginInstalled() && src instanceof MavenModuleSetBuild) {
-                // Copy artifacts from the build (ArchiveArtifacts build step)
-                boolean ok = perform(src, dst, includeFilter, excludeFilter, targetDir, console);
+            if (isMavenPluginInstalled()) {
+                if(src instanceof hudson.maven.MavenModuleSetBuild) {
+                    // Copy artifacts from the build (ArchiveArtifacts build step)
+                    boolean ok = perform(src, dst, includeFilter, excludeFilter, targetDir, console);
 
-                // Copy artifacts from all modules of this Maven build (automatic archiving)
-                for (Run r : ((MavenModuleSetBuild) src).getModuleLastBuilds().values()) {
-                    ok |= perform(r, dst, includeFilter, excludeFilter, targetDir, console);
+                    // Copy artifacts from all modules of this Maven build (automatic archiving)
+                    for (Run r : ((hudson.maven.MavenModuleSetBuild) src).getModuleLastBuilds().values()) {
+                        ok |= perform(r, dst, includeFilter, excludeFilter, targetDir, console);
+                    }
+
+                    setResult(dst, ok);
                 }
-
-                setResult(dst, ok);
             } else if (src instanceof MatrixBuild) {
                 boolean ok = false;
                 // Copy artifacts from all configurations of this matrix build
@@ -337,15 +337,15 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
                 @AncestorInPath AccessControlled anc, @QueryParameter String value) {
             // Require CONFIGURE permission on this project
             if (!anc.hasPermission(Item.CONFIGURE)) return FormValidation.ok();
-            final FormValidation result;
+            FormValidation result = FormValidation.ok();
             final Item item = new JobResolver(value).job;
             if (item != null) {
-                if (isMavenPluginInstalled() && item instanceof MavenModuleSet) {
-                    result = FormValidation.warning(Messages.CopyArtifact_MavenProject());
-                } else {
-                    result = (item instanceof MatrixProject)
-                          ? FormValidation.warning(Messages.CopyArtifact_MatrixProject())
-                          : FormValidation.ok();
+                if (isMavenPluginInstalled()) {
+                    if(item instanceof hudson.maven.MavenModuleSet) {
+                        result = FormValidation.warning(Messages.CopyArtifact_MavenProject());
+                    }
+                } else  if (item instanceof MatrixProject) {
+                    result = FormValidation.warning(Messages.CopyArtifact_MatrixProject());
                 }
             }
             else if (value.indexOf('$') >= 0) {
