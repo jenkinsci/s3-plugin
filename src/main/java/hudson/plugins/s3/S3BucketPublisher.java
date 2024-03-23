@@ -43,7 +43,6 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -151,7 +150,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         return this;
     }
 
-    private Result constrainResult(Result r, @Nonnull TaskListener listener) {
+    private Result constrainResult(Result r, @NonNull TaskListener listener) {
         final PrintStream console = listener.getLogger();
         // pass through NOT_BUILT and ABORTED
         if (r.isWorseThan(Result.FAILURE)) {
@@ -246,7 +245,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     }
 
     @Override
-    public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath ws, @Nonnull Launcher launcher, @Nonnull TaskListener listener)
+    public void perform(@NonNull Run<?, ?> run, @NonNull FilePath ws, @NonNull Launcher launcher, @NonNull TaskListener listener)
             throws InterruptedException, IOException {
         final PrintStream console = listener.getLogger();
         if (Result.ABORTED.equals(run.getResult())) {
@@ -368,7 +367,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
     }
 
-    private void printDiagnostics(@Nonnull FilePath ws, PrintStream console, String expanded) throws IOException {
+    private void printDiagnostics(@NonNull FilePath ws, PrintStream console, String expanded) throws IOException {
         log(Level.WARNING, console, "No file(s) found: " + expanded);
         try {
             final String error = ws.validateAntFileMask(expanded, 100);
@@ -383,7 +382,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     }
 
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    private void fillFingerprints(@Nonnull Run<?, ?> run, @Nonnull TaskListener listener, Map<String, String> record, List<FingerprintRecord> fingerprints) throws IOException {
+    private void fillFingerprints(@NonNull Run<?, ?> run, @NonNull TaskListener listener, Map<String, String> record, List<FingerprintRecord> fingerprints) throws IOException {
         for (FingerprintRecord r : fingerprints) {
             final Fingerprint fp = r.addRecord(run);
             if (fp == null) {
