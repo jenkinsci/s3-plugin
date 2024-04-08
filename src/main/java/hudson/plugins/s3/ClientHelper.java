@@ -9,14 +9,14 @@ import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class ClientHelper {
     public final static String DEFAULT_AMAZON_S3_REGION_NAME = System.getProperty(
@@ -56,7 +56,7 @@ public class ClientHelper {
      * @param regionName nullable region name
      * @return AWS region, never {@code null}, defaults to {@link com.amazonaws.services.s3.model.Region#US_Standard}
      */
-    @Nonnull
+    @NonNull
     private static Region getRegionFromString(@Nullable String regionName) {
         Region region = null;
 
@@ -83,8 +83,8 @@ public class ClientHelper {
         return region;
     }
 
-    @Nonnull
-    public static ClientConfiguration getClientConfiguration(@Nonnull ProxyConfiguration proxy, @Nonnull Region region) {
+    @NonNull
+    public static ClientConfiguration getClientConfiguration(@NonNull ProxyConfiguration proxy, @NonNull Region region) {
         final ClientConfiguration clientConfiguration = new ClientConfiguration();
         String s3Endpoint;
         if (StringUtils.isNotEmpty(ENDPOINT)) {

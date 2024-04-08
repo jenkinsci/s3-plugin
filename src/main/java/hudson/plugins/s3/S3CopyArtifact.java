@@ -24,6 +24,7 @@
 package hudson.plugins.s3;
 
 import com.google.common.collect.Maps;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -82,8 +83,6 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-
-import javax.annotation.Nonnull;
 
 /**
  * This is a S3 variant of the CopyArtifact plugin:
@@ -151,7 +150,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         return optional != null && optional;
     }
 
-    private void setResult(@Nonnull Run<?, ?> run, boolean isOk) {
+    private void setResult(@NonNull Run<?, ?> run, boolean isOk) {
         if (isOptional()) {
             return;
         }
@@ -168,7 +167,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
     }
 
     @Override
-    public void perform(@Nonnull Run<?, ?> dst, @Nonnull FilePath targetDir, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
+    public void perform(@NonNull Run<?, ?> dst, @NonNull FilePath targetDir, @NonNull Launcher launcher, @NonNull TaskListener listener) throws InterruptedException, IOException {
         final PrintStream console = listener.getLogger();
         String expandedProject = projectName;
         String includeFilter = getFilter();
