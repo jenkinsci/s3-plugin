@@ -24,6 +24,7 @@
 package hudson.plugins.s3;
 
 import com.google.common.collect.Maps;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -82,8 +83,6 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * This is a S3 variant of the CopyArtifact plugin:
