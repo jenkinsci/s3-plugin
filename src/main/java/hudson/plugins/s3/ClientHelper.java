@@ -9,7 +9,6 @@ import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
 import org.apache.commons.lang.StringUtils;
 
