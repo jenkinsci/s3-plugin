@@ -4,7 +4,7 @@
   <f:section title="Amazon S3 profiles">
     <f:entry title="S3 profiles" description="Profiles for publishing to S3 buckets">
       <f:repeatable var="profile" items="${descriptor.profiles}">
-        <s3:blockWrapper>
+        <div>
           <f:entry title="Profile name" help="/plugin/s3/help-profile.html">
             <f:textbox name="name" value="${profile.name}" />
           </f:entry>
@@ -48,7 +48,7 @@
             </div>
           </f:entry>
 
-        </s3:blockWrapper>
+        </div>
       </f:repeatable>
     </f:entry>
   </f:section>
