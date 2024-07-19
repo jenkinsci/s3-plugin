@@ -232,7 +232,7 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
                 }
 
                 setResult(dst, ok);
-            } else if (src instanceof MatrixBuild) {
+            } else if (Jenkins.get().getPlugin("matrix-project") != null && src instanceof MatrixBuild) {
                 boolean ok = false;
                 // Copy artifacts from all configurations of this matrix build
                 // Use MatrixBuild.getExactRuns if available
@@ -342,10 +342,10 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
             if (item != null) {
                 if (isMavenPluginInstalled() && item instanceof MavenModuleSet) {
                     result = FormValidation.warning(Messages.CopyArtifact_MavenProject());
+                } else if (Jenkins.get().getPlugin("matrix-project") != null && item instanceof MatrixProject) {
+                    result = FormValidation.warning(Messages.CopyArtifact_MatrixProject());
                 } else {
-                    result = (item instanceof MatrixProject)
-                          ? FormValidation.warning(Messages.CopyArtifact_MatrixProject())
-                          : FormValidation.ok();
+                    result = FormValidation.ok();
                 }
             }
             else if (value.indexOf('$') >= 0) {
@@ -410,10 +410,14 @@ public class S3CopyArtifact extends Builder implements SimpleBuildStep {
         }
 
         private static List<S3CopyArtifact> getCopiers(AbstractProject project) {
-            final DescribableList<Builder, Descriptor<Builder>> list =
-                    project instanceof Project ? ((Project<?, ?>) project).getBuildersList()
-                            : (project instanceof MatrixProject ?
-                            ((MatrixProject) project).getBuildersList() : null);
+            final DescribableList<Builder, Descriptor<Builder>> list;
+            if (project instanceof Project) {
+                list = ((Project<?, ?>) project).getBuildersList();
+            } else if (Jenkins.get().getPlugin("matrix-project") != null && project instanceof MatrixProject) {
+                list = ((MatrixProject) project).getBuildersList();
+            } else {
+                list = null;
+            }
 
             if (list == null) {
                 return Collections.emptyList();
