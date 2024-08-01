@@ -49,5 +49,14 @@
                 </f:entry>
             </f:repeatableProperty>
         </f:entry>
+        <f:entry title="Object tags">
+            <f:repeatableProperty field="userTags">
+                <f:entry title="">
+                    <div align="right">
+                        <f:repeatableDeleteButton />
+                    </div>
+                </f:entry>
+            </f:repeatableProperty>
+        </f:entry>
 
 </j:jelly>
