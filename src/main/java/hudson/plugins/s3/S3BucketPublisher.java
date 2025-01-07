@@ -40,7 +40,7 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.io.IOException;
@@ -483,7 +483,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         @Override
-        public boolean configure(StaplerRequest2 req, JSONObject json) {
+        public boolean configure(StaplerRequest req, JSONObject json) {
             final JSONArray array = json.optJSONArray("profile");
             if (array != null) {
                 profiles.replaceBy(req.bindJSONToList(S3Profile.class, array));
