@@ -1,6 +1,7 @@
 package hudson.plugins.s3.callable;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
@@ -14,8 +15,8 @@ import java.util.Map;
 public final class S3UploadCallable extends S3BaseUploadCallable implements MasterSlaveCallable<String> {
     private static final long serialVersionUID = 1L;
 
-    public S3UploadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy) {
-        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy);
+    public S3UploadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, Map<String, String> userTags, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy) {
+        super(accessKey, secretKey, useRole, dest, userMetadata, userTags, storageClass, selregion, useServerSideEncryption, proxy);
     }
 
     /**
@@ -24,9 +25,11 @@ public final class S3UploadCallable extends S3BaseUploadCallable implements Mast
     @Override
     public String invoke(FilePath file) throws IOException, InterruptedException {
         final ObjectMetadata metadata = buildMetadata(file);
+        final ObjectTagging tags = s3Tagging();
 
-        Uploads.getInstance().startUploading(getTransferManager(), file, file.read(), getDest().bucketName, getDest().objectName, metadata);
+        Uploads.getInstance().startUploading(getTransferManager(), file, file.read(), getDest().bucketName, getDest().objectName, metadata, tags);
 
         return MD5.generateFromFile(file);
     }
+
 }

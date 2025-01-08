@@ -85,8 +85,13 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
      */
     private /*almost final*/ List<MetadataPair> userMetadata;
 
+    /**
+     * User tag key/value pairs to tag the upload with.
+     */
+    private /*almost final*/ List<TagPair> userTags;
+
     @DataBoundConstructor
-    public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
+    public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata, List<TagPair> userTags,
                              boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint,
                              boolean dontSetBuildResultOnFailure) {
         if (profileName == null) {
@@ -102,6 +107,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.userMetadata = userMetadata;
         if (this.userMetadata == null) {
             this.userMetadata = new ArrayList<>();
+        }
+
+        this.userTags = userTags;
+        if (this.userTags == null) {
+            this.userTags = new ArrayList<>();
         }
 
         this.dontWaitForConcurrentBuildCompletion = dontWaitForConcurrentBuildCompletion;
@@ -128,6 +138,9 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     protected Object readResolve() {
         if (userMetadata == null)
             userMetadata = new ArrayList<>();
+
+        if (userTags == null)
+            userTags = new ArrayList<>();
 
         if (pluginFailureResultConstraint == null)
             pluginFailureResultConstraint = Result.FAILURE;
@@ -170,6 +183,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     @SuppressWarnings("unused")
     public List<MetadataPair> getUserMetadata() {
         return userMetadata;
+    }
+
+    @SuppressWarnings("unused")
+    public List<TagPair> getUserTags() {
+        return userTags;
     }
 
     @SuppressWarnings("unused")
@@ -317,9 +335,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
 
                 final Map<String, String> escapedMetadata = buildMetadata(envVars, entry);
+                final Map<String, String> escapedTags = buildTags(envVars, entry);
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
-                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
+                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, escapedTags, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
@@ -418,6 +437,32 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         return escapedMetadata;
+    }
+
+    private Map<String, String> buildTags(Map<String, String> envVars, Entry entry) {
+        final Map<String, String> mergedTags = new HashMap<>();
+
+        if (userTags != null) {
+            for (TagPair pair : userTags) {
+                mergedTags.put(pair.key, pair.value);
+            }
+        }
+
+        if (entry.userTags != null) {
+            for (TagPair pair : entry.userTags) {
+                mergedTags.put(pair.key, pair.value);
+            }
+        }
+
+        final Map<String, String> escapedTags = new HashMap<>();
+
+        for (Map.Entry<String, String> mapEntry : mergedTags.entrySet()) {
+            escapedTags.put(
+                    Util.replaceMacro(mapEntry.getKey(), envVars),
+                    Util.replaceMacro(mapEntry.getValue(), envVars));
+        }
+
+        return escapedTags;
     }
 
     private String getFilename(FilePath src, boolean flatten, int searchIndex) {

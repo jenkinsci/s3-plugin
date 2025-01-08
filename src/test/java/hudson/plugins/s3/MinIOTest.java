@@ -146,11 +146,14 @@ public class MinIOTest {
                         false,
                         true,
                         false,
+                        Collections.emptyList(),
                         Collections.emptyList())),
+                Collections.emptyList(),
                 Collections.emptyList(),
                 true,
                 "FINE",
-                null, false));
+                null,
+                false));
         r.buildAndAssertSuccess(job);
     }
 

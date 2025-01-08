@@ -58,6 +58,7 @@ public class S3Test {
                 profileName,
                 newArrayList(entryForFile(fileName)),
                 Collections.<MetadataPair>emptyList(),
+                Collections.<TagPair>emptyList(),
                 true,
                 "INFO",
                 "SUCCESS",
@@ -85,6 +86,7 @@ public class S3Test {
                 missingProfileName,
                 newArrayList(entryForFile(fileName)),
                 Collections.<MetadataPair>emptyList(),
+                Collections.<TagPair>emptyList(),
                 true,
                 "DEBUG",
                 "SUCCESS",
@@ -102,7 +104,7 @@ public class S3Test {
     }
 
     private Entry entryForFile(String fileName) {
-        return new Entry("bucket", fileName, "", "", "", false, false, true, false, false, false, false, false, null);
+        return new Entry("bucket", fileName, "", "", "", false, false, true, false, false, false, false, false, null, null);
     }
 
     private Builder stepCreatingFile(String fileName) {
@@ -128,6 +130,7 @@ public class S3Test {
                 Mockito.anyString(),
                 Mockito.anyList(),
                 Mockito.anyList(),
+                Mockito.anyMap(),
                 Mockito.anyMap(),
                 Mockito.anyString(),
                 Mockito.anyString(),

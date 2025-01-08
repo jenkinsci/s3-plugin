@@ -126,6 +126,7 @@ public class S3Profile {
                                     final List<FilePath> filePaths,
                                     final List<String> fileNames,
                                     final Map<String, String> userMetadata,
+                                    final Map<String, String> userTags,
                                     final String storageClass,
                                     final String selregion,
                                     final boolean uploadFromSlave,
@@ -151,10 +152,10 @@ public class S3Profile {
 
                 final MasterSlaveCallable<String> upload;
                 if (gzipFiles) {
-                    upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata,
+                    upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata, userTags,
                             storageClass, selregion, useServerSideEncryption, getProxy());
                 } else {
-                    upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata,
+                    upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata, userTags,
                             storageClass, selregion, useServerSideEncryption, getProxy());
                 }
 
