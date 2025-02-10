@@ -1,23 +1,23 @@
 package hudson.plugins.s3;
 
-import org.htmlunit.HttpMethod;
-import org.htmlunit.WebRequest;
-import org.htmlunit.util.UrlUtils;
 import hudson.model.Item;
 import hudson.security.SecurityRealm;
 import jenkins.model.Jenkins;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import org.htmlunit.HttpMethod;
+import org.htmlunit.WebRequest;
+import org.htmlunit.util.UrlUtils;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class S3BucketPublisherTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@WithJenkins
+class S3BucketPublisherTest {
 
     @Test
-    public void testConfigExists() throws Exception {
+    void testConfigExists(JenkinsRule j) throws Exception {
         SecurityRealm securityRealm = j.createDummySecurityRealm();
         j.getInstance().setSecurityRealm(securityRealm);
         j.getInstance().setAuthorizationStrategy(
@@ -34,9 +34,9 @@ public class S3BucketPublisherTest {
                 HttpMethod.POST);
 
         webClient.login("bob", "bob");
-        Assert.assertEquals(403, webClient.getPage(request).getWebResponse().getStatusCode());
+        assertEquals(403, webClient.getPage(request).getWebResponse().getStatusCode());
 
         webClient = j.createWebClient().login("alice", "alice");
-        Assert.assertEquals(200, webClient.getPage(request).getWebResponse().getStatusCode());
+        assertEquals(200, webClient.getPage(request).getWebResponse().getStatusCode());
     }
 }
