@@ -3,19 +3,21 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>5.4</version>
+        <version>5.7</version>
     </parent>
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
     <version>${changelist}</version>
     <name>Jenkins S3 publisher plugin</name>
-    <url>https://github.com/jenkinsci/s3-plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
 
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <gitHubRepo>jenkinsci/s3-plugin</gitHubRepo>
-        <jenkins.version>2.479.1</jenkins.version>
+        <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+        <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+        <jenkins.baseline>2.479</jenkins.baseline>
+        <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     </properties>
 
     <developers>
@@ -100,8 +102,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.479.x</artifactId>
-                <version>3875.v1df09947cde6</version>
+                <artifactId>bom-${jenkins.baseline}.x</artifactId>
+                <version>3893.v213a_42768d35</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

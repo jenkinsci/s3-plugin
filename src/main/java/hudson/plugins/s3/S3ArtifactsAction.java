@@ -7,21 +7,21 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import hudson.Functions;
 import jenkins.model.RunAction2;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 import hudson.model.Run;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 
-import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 
 @ExportedBean
 public class S3ArtifactsAction implements RunAction2 {
@@ -75,7 +75,7 @@ public class S3ArtifactsAction implements RunAction2 {
         return artifacts;
     }
 
-    public void doDownload(final StaplerRequest request, final StaplerResponse response) throws IOException, ServletException {
+    public void doDownload(final StaplerRequest2 request, final StaplerResponse2 response) throws IOException, ServletException {
         if (Functions.isArtifactsPermissionEnabled()) {
             build.getParent().checkPermission(Run.ARTIFACTS);
         }
