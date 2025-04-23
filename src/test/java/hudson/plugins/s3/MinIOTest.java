@@ -28,7 +28,6 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import hudson.EnvVars;
 import hudson.ExtensionList;
 import hudson.FilePath;
 import hudson.Launcher;

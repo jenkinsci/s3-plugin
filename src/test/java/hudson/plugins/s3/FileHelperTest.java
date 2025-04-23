@@ -1,14 +1,15 @@
 package hudson.plugins.s3;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class FileHelperTest {
+class FileHelperTest {
+
     @Test
-    public void testSelectedWithAsterisk() throws Exception {
+    void testSelectedWithAsterisk() throws Exception {
         String includeFilter = "*";
         String excludeFilter = "b.txt";
 
@@ -17,7 +18,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testSelectedSimpleCase() throws Exception {
+    void testSelectedSimpleCase() throws Exception {
         String includeFilter = "a.txt, c.txt";
         String excludeFilter = "b.txt, d.txt";
 
@@ -29,7 +30,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testSelectedComplexCase() throws Exception {
+    void testSelectedComplexCase() throws Exception {
         String includeFilter = "a*.txt, c.txt";
         String excludeFilter = "*b.txt, d.txt";
 
@@ -43,7 +44,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testSelectedWithEmptyExcludeFilter() throws Exception {
+    void testSelectedWithEmptyExcludeFilter() throws Exception {
         String includeFilter = "a.txt";
         String excludeFilter = "";
 
@@ -52,7 +53,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testSelectedWithEmptyIncludeFilter() throws Exception {
+    void testSelectedWithEmptyIncludeFilter() throws Exception {
         String includeFilter = "";
         String excludeFilter = "b.txt";
 
@@ -61,21 +62,21 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testSelectedWithNullIncludeFilter() throws Exception {
+    void testSelectedWithNullIncludeFilter() throws Exception {
         String excludeFilter = "";
 
         assertFalse(FileHelper.selected(null, excludeFilter, "a.txt"));
     }
 
     @Test
-    public void testSelectedWithNullExcludeFilter() throws Exception {
+    void testSelectedWithNullExcludeFilter() throws Exception {
         String includeFilter = "a.txt";
 
         assertTrue(FileHelper.selected(includeFilter, null, "a.txt"));
     }
 
     @Test
-    public void testGetStartIndexWithAsterisk() throws Exception {
+    void testGetStartIndexWithAsterisk() throws Exception {
         String workspace = "/var/lib/jenkins/jobs/workspace";
         String folder = "tests/*";
 
@@ -84,7 +85,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testGetStartIndexWithAsteriskInside() throws Exception {
+    void testGetStartIndexWithAsteriskInside() throws Exception {
         final String workspace = "/var/lib/jenkins/jobs/workspace";
         final String folder = "tests/*/folder";
 
@@ -95,7 +96,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testGetStartIndexWithoutAsterisk() throws Exception {
+    void testGetStartIndexWithoutAsterisk() throws Exception {
         String workspace = "/var/lib/jenkins/jobs/workspace";
         String folder = "tests/";
 
@@ -106,7 +107,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testGetStartIndexWithAsteriskButKeepStructure() throws Exception {
+    void testGetStartIndexWithAsteriskButKeepStructure() throws Exception {
         String workspace = "/var/lib/jenkins/jobs/workspace";
         String folder = "tests/*";
 
@@ -117,7 +118,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testGetStartIndexWithAsteriskInTheMiddle() throws Exception {
+    void testGetStartIndexWithAsteriskInTheMiddle() throws Exception {
         String workspace = "/var/lib/jenkins/jobs/workspace";
         String folder = "tests/some_name.*.0.extension";
 
@@ -128,7 +129,7 @@ public class FileHelperTest {
     }
 
     @Test
-    public void testGetStartIndexWithAsteriskInsideButKeepStructure() throws Exception {
+    void testGetStartIndexWithAsteriskInsideButKeepStructure() throws Exception {
         String workspace = "/var/lib/jenkins/jobs/workspace";
         String folder = "tests/*/folder";
 
