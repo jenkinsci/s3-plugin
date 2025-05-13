@@ -1,7 +1,24 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
+import com.google.common.collect.Lists;
 import hudson.FilePath;
+import hudson.ProxyConfiguration;
+import hudson.model.Run;
+import hudson.plugins.s3.callable.MasterSlaveCallable;
+import hudson.plugins.s3.callable.S3CleanupUploadCallable;
+import hudson.plugins.s3.callable.S3DownloadCallable;
+import hudson.plugins.s3.callable.S3GzipCallable;
+import hudson.plugins.s3.callable.S3UploadCallable;
+import hudson.plugins.s3.callable.S3WaitUploadCallable;
+import hudson.util.Secret;
+import jenkins.model.Jenkins;
+import org.apache.commons.io.FilenameUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -9,28 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-
-import hudson.ProxyConfiguration;
-import hudson.plugins.s3.callable.MasterSlaveCallable;
-import hudson.plugins.s3.callable.S3CleanupUploadCallable;
-import hudson.plugins.s3.callable.S3DownloadCallable;
-import hudson.plugins.s3.callable.S3GzipCallable;
-import hudson.plugins.s3.callable.S3UploadCallable;
-import hudson.plugins.s3.callable.S3WaitUploadCallable;
-import jenkins.model.Jenkins;
-import org.apache.commons.io.FilenameUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.collect.Lists;
-
-import hudson.model.Run;
-import hudson.util.Secret;
 
 public class S3Profile {
     private final String name;
@@ -117,7 +112,7 @@ public class S3Profile {
         return signedUrlExpirySeconds;
     }
 
-    public AmazonS3 getClient(String region) {
+    public S3Client getClient(String region) {
         return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy());
     }
 
@@ -203,30 +198,26 @@ public class S3Profile {
     }
 
     public List<String> list(Run build, String bucket) {
-        final AmazonS3 s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
+        final var s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
 
         final String buildName = build.getDisplayName();
         final int buildID = build.getNumber();
         final Destination dest = new Destination(bucket, "jobs/" + buildName + '/' + buildID + '/' + name);
 
-        final ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
-        .withBucketName(dest.bucketName)
-        .withPrefix(dest.objectName)
-        .withEncodingType("url");
+        final ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
+                .bucket(dest.bucketName)
+                .prefix(dest.objectName)
+                .encodingType("url").build();
 
         final List<String> files = Lists.newArrayList();
+        for (S3Object summary : s3client.listObjects(listObjectsRequest).contents()) {
+            final GetObjectRequest req = GetObjectRequest.builder().bucket(dest.bucketName).key(summary.key()).build();
+            files.add(req.key());
+        }
 
-        ObjectListing objectListing;
-        do {
-          objectListing = s3client.listObjects(listObjectsRequest);
-          for (S3ObjectSummary summary : objectListing.getObjectSummaries()) {
-            final GetObjectRequest req = new GetObjectRequest(dest.bucketName, summary.getKey());
-            files.add(req.getKey());
-          }
-          listObjectsRequest.setMarker(objectListing.getNextMarker());
-        } while (objectListing.isTruncated());
+
         return files;
-      }
+    }
 
       /**
        * Download all artifacts from a given build
@@ -286,8 +277,8 @@ public class S3Profile {
        */
       public void delete(Run run, FingerprintRecord record) {
           final Destination dest = Destination.newFromRun(run, record.getArtifact());
-          final DeleteObjectRequest req = new DeleteObjectRequest(dest.bucketName, dest.objectName);
-          final AmazonS3 client = getClient(record.getArtifact().getRegion());
+          final DeleteObjectRequest req = DeleteObjectRequest.builder().bucket(dest.bucketName).key(dest.objectName).build();
+          final var client = getClient(record.getArtifact().getRegion());
           client.deleteObject(req);
       }
 

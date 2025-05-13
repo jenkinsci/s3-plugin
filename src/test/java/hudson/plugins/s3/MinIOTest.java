@@ -23,12 +23,6 @@
  */
 package hudson.plugins.s3;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import hudson.EnvVars;
 import hudson.ExtensionList;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -50,8 +44,19 @@ import org.testcontainers.DockerClientFactory;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
 
@@ -96,16 +101,29 @@ public class MinIOTest {
         Integer mappedPort = minioServer.getFirstMappedPort();
         Testcontainers.exposeHostPorts(mappedPort);
         minioServiceEndpoint = String.format("%s:%s", minioServer.getContainerIpAddress(), mappedPort);
+        S3ClientBuilder builder = S3Client.builder().credentialsProvider(new AwsCredentialsProvider() {
+            @Override
+            public AwsCredentials resolveCredentials() {
+                return AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY);
+            }
+        });
+        builder.region(Region.US_EAST_1).endpointOverride(URI.create("http://" + minioServiceEndpoint))
+                .forcePathStyle(true);
 
-        final AmazonS3 client = AmazonS3ClientBuilder.standard()
-                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY)))
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://" + minioServiceEndpoint, "us-east-1"))
-                .withPathStyleAccessEnabled(true)
-                .build();
+        try (S3Client client = builder.build()) {
+            if (!doesBucketExistV2(client, "test")) {
+                client.createBucket(CreateBucketRequest.builder().bucket("test").build());
+                assertTrue(doesBucketExistV2(client, "test"));
+            }
+        }
+    }
 
-        if (!client.doesBucketExistV2("test")) {
-            client.createBucket("test");
-            assertTrue(client.doesBucketExistV2("test"));
+    static boolean doesBucketExistV2(S3Client client, String bucketName) {
+        try {
+            HeadBucketResponse test = client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
+            return true;
+        } catch (NoSuchBucketException e) {
+            return false;
         }
     }
 

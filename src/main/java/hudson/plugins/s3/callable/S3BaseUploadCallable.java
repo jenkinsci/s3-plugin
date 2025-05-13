@@ -1,12 +1,13 @@
 package hudson.plugins.s3.callable;
 
-import com.amazonaws.services.s3.internal.Mimetypes;
-import com.amazonaws.services.s3.model.ObjectMetadata;
+import hudson.plugins.s3.Uploads;
+import software.amazon.awssdk.core.internal.util.Mimetype;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
 import hudson.remoting.VirtualChannel;
 import hudson.util.Secret;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public abstract class S3BaseUploadCallable extends S3Callable<String> {
     private static final long serialVersionUID = 1L;
@@ -46,40 +48,45 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
      */
     public abstract String invoke(FilePath file) throws IOException, InterruptedException;
 
-    protected ObjectMetadata buildMetadata(FilePath filePath) throws IOException, InterruptedException {
-        final ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType(Mimetypes.getInstance().getMimetype(filePath.getName()));
-        metadata.setContentLength(filePath.length());
-        metadata.setLastModified(new Date(filePath.lastModified()));
-        if (storageClass != null && !storageClass.isEmpty()) {
-            metadata.setHeader("x-amz-storage-class", storageClass);
-        }
-        if (useServerSideEncryption) {
-            metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-        }
-
+    protected Uploads.Metadata buildMetadata(FilePath filePath) throws IOException, InterruptedException {
+        long contentLength = filePath.length();
+        Consumer<PutObjectRequest.Builder> builder = new Consumer<PutObjectRequest.Builder>() {
+            @Override
+            public void accept(PutObjectRequest.Builder metadata) {
+                metadata.contentType(Mimetype.getInstance().getMimetype(new File(filePath.getName())));
+                metadata.contentLength(contentLength);
+                if (storageClass != null && !storageClass.isEmpty()) {
+                    metadata.storageClass(storageClass);
+                }
+                if (useServerSideEncryption) {
+                    metadata.sseCustomerAlgorithm("AES256");
+                }
+            }
+        };
+        Uploads.Metadata metadata = new Uploads.Metadata(builder);
+        metadata.setContentLength(contentLength);
         for (Map.Entry<String, String> entry : userMetadata.entrySet()) {
             final String key = entry.getKey().toLowerCase();
             switch (key) {
                 case "cache-control":
-                    metadata.setCacheControl(entry.getValue());
+                    metadata.andThen(b1 -> b1.cacheControl(entry.getValue()));
                     break;
                 case "expires":
                     try {
                         final Date expires = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z").parse(entry.getValue());
-                        metadata.setHttpExpiresDate(expires);
+                        metadata.andThen(b1 -> b1.expires(expires.toInstant()));
                     } catch (ParseException e) {
-                        metadata.addUserMetadata(entry.getKey(), entry.getValue());
+                        metadata.putMetadata(entry.getKey(), entry.getValue());
                     }
                     break;
                 case "content-encoding":
-                    metadata.setContentEncoding(entry.getValue());
+                    metadata.andThen(b1 -> b1.contentEncoding(entry.getValue()));
                     break;
                 case "content-type":
-                    metadata.setContentType(entry.getValue());
+                    metadata.andThen(b1 -> b1.contentType(entry.getValue()));
                     break;
                 default:
-                    metadata.addUserMetadata(entry.getKey(), entry.getValue());
+                    metadata.putMetadata(entry.getKey(), entry.getValue());
                     break;
             }
         }
