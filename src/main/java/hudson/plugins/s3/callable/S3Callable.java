@@ -7,6 +7,7 @@ import hudson.plugins.s3.Uploads;
 import hudson.util.Secret;
 import jenkins.security.Roles;
 import org.jenkinsci.remoting.RoleChecker;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
 import java.net.URI;
@@ -23,7 +24,7 @@ abstract class S3Callable<T> implements FileCallable<T> {
     private final ProxyConfiguration proxy;
     private final String customEndpoint;
 
-    private static transient HashMap<String, S3TransferManager> transferManagers = new HashMap<>();
+    private static final HashMap<String, S3TransferManager> transferManagers = new HashMap<>();
 
     S3Callable(String accessKey, Secret secretKey, boolean useRole, String region, ProxyConfiguration proxy) {
         this.accessKey = accessKey;
@@ -38,7 +39,7 @@ abstract class S3Callable<T> implements FileCallable<T> {
         final String uniqueKey = getUniqueKey();
         if (transferManagers.get(uniqueKey) == null) {
             try {
-                final var client = ClientHelper.createAsyncClient(accessKey, Secret.toString(secretKey), useRole, region, proxy, new URI(customEndpoint), (long) Uploads.MULTIPART_UPLOAD_THRESHOLD);
+                final S3AsyncClient client = ClientHelper.createAsyncClient(accessKey, Secret.toString(secretKey), useRole, region, proxy, new URI(customEndpoint), (long) Uploads.MULTIPART_UPLOAD_THRESHOLD);
                 transferManagers.put(uniqueKey, S3TransferManager.builder().s3Client(client).build());
             } catch (URISyntaxException e) {
                 throw new RuntimeException(e);

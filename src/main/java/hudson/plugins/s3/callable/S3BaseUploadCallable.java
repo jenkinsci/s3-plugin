@@ -50,17 +50,14 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
 
     protected Uploads.Metadata buildMetadata(FilePath filePath) throws IOException, InterruptedException {
         long contentLength = filePath.length();
-        Consumer<PutObjectRequest.Builder> builder = new Consumer<PutObjectRequest.Builder>() {
-            @Override
-            public void accept(PutObjectRequest.Builder metadata) {
-                metadata.contentType(Mimetype.getInstance().getMimetype(new File(filePath.getName())));
-                metadata.contentLength(contentLength);
-                if (storageClass != null && !storageClass.isEmpty()) {
-                    metadata.storageClass(storageClass);
-                }
-                if (useServerSideEncryption) {
-                    metadata.sseCustomerAlgorithm("AES256");
-                }
+        Consumer<PutObjectRequest.Builder> builder = metadata -> {
+            metadata.contentType(Mimetype.getInstance().getMimetype(new File(filePath.getName())));
+            metadata.contentLength(contentLength);
+            if (storageClass != null && !storageClass.isEmpty()) {
+                metadata.storageClass(storageClass);
+            }
+            if (useServerSideEncryption) {
+                metadata.sseCustomerAlgorithm("AES256");
             }
         };
         Uploads.Metadata metadata = new Uploads.Metadata(builder);

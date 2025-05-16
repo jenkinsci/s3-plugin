@@ -33,6 +33,8 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -462,9 +464,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             load();
         }
 
-        public List<Region> regions = Entry.regions;
+        @Restricted(DoNotUse.class) @Deprecated //This field is unused but has been stored in global config
+        public transient List<Region> regions = Entry.regions;
 
-        public String[] storageClasses = Entry.storageClasses;
+        @Restricted(DoNotUse.class) @Deprecated //This field is unused but has been stored in global config
+        public transient String[] storageClasses = Entry.storageClasses;
 
         public DescriptorImpl() {
             this(S3BucketPublisher.class);

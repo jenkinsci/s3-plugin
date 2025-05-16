@@ -73,14 +73,8 @@ public class ClientHelper {
         builder.region(awsRegion);
 
         if (!useRole) {
-            builder = builder.credentialsProvider(new AwsCredentialsProvider() {
-                @Override
-                public AwsCredentials resolveCredentials() {
-                    return AwsBasicCredentials.create(accessKey, secretKey);
-                }
-            });
+            builder = builder.credentialsProvider(() -> AwsBasicCredentials.create(accessKey, secretKey));
         }
-        //SdkHttpClient.Builder httpClient = SdkHttpClient.
 
         try {
             if (customEndpoint != null) {
