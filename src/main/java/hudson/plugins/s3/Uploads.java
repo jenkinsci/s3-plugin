@@ -49,12 +49,12 @@ public final class Uploads {
             LOGGER.info("File: " + filePath.getName() + " already was uploaded");
             return;
         }
-        //try {
-            upload.completionFuture().join();//waitForCompletion();
-        //}
-        /*finally {
+        try {
+            upload.completionFuture().join();
+        }
+        finally {
             closeStream(filePath);
-        }*/
+        }
     }
 
     public void cleanup(FilePath filePath) {

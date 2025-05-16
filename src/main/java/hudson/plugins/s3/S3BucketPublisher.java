@@ -38,6 +38,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.regions.Region;
 
 import java.io.IOException;
@@ -578,7 +579,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
             try (var client = ClientHelper.createClient(checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().getProxy())) {
                 client.listBuckets();
-            } catch (Exception e) {
+            } catch (SdkException e) {
                 LOGGER.log(Level.SEVERE, e.getMessage(), e);
                 return FormValidation.error("Can't connect to S3 service: " + e.getMessage());
             }

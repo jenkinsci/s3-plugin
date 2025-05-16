@@ -18,6 +18,8 @@
         <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
         <jenkins.baseline>2.479</jenkins.baseline>
         <jenkins.version>${jenkins.baseline}.3</jenkins.version>
+        <aws-sdk.version>2.30.28</aws-sdk.version>
+        <jenkins-aws.version>${aws-sdk.version}-26.v649b_8df2f988</jenkins-aws.version>
     </properties>
 
     <developers>
@@ -67,17 +69,17 @@
         <dependency>
             <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
             <artifactId>aws-java-sdk2-core</artifactId>
-            <version>2.30.28-26.v649b_8df2f988</version>
+            <version>${jenkins-aws.version}</version>
         </dependency>
         <dependency>
             <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
             <artifactId>aws-java-sdk2-s3</artifactId>
-            <version>2.30.28-26.v649b_8df2f988</version>
+            <version>${jenkins-aws.version}</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId> <!-- TODO Jenkins API plugin -->
             <artifactId>netty-nio-client</artifactId>
-            <version>2.30.28</version>
+            <version>${aws-sdk.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

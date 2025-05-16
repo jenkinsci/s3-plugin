@@ -198,7 +198,7 @@ public class S3Profile {
     }
 
     public List<String> list(Run build, String bucket) {
-        final var s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
+        final S3Client s3client = getClient(ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME);
 
         final String buildName = build.getDisplayName();
         final int buildID = build.getNumber();

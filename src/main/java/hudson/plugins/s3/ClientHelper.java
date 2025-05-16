@@ -3,6 +3,7 @@ package hudson.plugins.s3;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
+import io.netty.handler.ssl.SslProvider;
 import jenkins.model.Jenkins;
 import jenkins.util.JenkinsJVM;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -44,12 +45,7 @@ public class ClientHelper {
         builder.region(awsRegion);
 
         if (!useRole) {
-            builder = builder.credentialsProvider(new AwsCredentialsProvider() {
-                @Override
-                public AwsCredentials resolveCredentials() {
-                    return AwsBasicCredentials.create(accessKey, secretKey);
-                }
-            });
+            builder = builder.credentialsProvider(() -> AwsBasicCredentials.create(accessKey, secretKey));
         }
 
         if (customEndpoint != null) {
@@ -73,7 +69,7 @@ public class ClientHelper {
 
     public static S3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, @CheckForNull URI customEndpoint) {
         Region awsRegion = getRegionFromString(region);
-        S3ClientBuilder builder = S3Client.builder();//.overrideConfiguration(clientConfiguration);
+        S3ClientBuilder builder = S3Client.builder();
         builder.region(awsRegion);
 
         if (!useRole) {
@@ -143,7 +139,7 @@ public class ClientHelper {
     }
 
     private static SdkAsyncHttpClient getAsyncHttpClient(URI serviceEndpoint, ProxyConfiguration proxy) {
-        NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder();
+        NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder().sslProvider(SslProvider.JDK); //make sure we use BouncyCastle when available
         if (proxy == null && JenkinsJVM.isJenkinsJVM()) {
             proxy = Jenkins.get().getProxy();
         }
