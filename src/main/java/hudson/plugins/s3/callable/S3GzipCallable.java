@@ -8,7 +8,6 @@ import hudson.plugins.s3.MD5;
 import hudson.plugins.s3.Uploads;
 import hudson.util.Secret;
 import org.apache.commons.io.IOUtils;
-import software.amazon.awssdk.transfer.s3.model.FileUpload;
 import software.amazon.awssdk.transfer.s3.model.Upload;
 import software.amazon.awssdk.transfer.s3.progress.TransferListener;
 
@@ -19,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 
 public final class S3GzipCallable extends S3BaseUploadCallable implements MasterSlaveCallable<String> {
@@ -62,9 +62,12 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
             TransferListener.super.transferFailed(context);
         }
 
-        @SuppressFBWarnings({"RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", "SF_SWITCH_NO_DEFAULT"})
         public void done(Context.TransferComplete context) {
-            localFile.delete();
+            if (localFile.delete()) {
+                Logger.getLogger(S3GzipCallable.class.getName()).fine(() -> "Removed temporary file " + localFile.getName());
+            } else {
+                Logger.getLogger(S3GzipCallable.class.getName()).fine(() -> "Not removed temporary file " + localFile.getName() + " exists? " + localFile.exists());
+            }
         }
     }
 
