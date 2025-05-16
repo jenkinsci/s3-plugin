@@ -2,6 +2,8 @@ package hudson.plugins.s3.callable;
 
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.Tag;
 import hudson.FilePath;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
@@ -12,24 +14,28 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class S3BaseUploadCallable extends S3Callable<String> {
     private static final long serialVersionUID = 1L;
     private final Destination dest;
     private final String storageClass;
     private final Map<String, String> userMetadata;
+    private final Map<String, String> userTags;
     private final boolean useServerSideEncryption;
 
-
     public S3BaseUploadCallable(String accessKey, Secret secretKey, boolean useRole,
-                                Destination dest, Map<String, String> userMetadata, String storageClass, String selregion,
-                                boolean useServerSideEncryption, ProxyConfiguration proxy) {
+                                Destination dest, Map<String, String> userMetadata, Map<String, String> userTags,
+                                String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy) {
         super(accessKey, secretKey, useRole, selregion, proxy);
         this.dest = dest;
         this.storageClass = storageClass;
         this.userMetadata = userMetadata;
+        this.userTags = userTags;
         this.useServerSideEncryption = useServerSideEncryption;
     }
 
@@ -84,6 +90,15 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
             }
         }
         return metadata;
+    }
+
+    protected ObjectTagging s3Tagging() {
+
+        final List<Tag> tags = userTags.entrySet().stream()
+                .map(entry -> new Tag(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+
+        return new ObjectTagging(tags);
     }
 
     public Destination getDest() {

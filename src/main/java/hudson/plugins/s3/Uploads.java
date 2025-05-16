@@ -2,6 +2,7 @@ package hudson.plugins.s3;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -21,8 +22,8 @@ public final class Uploads {
     private final transient HashMap<FilePath, Upload> startedUploads = new HashMap<>();
     private final transient HashMap<FilePath, InputStream> openedStreams = new HashMap<>();
 
-    public Upload startUploading(TransferManager manager, FilePath file, InputStream inputsStream, String bucketName, String objectName, ObjectMetadata metadata) throws AmazonServiceException {
-        final PutObjectRequest request = new PutObjectRequest(bucketName, objectName, inputsStream, metadata);
+    public Upload startUploading(TransferManager manager, FilePath file, InputStream inputsStream, String bucketName, String objectName, ObjectMetadata metadata, ObjectTagging tags) throws AmazonServiceException {
+        final PutObjectRequest request = new PutObjectRequest(bucketName, objectName, inputsStream, metadata).withTagging(tags);
 
         // Set the buffer size (ReadLimit) equal to the multipart upload size,
         // allowing us to resend data if the connection breaks.
