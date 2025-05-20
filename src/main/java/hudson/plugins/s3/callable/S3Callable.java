@@ -14,6 +14,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
+
 abstract class S3Callable<T> implements FileCallable<T> {
     private static final long serialVersionUID = 1L;
 
@@ -39,7 +41,14 @@ abstract class S3Callable<T> implements FileCallable<T> {
         final String uniqueKey = getUniqueKey();
         if (transferManagers.get(uniqueKey) == null) {
             try {
-                final S3AsyncClient client = ClientHelper.createAsyncClient(accessKey, Secret.toString(secretKey), useRole, region, proxy, new URI(customEndpoint), (long) Uploads.MULTIPART_UPLOAD_THRESHOLD);
+                final S3AsyncClient client = ClientHelper.createAsyncClient(
+                        accessKey,
+                        Secret.toString(secretKey),
+                        useRole,
+                        region,
+                        proxy,
+                        isNotEmpty(customEndpoint) ? new URI(customEndpoint) : null,
+                        (long)Uploads.MULTIPART_UPLOAD_THRESHOLD);
                 transferManagers.put(uniqueKey, S3TransferManager.builder().s3Client(client).build());
             } catch (URISyntaxException e) {
                 throw new RuntimeException(e);
