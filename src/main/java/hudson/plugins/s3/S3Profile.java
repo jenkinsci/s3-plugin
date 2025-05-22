@@ -18,6 +18,8 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.IOException;
@@ -203,17 +205,24 @@ public class S3Profile {
         final String buildName = build.getDisplayName();
         final int buildID = build.getNumber();
         final Destination dest = new Destination(bucket, "jobs/" + buildName + '/' + buildID + '/' + name);
-
-        final ListObjectsRequest listObjectsRequest = ListObjectsRequest.builder()
-                .bucket(dest.bucketName)
-                .prefix(dest.objectName)
-                .encodingType("url").build();
-
         final List<String> files = Lists.newArrayList();
-        for (S3Object summary : s3client.listObjects(listObjectsRequest).contents()) {
-            final GetObjectRequest req = GetObjectRequest.builder().bucket(dest.bucketName).key(summary.key()).build();
-            files.add(req.key());
-        }
+        String nextContinuationToken = null;
+        do {
+            final ListObjectsV2Request listObjectsRequest = ListObjectsV2Request.builder()
+                    .bucket(dest.bucketName)
+                    .prefix(dest.objectName)
+                    .encodingType("url")
+                    .continuationToken(nextContinuationToken)
+                    .build();
+
+            ListObjectsV2Response response = s3client.listObjectsV2(listObjectsRequest);
+            nextContinuationToken = response.nextContinuationToken();
+
+            for (S3Object summary : response.contents()) {
+                final GetObjectRequest req = GetObjectRequest.builder().bucket(dest.bucketName).key(summary.key()).build();
+                files.add(req.key());
+            }
+        } while (nextContinuationToken != null);
 
 
         return files;
