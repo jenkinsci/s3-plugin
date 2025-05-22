@@ -68,15 +68,17 @@
         <dependency>
             <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
             <artifactId>aws-java-sdk2-core</artifactId>
+            <version>2.31.26-39.v1775f2a_636f6</version> <!-- TODO Incremental version for testing-->
         </dependency>
         <dependency>
             <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
             <artifactId>aws-java-sdk2-s3</artifactId>
+            <version>2.31.26-39.v1775f2a_636f6</version> <!-- TODO Incremental version for testing-->
         </dependency>
         <dependency>
-            <groupId>software.amazon.awssdk</groupId> <!-- TODO Jenkins API plugin -->
-            <artifactId>netty-nio-client</artifactId>
-            <version>${aws-sdk.version}</version>
+            <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
+            <artifactId>aws-java-sdk2-netty-nio-client</artifactId>
+            <version>2.31.26-39.v1775f2a_636f6</version> <!-- TODO Incremental version for testing -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
