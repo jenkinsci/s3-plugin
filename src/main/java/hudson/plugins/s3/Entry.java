@@ -1,13 +1,12 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.s3.AmazonS3;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
 import org.kohsuke.stapler.DataBoundConstructor;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.List;
 
@@ -38,7 +37,7 @@ public final class Entry implements Describable<Entry> {
     /**
      * Regions Values
      */
-    public static final List<Region> regions = RegionUtils.getRegionsForService(AmazonS3.ENDPOINT_PREFIX);
+    public static final List<Region> regions = S3Client.serviceMetadata().regions();
     /**
      * Stores the Region Value
      */
@@ -137,7 +136,7 @@ public final class Entry implements Describable<Entry> {
         public ListBoxModel doFillSelectedRegionItems() {
             final ListBoxModel model = new ListBoxModel();
             for (Region r : regions) {
-                model.add(r.getName(), r.getName());
+                model.add(r.id(), r.id());
             }
             return model;
         }

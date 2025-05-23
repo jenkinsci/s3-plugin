@@ -1,50 +1,93 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import hudson.ProxyConfiguration;
-import org.apache.commons.lang.StringUtils;
-
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.ProxyConfiguration;
+import io.netty.handler.ssl.SslProvider;
+import jenkins.model.Jenkins;
+import jenkins.util.JenkinsJVM;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.regex.Pattern;
+
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 public class ClientHelper {
     public final static String DEFAULT_AMAZON_S3_REGION_NAME = System.getProperty(
-            "hudson.plugins.s3.DEFAULT_AMAZON_S3_REGION",
-            com.amazonaws.services.s3.model.Region.US_Standard.toAWSRegion().getName());
+            "hudson.plugins.s3.DEFAULT_AMAZON_S3_REGION", Region.US_EAST_1.id());
     public static final String ENDPOINT = System.getProperty("hudson.plugins.s3.ENDPOINT", System.getenv("PLUGIN_S3_ENDPOINT"));
+    public static final URI ENDPOINT_URI;
 
-    public static AmazonS3 createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy) {
-        return createClient(accessKey, secretKey, useRole, region, proxy, ENDPOINT);
+    static {
+        try {
+            ENDPOINT_URI = isNotEmpty(ENDPOINT) ? new URI(ENDPOINT) : null;
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static AmazonS3 createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, String customEndpoint)
-    {
+    public static S3AsyncClient createAsyncClient(String accessKey, String secretKey, boolean useRole, String region, @CheckForNull ProxyConfiguration proxy, @CheckForNull URI customEndpoint, Long thresholdInBytes) {
         Region awsRegion = getRegionFromString(region);
-
-        ClientConfiguration clientConfiguration = getClientConfiguration(proxy, awsRegion);
-
-        AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard().withClientConfiguration(clientConfiguration);
+        S3AsyncClientBuilder builder = S3AsyncClient.builder();//.overrideConfiguration(clientConfiguration);
+        builder.region(awsRegion);
 
         if (!useRole) {
-            builder = builder.withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)));
+            builder = builder.credentialsProvider(() -> AwsBasicCredentials.create(accessKey, secretKey));
         }
 
-        if (StringUtils.isNotEmpty(customEndpoint)) {
-            builder = builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(customEndpoint, awsRegion.getName()))
-                    .withPathStyleAccessEnabled(true);
+        if (customEndpoint != null) {
+            builder = builder.endpointOverride(customEndpoint).forcePathStyle(true);
+            builder.httpClient(getAsyncHttpClient(customEndpoint, proxy));
+        } else if (ENDPOINT_URI != null) {
+            builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(true);
+            builder.httpClient(getAsyncHttpClient(ENDPOINT_URI, proxy));
         } else {
-            builder = builder.withRegion(awsRegion.getName());
+            builder.httpClient(getAsyncHttpClient(null, proxy));
+        }
+        if (thresholdInBytes != null) {
+            builder.multipartConfiguration(mcb -> mcb.thresholdInBytes(thresholdInBytes));
+        }
+        return builder.build();
+    }
+
+    public static S3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy) {
+        return createClient(accessKey, secretKey, useRole, region, proxy, ENDPOINT_URI);
+    }
+
+    public static S3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, @CheckForNull URI customEndpoint) {
+        Region awsRegion = getRegionFromString(region);
+        S3ClientBuilder builder = S3Client.builder();
+        builder.region(awsRegion);
+
+        if (!useRole) {
+            builder = builder.credentialsProvider(() -> AwsBasicCredentials.create(accessKey, secretKey));
+        }
+
+        try {
+            if (customEndpoint != null) {
+                builder = builder.endpointOverride(customEndpoint).forcePathStyle(true);
+                builder.httpClient(getHttpClient(customEndpoint, proxy));
+            } else if (ENDPOINT_URI != null) {
+                builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(true);
+                builder.httpClient(getHttpClient(ENDPOINT_URI, proxy));
+            } else {
+                builder.httpClient(getHttpClient(null, proxy));
+            }
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Can't create proxy URI", e);
         }
 
         return builder.build();
@@ -54,65 +97,67 @@ public class ClientHelper {
      * Gets the {@link Region} from its name with backward compatibility concerns and defaulting
      *
      * @param regionName nullable region name
-     * @return AWS region, never {@code null}, defaults to {@link com.amazonaws.services.s3.model.Region#US_Standard}
+     * @return AWS region, never {@code null}, defaults to {@link Region#US_EAST_1} see {@link #DEFAULT_AMAZON_S3_REGION_NAME}.
      */
     @NonNull
     private static Region getRegionFromString(@CheckForNull String regionName) {
         Region region = null;
 
         if (regionName == null || regionName.isEmpty()) {
-            region = RegionUtils.getRegion(DEFAULT_AMAZON_S3_REGION_NAME);
+            region = Region.of(DEFAULT_AMAZON_S3_REGION_NAME);
+        } else {
+            region = Region.of(regionName);
         }
-        // In 0.7, selregion comes from Regions#name
-        if (region == null) {
-            region = RegionUtils.getRegion(regionName);
-        }
-
-        // In 0.6, selregion comes from Regions#valueOf
-        if (region == null) {
-            region = RegionUtils.getRegion(Regions.valueOf(regionName).getName());
-        }
-
-        if (region == null) {
-            region = RegionUtils.getRegion(DEFAULT_AMAZON_S3_REGION_NAME);
-        }
-
         if (region == null) {
             throw new IllegalStateException("No AWS Region found for name '" + regionName + "' and default region '" + DEFAULT_AMAZON_S3_REGION_NAME + "'");
         }
         return region;
     }
 
-    @NonNull
-    public static ClientConfiguration getClientConfiguration(@NonNull ProxyConfiguration proxy, @NonNull Region region) {
-        final ClientConfiguration clientConfiguration = new ClientConfiguration();
-        String s3Endpoint;
-        if (StringUtils.isNotEmpty(ENDPOINT)) {
-            s3Endpoint = ENDPOINT;
-        } else {
-            s3Endpoint = region.getServiceEndpoint(AmazonS3.ENDPOINT_PREFIX);
+    private static SdkHttpClient getHttpClient(URI serviceEndpoint, ProxyConfiguration proxy) throws URISyntaxException {
+        ApacheHttpClient.Builder httpClient1 = ApacheHttpClient.builder();
+        if (proxy == null && JenkinsJVM.isJenkinsJVM()) {
+            proxy = Jenkins.get().getProxy();
         }
-        Logger.getLogger(ClientHelper.class.getName()).fine(() -> String.format("ENDPOINT: %s", s3Endpoint));
-        if (shouldUseProxy(proxy, s3Endpoint)) {
-            clientConfiguration.setProxyHost(proxy.name);
-            clientConfiguration.setProxyPort(proxy.port);
-            if (proxy.getUserName() != null) {
-                clientConfiguration.setProxyUsername(proxy.getUserName());
-                clientConfiguration.setProxyPassword(proxy.getPassword());
+        if (shouldUseProxy(proxy, serviceEndpoint)) {
+            software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
+                    .endpoint(new URI("http", null, proxy.getName(), proxy.getPort(), null, null, null));
+            if (isNotEmpty(proxy.getUserName())) {
+                proxyBuilder
+                        .username(proxy.getUserName())
+                        .password(proxy.getPassword());
             }
+            httpClient1.proxyConfiguration(proxyBuilder.build());
         }
-
-        return clientConfiguration;
+        return httpClient1.build();
     }
 
-    private static boolean shouldUseProxy(ProxyConfiguration proxy, String hostname) {
-        if(proxy == null) {
+    private static SdkAsyncHttpClient getAsyncHttpClient(URI serviceEndpoint, ProxyConfiguration proxy) {
+        NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder().sslProvider(SslProvider.JDK); //make sure we use BouncyCastle when available
+        if (proxy == null && JenkinsJVM.isJenkinsJVM()) {
+            proxy = Jenkins.get().getProxy();
+        }
+        if (shouldUseProxy(proxy, serviceEndpoint)) {
+            software.amazon.awssdk.http.nio.netty.ProxyConfiguration.Builder proxyBuilder = software.amazon.awssdk.http.nio.netty.ProxyConfiguration.builder()
+                    .host(proxy.getName()).port(proxy.getPort());
+            if (isNotEmpty(proxy.getUserName())) {
+                proxyBuilder
+                        .username(proxy.getUserName())
+                        .password(proxy.getPassword());
+            }
+            builder.proxyConfiguration(proxyBuilder.build());
+        }
+        return builder.build();
+    }
+
+    private static boolean shouldUseProxy(ProxyConfiguration proxy, URI endpoint) {
+        if (proxy == null) {
             return false;
         }
-
+        String hostname = endpoint.getHost();
         boolean shouldProxy = true;
-        for(Pattern p : proxy.getNoProxyHostPatterns()) {
-            if(p.matcher(hostname).matches()) {
+        for (Pattern p : proxy.getNoProxyHostPatterns()) {
+            if (p.matcher(hostname).matches()) {
                 shouldProxy = false;
                 break;
             }
