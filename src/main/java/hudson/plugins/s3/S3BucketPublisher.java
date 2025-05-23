@@ -24,6 +24,7 @@ import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.CopyOnWriteList;
+import hudson.util.FormFillFailure;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
@@ -94,6 +95,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final S3Profile[] sites = DESCRIPTOR.getProfiles();
             if (sites.length > 0)
                 profileName = sites[0].getName();
+        }
+
+        if (entries == null || entries.isEmpty()) {
+            throw new IllegalArgumentException("No files to upload specified.");
         }
 
         this.profileName = profileName;
