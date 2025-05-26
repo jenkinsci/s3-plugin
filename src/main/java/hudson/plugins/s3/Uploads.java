@@ -1,37 +1,45 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
 import hudson.FilePath;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.FileUpload;
+import software.amazon.awssdk.transfer.s3.model.Upload;
+import software.amazon.awssdk.transfer.s3.model.UploadRequest;
+import software.amazon.awssdk.transfer.s3.progress.TransferListener;
+import software.amazon.awssdk.utils.NamedThreadFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public final class Uploads {
     private Uploads() {}
     private static final Logger LOGGER = Logger.getLogger(Uploads.class.getName());
-    private static final int MULTIPART_UPLOAD_THRESHOLD = 16*1024*1024; // 16 MB
+    public static final int MULTIPART_UPLOAD_THRESHOLD = 16*1024*1024; // 16 MB
 
     private static transient volatile Uploads instance;
     private final transient HashMap<FilePath, Upload> startedUploads = new HashMap<>();
+    private final ExecutorService executors = Executors.newScheduledThreadPool(1, new NamedThreadFactory(Executors.defaultThreadFactory(), Uploads.class.getName()));
     private final transient HashMap<FilePath, InputStream> openedStreams = new HashMap<>();
 
-    public Upload startUploading(TransferManager manager, FilePath file, InputStream inputsStream, String bucketName, String objectName, ObjectMetadata metadata) throws AmazonServiceException {
-        final PutObjectRequest request = new PutObjectRequest(bucketName, objectName, inputsStream, metadata);
+    public Upload startUploading(S3TransferManager manager, FilePath file, InputStream inputStream, String bucketName, String objectName, Metadata metadata, TransferListener listener) {
+        UploadRequest.Builder request = UploadRequest.builder();
+        request.putObjectRequest(metadata.builder.andThen(b -> b.bucket(bucketName).key(objectName).metadata(metadata.metadata)));
+        request.requestBody(AsyncRequestBody.fromInputStream(inputStream, metadata.getContentLength(), executors));
 
-        // Set the buffer size (ReadLimit) equal to the multipart upload size,
-        // allowing us to resend data if the connection breaks.
-        request.getRequestClientOptions().setReadLimit(MULTIPART_UPLOAD_THRESHOLD);
-        manager.getConfiguration().setMultipartUploadThreshold( (long) MULTIPART_UPLOAD_THRESHOLD);
-
-        final Upload upload = manager.upload(request);
+        if (listener != null) {
+            request.addTransferListener(listener);
+        }
+        final Upload upload = manager.upload(request.build());
         startedUploads.put(file, upload);
-        openedStreams.put(file, inputsStream);
+        openedStreams.put(file, inputStream);
         return upload;
     }
 
@@ -42,7 +50,7 @@ public final class Uploads {
             return;
         }
         try {
-            upload.waitForCompletion();
+            upload.completionFuture().join();
         }
         finally {
             closeStream(filePath);
@@ -74,5 +82,35 @@ public final class Uploads {
             }
         }
         return instance;
+    }
+
+    public static class Metadata {
+        private Consumer<PutObjectRequest.Builder> builder;
+        private final Map<String, String> metadata;
+        private long contentLength;
+        public Metadata(Consumer<PutObjectRequest.Builder> builder, Map<String, String> metadata) {
+            this.builder = builder;
+            this.metadata = metadata != null ? metadata : new HashMap<>();
+        }
+
+        public Metadata(Consumer<PutObjectRequest.Builder> builder) {
+            this(builder, new HashMap<>());
+        }
+
+        public void putMetadata(String key, String value) {
+            metadata.put(key, value);
+        }
+
+        public long getContentLength() {
+            return contentLength;
+        }
+
+        public void setContentLength(long contentLength) {
+            this.contentLength = contentLength;
+        }
+
+        public void andThen(Consumer<PutObjectRequest.Builder> addition) {
+            builder = builder.andThen(addition);
+        }
     }
 }
