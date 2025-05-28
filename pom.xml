@@ -18,7 +18,6 @@
         <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
         <jenkins.baseline>2.479</jenkins.baseline>
         <jenkins.version>${jenkins.baseline}.3</jenkins.version>
-        <aws-sdk.version>2.31.26</aws-sdk.version> <!-- TODO keep in sync with bom until https://github.com/jenkinsci/aws-java-sdk2-plugin/pull/67 -->
     </properties>
 
     <developers>
@@ -68,17 +67,14 @@
         <dependency>
             <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
             <artifactId>aws-java-sdk2-core</artifactId>
-            <version>2.31.45-46.v0b_147c322cfa_</version> <!-- TODO when in BOM-->
         </dependency>
         <dependency>
             <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
             <artifactId>aws-java-sdk2-s3</artifactId>
-            <version>2.31.45-46.v0b_147c322cfa_</version> <!-- TODO when in BOM-->
         </dependency>
         <dependency>
             <groupId>io.jenkins.plugins.aws-java-sdk2</groupId>
             <artifactId>aws-java-sdk2-netty-nio-client</artifactId>
-            <version>2.31.45-46.v0b_147c322cfa_</version> <!-- TODO when in BOM -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -111,7 +107,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-${jenkins.baseline}.x</artifactId>
-                <version>4740.v75a_90f6fefb_7</version>
+                <version>4836.vdf03ded1f27c</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
