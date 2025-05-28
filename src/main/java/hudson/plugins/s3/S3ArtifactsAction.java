@@ -1,27 +1,30 @@
 package hudson.plugins.s3;
 
-import java.io.File;
-import java.io.IOException;
-
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-
-import javax.servlet.ServletException;
-
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 import hudson.Functions;
-import jenkins.model.RunAction2;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-
 import hudson.model.Run;
+import hudson.util.Secret;
+import jakarta.servlet.ServletException;
+import jenkins.model.RunAction2;
+import jenkins.security.FIPS140;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import java.io.File;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+
+import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 @ExportedBean
 public class S3ArtifactsAction implements RunAction2 {
@@ -75,7 +78,7 @@ public class S3ArtifactsAction implements RunAction2 {
         return artifacts;
     }
 
-    public void doDownload(final StaplerRequest request, final StaplerResponse response) throws IOException, ServletException {
+    public void doDownload(final StaplerRequest2 request, final StaplerResponse2 response) throws IOException, ServletException {
         if (Functions.isArtifactsPermissionEnabled()) {
             build.getParent().checkPermission(Run.ARTIFACTS);
         }
@@ -89,8 +92,8 @@ public class S3ArtifactsAction implements RunAction2 {
         for (FingerprintRecord record : artifacts) {
             if (record.getArtifact().getName().equals(artifact)) {
                 final S3Profile s3 = S3BucketPublisher.getProfile(profile);
-                final AmazonS3 client = s3.getClient(record.getArtifact().getRegion());
-                final String url = getDownloadURL(client, s3.getSignedUrlExpirySeconds(), build, record);
+                final var client = s3.getClient(record.getArtifact().getRegion());
+                final String url = getDownloadURL(client, s3, build, record);
                 response.sendRedirect2(url);
                 return;
             }
@@ -106,20 +109,34 @@ public class S3ArtifactsAction implements RunAction2 {
      * download and there's no need for the user to have credentials to
      * access S3.
      */
-    private String getDownloadURL(AmazonS3 client, int signedUrlExpirySeconds, Run run, FingerprintRecord record) {
+    private String getDownloadURL(S3Client client, S3Profile s3, Run run, FingerprintRecord record) {
         final Destination dest = Destination.newFromRun(run, record.getArtifact());
-        final GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(dest.bucketName, dest.objectName);
-        request.setExpiration(new Date(System.currentTimeMillis() + signedUrlExpirySeconds*1000));
-
-        if (!record.isShowDirectlyInBrowser()) {
-            // let the browser use the last part of the name, not the full path
-            // when saving.
-            final ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
-            final String fileName = (new File(dest.objectName)).getName().trim();
-            headers.setContentDisposition("attachment; filename=\"" + fileName + '"');
-            request.setResponseHeaders(headers);
+        S3Presigner.Builder presignerBuilder = S3Presigner.builder()
+                .fipsEnabled(FIPS140.useCompliantAlgorithms())
+                .s3Client(client)
+                .region(Region.of(record.getArtifact().getRegion()));
+        if (ClientHelper.ENDPOINT_URI != null) {
+            presignerBuilder.endpointOverride(ClientHelper.ENDPOINT_URI);
         }
+        if (!s3.isUseRole()) {
+            presignerBuilder.credentialsProvider(() -> AwsBasicCredentials.create(s3.getAccessKey(), Secret.toString(s3.getSecretKey())));
+        }
+        try (S3Presigner presigner = presignerBuilder.build()) {
+            GetObjectRequest.Builder builder = GetObjectRequest.builder().bucket(dest.bucketName).key(dest.objectName);
+            if (!record.isShowDirectlyInBrowser()) {
+                // let the browser use the last part of the name, not the full path
+                // when saving.
+                final String fileName = (new File(dest.objectName)).getName().trim();
+                builder.responseContentDisposition(fileName);
+            }
 
-        return client.generatePresignedUrl(request).toExternalForm();
+            GetObjectRequest getObjectRequest = builder.build();
+            GetObjectPresignRequest getObjectPresignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofSeconds(s3.getSignedUrlExpirySeconds()))
+                    .getObjectRequest(getObjectRequest).build();
+
+            return presigner.presignGetObject(getObjectPresignRequest).url().toExternalForm();
+
+        }
     }
 }

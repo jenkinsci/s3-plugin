@@ -1,18 +1,20 @@
 package hudson.plugins.s3.callable;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import hudson.FilePath.FileCallable;
 import hudson.ProxyConfiguration;
 import hudson.plugins.s3.ClientHelper;
+import hudson.plugins.s3.Uploads;
 import hudson.util.Secret;
 import jenkins.security.Roles;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.remoting.RoleChecker;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
-import java.io.ObjectStreamException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
+
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 abstract class S3Callable<T> implements FileCallable<T> {
     private static final long serialVersionUID = 1L;
@@ -24,7 +26,7 @@ abstract class S3Callable<T> implements FileCallable<T> {
     private final ProxyConfiguration proxy;
     private final String customEndpoint;
 
-    private static transient HashMap<String, TransferManager> transferManagers = new HashMap<>();
+    private static final HashMap<String, S3TransferManager> transferManagers = new HashMap<>();
 
     S3Callable(String accessKey, Secret secretKey, boolean useRole, String region, ProxyConfiguration proxy) {
         this.accessKey = accessKey;
@@ -35,11 +37,22 @@ abstract class S3Callable<T> implements FileCallable<T> {
         this.customEndpoint = ClientHelper.ENDPOINT;
     }
 
-    protected synchronized TransferManager getTransferManager() {
+    protected synchronized S3TransferManager getTransferManager() {
         final String uniqueKey = getUniqueKey();
         if (transferManagers.get(uniqueKey) == null) {
-            final AmazonS3 client = ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, proxy, customEndpoint);
-            transferManagers.put(uniqueKey, TransferManagerBuilder.standard().withS3Client(client).build());
+            try {
+                final S3AsyncClient client = ClientHelper.createAsyncClient(
+                        accessKey,
+                        Secret.toString(secretKey),
+                        useRole,
+                        region,
+                        proxy,
+                        isNotEmpty(customEndpoint) ? new URI(customEndpoint) : null,
+                        (long)Uploads.MULTIPART_UPLOAD_THRESHOLD);
+                transferManagers.put(uniqueKey, S3TransferManager.builder().s3Client(client).build());
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         return transferManagers.get(uniqueKey);

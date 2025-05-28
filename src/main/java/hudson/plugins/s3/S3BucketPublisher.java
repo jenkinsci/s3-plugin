@@ -1,9 +1,5 @@
 package hudson.plugins.s3;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -28,6 +24,7 @@ import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.CopyOnWriteList;
+import hudson.util.FormFillFailure;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
@@ -37,11 +34,15 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.regions.Region;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -94,6 +95,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             final S3Profile[] sites = DESCRIPTOR.getProfiles();
             if (sites.length > 0)
                 profileName = sites[0].getName();
+        }
+
+        if (entries == null || entries.isEmpty()) {
+            throw new IllegalArgumentException("No files to upload specified.");
         }
 
         this.profileName = profileName;
@@ -338,7 +343,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 addS3ArtifactsAction(run, profile, artifacts);
                 addFingerprintAction(run, record);
             }
-        } catch (AmazonClientException|IOException e) {
+        } catch (IOException e) {
             if (!isDontSetBuildResultOnFailure()) {
                 e.printStackTrace(listener.error("Failed to upload files"));
                 run.setResult(constrainResult(Result.UNSTABLE, listener));
@@ -464,9 +469,11 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             load();
         }
 
-        public List<Region> regions = Entry.regions;
+        @Restricted(DoNotUse.class) @Deprecated //This field is unused but has been stored in global config
+        public transient List<Region> regions = Entry.regions;
 
-        public String[] storageClasses = Entry.storageClasses;
+        @Restricted(DoNotUse.class) @Deprecated //This field is unused but has been stored in global config
+        public transient String[] storageClasses = Entry.storageClasses;
 
         public DescriptorImpl() {
             this(S3BucketPublisher.class);
@@ -483,7 +490,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         }
 
         @Override
-        public boolean configure(StaplerRequest req, JSONObject json) {
+        public boolean configure(StaplerRequest2 req, JSONObject json) {
             final JSONArray array = json.optJSONArray("profile");
             if (array != null) {
                 profiles.replaceBy(req.bindJSONToList(S3Profile.class, array));
@@ -578,12 +585,10 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             }
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
-            final AmazonS3 client = ClientHelper.createClient(
-                    checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().proxy);
 
-            try {
+            try (var client = ClientHelper.createClient(checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().getProxy())) {
                 client.listBuckets();
-            } catch (AmazonClientException e) {
+            } catch (SdkException e) {
                 LOGGER.log(Level.SEVERE, e.getMessage(), e);
                 return FormValidation.error("Can't connect to S3 service: " + e.getMessage());
             }
