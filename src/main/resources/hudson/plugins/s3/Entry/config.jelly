@@ -19,6 +19,9 @@
         <f:entry field="noUploadOnFailure" title="No upload on build failure">
 		    <f:checkbox />
         </f:entry>
+        <f:entry field="noUploadOnAborted" title="No upload on aborted build">
+            <f:checkbox />
+        </f:entry>
         <f:entry field="uploadFromSlave" title="Publish from Slave">
 		    <f:checkbox />
         </f:entry>
