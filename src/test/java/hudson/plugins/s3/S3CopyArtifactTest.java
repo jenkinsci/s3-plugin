@@ -1,55 +1,45 @@
 package hudson.plugins.s3;
+
 import hudson.model.FreeStyleProject;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class S3CopyArtifactTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
-    private String projectName;
-    private String filter;
-    private String excludeFilter;
-    private String target;
-    private boolean flatten;
-    private boolean option;
+@WithJenkins
+class S3CopyArtifactTest {
 
-    @Before
-    public void setUp() throws Exception {
-        projectName = "projectA";
-        filter = "filterA";
-        excludeFilter = "excludeFilterA";
-        target = "targetA";
-        flatten = true;
-        option = true;
-    }
+    private static final String PROJECT_NAME = "projectA";
+    private static final String FILTER = "filterA";
+    private static final String EXCLUDE_FILTER = "excludeFilterA";
+    private static final String TARGET = "targetA";
+    private static final boolean FLATTEN = true;
+    private static final boolean OPTION = true;
 
     @Test
-    public void testConfigParser() throws Exception {
-        j.createFreeStyleProject(projectName);
-        S3CopyArtifact before = new S3CopyArtifact(projectName, null, filter, excludeFilter, target, flatten, option);
+    void testConfigParser(JenkinsRule j) throws Exception {
+        j.createFreeStyleProject(PROJECT_NAME);
+        S3CopyArtifact before = new S3CopyArtifact(PROJECT_NAME, null, FILTER, EXCLUDE_FILTER, TARGET, FLATTEN, OPTION);
 
-        S3CopyArtifact after = recreateFromConfig(before);
+        S3CopyArtifact after = recreateFromConfig(j, before);
 
-        testGetters(after, projectName, filter, excludeFilter, target, flatten, option);
+        testGetters(after, PROJECT_NAME, FILTER, EXCLUDE_FILTER, TARGET, FLATTEN, OPTION);
         j.assertEqualBeans(before, after, "projectName,filter,excludeFilter,target,flatten,optional");
     }
 
     @Test
-    public void testConfigParserIncorrectProject() throws Exception {
+    void testConfigParserIncorrectProject(JenkinsRule j) throws Exception {
         j.createFreeStyleProject("projectB");
-        S3CopyArtifact before = new S3CopyArtifact(projectName, null, filter, excludeFilter, target, flatten, option);
+        S3CopyArtifact before = new S3CopyArtifact(PROJECT_NAME, null, FILTER, EXCLUDE_FILTER, TARGET, FLATTEN, OPTION);
 
-        S3CopyArtifact after = recreateFromConfig(before);
+        S3CopyArtifact after = recreateFromConfig(j, before);
 
-        testGetters(after, "", filter, excludeFilter, target, flatten, option);
+        testGetters(after, "", FILTER, EXCLUDE_FILTER, TARGET, FLATTEN, OPTION);
         j.assertEqualBeans(before, after, "projectName,filter,excludeFilter,target,flatten,optional");
     }
 
-    private S3CopyArtifact recreateFromConfig(S3CopyArtifact before) throws Exception {
+    private S3CopyArtifact recreateFromConfig(JenkinsRule j, S3CopyArtifact before) throws Exception {
         FreeStyleProject p = j.createFreeStyleProject();
         p.getBuildersList().add(before);
 
