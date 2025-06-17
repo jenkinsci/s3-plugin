@@ -40,6 +40,9 @@
             <f:entry title="Keep Structure" help="/plugin/s3/help-keepStructure.html">
                 <f:checkbox name="s3.keepStructure" value="${profile.keepStructure}" checked="${profile.keepStructure}"/>
             </f:entry>
+            <f:entry title="Use Path Style URL" help="/plugin/s3/help-pathStyle.html">
+              <f:checkbox name="usePathStyle" checked="${profile.usePathStyle}"/>
+            </f:entry>
           </f:advanced>
 
           <f:entry title="">

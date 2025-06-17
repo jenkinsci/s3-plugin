@@ -39,7 +39,12 @@ public class ClientHelper {
         }
     }
 
+    @Deprecated
     public static S3AsyncClient createAsyncClient(String accessKey, String secretKey, boolean useRole, String region, @CheckForNull ProxyConfiguration proxy, @CheckForNull URI customEndpoint, Long thresholdInBytes) {
+        return createAsyncClient(accessKey, secretKey, useRole, region, proxy, customEndpoint, thresholdInBytes, false);
+    }
+
+    public static S3AsyncClient createAsyncClient(String accessKey, String secretKey, boolean useRole, String region, @CheckForNull ProxyConfiguration proxy, @CheckForNull URI customEndpoint, Long thresholdInBytes, boolean usePathStyle) {
         Region awsRegion = getRegionFromString(region);
         S3AsyncClientBuilder builder = S3AsyncClient.builder();//.overrideConfiguration(clientConfiguration);
         builder.region(awsRegion);
@@ -49,10 +54,10 @@ public class ClientHelper {
         }
 
         if (customEndpoint != null) {
-            builder = builder.endpointOverride(customEndpoint).forcePathStyle(true);
+            builder = builder.endpointOverride(customEndpoint).forcePathStyle(usePathStyle);
             builder.httpClient(getAsyncHttpClient(customEndpoint, proxy));
         } else if (ENDPOINT_URI != null) {
-            builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(true);
+            builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(usePathStyle);
             builder.httpClient(getAsyncHttpClient(ENDPOINT_URI, proxy));
         } else {
             builder.httpClient(getAsyncHttpClient(null, proxy));
@@ -63,11 +68,21 @@ public class ClientHelper {
         return builder.build();
     }
 
+    @Deprecated
     public static S3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy) {
-        return createClient(accessKey, secretKey, useRole, region, proxy, ENDPOINT_URI);
+        return createClient(accessKey, secretKey, useRole, region, proxy, ENDPOINT_URI, false);
     }
 
+    public static S3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, boolean usePathStyle) {
+        return createClient(accessKey, secretKey, useRole, region, proxy, ENDPOINT_URI, usePathStyle);
+    }
+
+    @Deprecated
     public static S3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, @CheckForNull URI customEndpoint) {
+        return createClient(accessKey, secretKey, useRole, region, proxy, customEndpoint, false);
+    }
+
+    public static S3Client createClient(String accessKey, String secretKey, boolean useRole, String region, ProxyConfiguration proxy, @CheckForNull URI customEndpoint, boolean usePathStyle) {
         Region awsRegion = getRegionFromString(region);
         S3ClientBuilder builder = S3Client.builder();
         builder.region(awsRegion);
@@ -78,10 +93,10 @@ public class ClientHelper {
 
         try {
             if (customEndpoint != null) {
-                builder = builder.endpointOverride(customEndpoint).forcePathStyle(true);
+                builder = builder.endpointOverride(customEndpoint).forcePathStyle(usePathStyle);
                 builder.httpClient(getHttpClient(customEndpoint, proxy));
             } else if (ENDPOINT_URI != null) {
-                builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(true);
+                builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(usePathStyle);
                 builder.httpClient(getHttpClient(ENDPOINT_URI, proxy));
             } else {
                 builder.httpClient(getHttpClient(null, proxy));

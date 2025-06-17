@@ -14,6 +14,7 @@ import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -41,6 +42,7 @@ public class S3Profile {
 
     private final boolean useRole;
     private final int signedUrlExpirySeconds;
+    private boolean usePathStyle = false;
 
     @DataBoundConstructor
     public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
@@ -60,6 +62,11 @@ public class S3Profile {
         }
 
         this.keepStructure = keepStructure;
+    }
+
+    @DataBoundSetter
+    public void setUsePathStyle(boolean usePathStyle) {
+        this.usePathStyle = usePathStyle;
     }
 
     public boolean isKeepStructure() {
@@ -114,8 +121,10 @@ public class S3Profile {
         return signedUrlExpirySeconds;
     }
 
+    public boolean isUsePathStyle() { return usePathStyle; }
+
     public S3Client getClient(String region) {
-        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy());
+        return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy(), usePathStyle);
     }
 
     public List<FingerprintRecord> upload(Run<?, ?> run,
@@ -149,10 +158,10 @@ public class S3Profile {
                 final MasterSlaveCallable<String> upload;
                 if (gzipFiles) {
                     upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata,
-                            storageClass, selregion, useServerSideEncryption, getProxy());
+                            storageClass, selregion, useServerSideEncryption, getProxy(), usePathStyle);
                 } else {
                     upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata,
-                            storageClass, selregion, useServerSideEncryption, getProxy());
+                            storageClass, selregion, useServerSideEncryption, getProxy(), usePathStyle);
                 }
 
                 final FingerprintRecord fingerprintRecord = repeat(maxUploadRetries, uploadRetryTime, dest, new Callable<FingerprintRecord>() {
@@ -247,7 +256,7 @@ public class S3Profile {
                   fingerprints.add(repeat(maxDownloadRetries, downloadRetryTime, dest, new Callable<FingerprintRecord>() {
                       @Override
                       public FingerprintRecord call() throws IOException, InterruptedException {
-                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, artifact.getRegion(), getProxy()));
+                          final String md5 = target.act(new S3DownloadCallable(accessKey, secretKey, useRole, dest, artifact.getRegion(), getProxy(), usePathStyle));
                           return new FingerprintRecord(true, dest.bucketName, target.getName(), artifact.getRegion(), md5);
                       }
                   }));

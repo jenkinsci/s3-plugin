@@ -557,7 +557,8 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         @SuppressWarnings("unused")
         @RequirePOST
         public FormValidation doLoginCheck(@QueryParameter String name, @QueryParameter String accessKey,
-                                           @QueryParameter Secret secretKey, @QueryParameter boolean useRole) {
+                                           @QueryParameter Secret secretKey, @QueryParameter boolean useRole,
+                                           @QueryParameter boolean usePathStyle) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
             final String checkedName = Util.fixNull(name);
@@ -586,7 +587,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
             final String defaultRegion = ClientHelper.DEFAULT_AMAZON_S3_REGION_NAME;
 
-            try (var client = ClientHelper.createClient(checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().getProxy())) {
+            try (var client = ClientHelper.createClient(checkedAccessKey, checkedSecretKey, useRole, defaultRegion, Jenkins.get().getProxy(), usePathStyle)) {
                 client.listBuckets();
             } catch (SdkException e) {
                 LOGGER.log(Level.SEVERE, e.getMessage(), e);

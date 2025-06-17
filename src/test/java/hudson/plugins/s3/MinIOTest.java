@@ -174,12 +174,14 @@ public class MinIOTest {
 
     private static void createProfile() {
         final S3BucketPublisher.DescriptorImpl descriptor = ExtensionList.lookup(S3BucketPublisher.DescriptorImpl.class).get(0);
-        descriptor.replaceProfiles(Collections.singletonList(new S3Profile(
+        S3Profile profile = new S3Profile(
                 "Local",
                 ACCESS_KEY, SECRET_KEY,
                 false,
                 10000,
-                "", "", "", "", true)));
+                "", "", "", "", true);
+        profile.setUsePathStyle(true);
+        descriptor.replaceProfiles(Collections.singletonList(profile));
     }
 
     @Test

@@ -25,16 +25,19 @@ abstract class S3Callable<T> implements FileCallable<T> {
     private final String region;
     private final ProxyConfiguration proxy;
     private final String customEndpoint;
+    private final boolean usePathStyle;
 
     private static final HashMap<String, S3TransferManager> transferManagers = new HashMap<>();
 
-    S3Callable(String accessKey, Secret secretKey, boolean useRole, String region, ProxyConfiguration proxy) {
+    S3Callable(String accessKey, Secret secretKey, boolean useRole, String region, ProxyConfiguration proxy, boolean usePathStyle) {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.useRole = useRole;
         this.region = region;
         this.proxy = proxy;
         this.customEndpoint = ClientHelper.ENDPOINT;
+        this.usePathStyle = usePathStyle;
+
     }
 
     protected synchronized S3TransferManager getTransferManager() {
@@ -48,7 +51,8 @@ abstract class S3Callable<T> implements FileCallable<T> {
                         region,
                         proxy,
                         isNotEmpty(customEndpoint) ? new URI(customEndpoint) : null,
-                        (long)Uploads.MULTIPART_UPLOAD_THRESHOLD);
+                        (long)Uploads.MULTIPART_UPLOAD_THRESHOLD,
+                        usePathStyle);
                 transferManagers.put(uniqueKey, S3TransferManager.builder().s3Client(client).build());
             } catch (URISyntaxException e) {
                 throw new RuntimeException(e);
