@@ -13,6 +13,7 @@ import org.kohsuke.stapler.export.ExportedBean;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -117,6 +118,7 @@ public class S3ArtifactsAction implements RunAction2 {
                 .region(Region.of(record.getArtifact().getRegion()));
         if (ClientHelper.ENDPOINT_URI != null) {
             presignerBuilder.endpointOverride(ClientHelper.ENDPOINT_URI);
+            presignerBuilder.serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build());
         }
         if (!s3.isUseRole()) {
             presignerBuilder.credentialsProvider(() -> AwsBasicCredentials.create(s3.getAccessKey(), Secret.toString(s3.getSecretKey())));
