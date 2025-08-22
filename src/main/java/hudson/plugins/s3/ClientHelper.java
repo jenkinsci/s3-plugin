@@ -21,7 +21,9 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
@@ -142,6 +144,11 @@ public class ClientHelper {
                         .username(proxy.getUserName())
                         .password(proxy.getPassword());
             }
+            List<Pattern> patterns = proxy.getNoProxyHostPatterns();
+            if (patterns != null && !patterns.isEmpty()) {
+                proxyBuilder.nonProxyHosts(
+                        patterns.stream().map(Pattern::pattern).collect(Collectors.toSet()));
+            }
             httpClient1.proxyConfiguration(proxyBuilder.build());
         }
         return httpClient1.build();
@@ -159,6 +166,11 @@ public class ClientHelper {
                 proxyBuilder
                         .username(proxy.getUserName())
                         .password(proxy.getPassword());
+            }
+            List<Pattern> patterns = proxy.getNoProxyHostPatterns();
+            if (patterns != null && !patterns.isEmpty()) {
+                proxyBuilder.nonProxyHosts(
+                        patterns.stream().map(Pattern::pattern).collect(Collectors.toSet()));
             }
             builder.proxyConfiguration(proxyBuilder.build());
         }
