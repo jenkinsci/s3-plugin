@@ -136,6 +136,7 @@ public class ClientHelper {
         if (proxy == null && JenkinsJVM.isJenkinsJVM()) {
             proxy = Jenkins.get().getProxy();
         }
+        if (proxy != null) {
             software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
                     .endpoint(new URI("http", null, proxy.getName(), proxy.getPort(), null, null, null));
             if (isNotEmpty(proxy.getUserName())) {
@@ -149,6 +150,7 @@ public class ClientHelper {
                         patterns.stream().map(Pattern::pattern).collect(Collectors.toSet()));
             }
             httpClient1.proxyConfiguration(proxyBuilder.build());
+        }
         return httpClient1.build();
     }
 
@@ -157,6 +159,7 @@ public class ClientHelper {
         if (proxy == null && JenkinsJVM.isJenkinsJVM()) {
             proxy = Jenkins.get().getProxy();
         }
+        if (proxy != null) {
             software.amazon.awssdk.http.nio.netty.ProxyConfiguration.Builder proxyBuilder = software.amazon.awssdk.http.nio.netty.ProxyConfiguration.builder()
                     .host(proxy.getName()).port(proxy.getPort());
             if (isNotEmpty(proxy.getUserName())) {
@@ -170,6 +173,7 @@ public class ClientHelper {
                         patterns.stream().map(Pattern::pattern).collect(Collectors.toSet()));
             }
             builder.proxyConfiguration(proxyBuilder.build());
+        }
         return builder.build();
     }
 }
