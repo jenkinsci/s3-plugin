@@ -57,13 +57,10 @@ public class ClientHelper {
 
         if (customEndpoint != null) {
             builder = builder.endpointOverride(customEndpoint).forcePathStyle(usePathStyle);
-            builder.httpClient(getAsyncHttpClient(customEndpoint, proxy));
         } else if (ENDPOINT_URI != null) {
             builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(usePathStyle);
-            builder.httpClient(getAsyncHttpClient(ENDPOINT_URI, proxy));
-        } else {
-            builder.httpClient(getAsyncHttpClient(null, proxy));
         }
+        builder.httpClient(getAsyncHttpClient(proxy));
         if (thresholdInBytes != null) {
             builder.multipartConfiguration(mcb -> mcb.thresholdInBytes(thresholdInBytes));
         }
@@ -96,13 +93,10 @@ public class ClientHelper {
         try {
             if (customEndpoint != null) {
                 builder = builder.endpointOverride(customEndpoint).forcePathStyle(usePathStyle);
-                builder.httpClient(getHttpClient(customEndpoint, proxy));
             } else if (ENDPOINT_URI != null) {
                 builder = builder.endpointOverride(ENDPOINT_URI).forcePathStyle(usePathStyle);
-                builder.httpClient(getHttpClient(ENDPOINT_URI, proxy));
-            } else {
-                builder.httpClient(getHttpClient(null, proxy));
             }
+            builder.httpClient(getHttpClient(proxy));
         } catch (URISyntaxException e) {
             throw new RuntimeException("Can't create proxy URI", e);
         }
@@ -131,7 +125,7 @@ public class ClientHelper {
         return region;
     }
 
-    private static SdkHttpClient getHttpClient(URI serviceEndpoint, ProxyConfiguration proxy) throws URISyntaxException {
+    private static SdkHttpClient getHttpClient(ProxyConfiguration proxy) throws URISyntaxException {
         ApacheHttpClient.Builder httpClient1 = ApacheHttpClient.builder();
         if (proxy == null && JenkinsJVM.isJenkinsJVM()) {
             proxy = Jenkins.get().getProxy();
@@ -154,7 +148,7 @@ public class ClientHelper {
         return httpClient1.build();
     }
 
-    private static SdkAsyncHttpClient getAsyncHttpClient(URI serviceEndpoint, ProxyConfiguration proxy) {
+    private static SdkAsyncHttpClient getAsyncHttpClient(ProxyConfiguration proxy) {
         NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder().sslProvider(SslProvider.JDK); //make sure we use BouncyCastle when available
         if (proxy == null && JenkinsJVM.isJenkinsJVM()) {
             proxy = Jenkins.get().getProxy();
