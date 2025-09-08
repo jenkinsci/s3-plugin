@@ -43,6 +43,7 @@ public class S3Profile {
     private final boolean useRole;
     private final int signedUrlExpirySeconds;
     private boolean usePathStyle = false;
+    private boolean deleteArtifactsRecursively = false;
 
     @DataBoundConstructor
     public S3Profile(String name, String accessKey, String secretKey, boolean useRole, int signedUrlExpirySeconds, String maxUploadRetries, String uploadRetryTime, String maxDownloadRetries, String downloadRetryTime, boolean keepStructure) {
@@ -67,6 +68,11 @@ public class S3Profile {
     @DataBoundSetter
     public void setUsePathStyle(boolean usePathStyle) {
         this.usePathStyle = usePathStyle;
+    }
+
+    @DataBoundSetter
+    public void setDeleteArtifactsRecursively(boolean deleteArtifactsRecursively) {
+        this.deleteArtifactsRecursively = deleteArtifactsRecursively;
     }
 
     public boolean isKeepStructure() {
@@ -122,6 +128,8 @@ public class S3Profile {
     }
 
     public boolean isUsePathStyle() { return usePathStyle; }
+
+    public boolean isDeleteArtifactsRecursively() { return deleteArtifactsRecursively; }
 
     public S3Client getClient(String region) {
         return ClientHelper.createClient(accessKey, Secret.toString(secretKey), useRole, region, getProxy(), usePathStyle);

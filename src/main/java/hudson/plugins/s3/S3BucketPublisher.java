@@ -13,10 +13,13 @@ import hudson.Util;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.Fingerprint;
+import hudson.model.Job;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.RunListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -434,6 +437,49 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
             fileName = relativeFileName.substring(searchIndex);
         }
         return fileName;
+    }
+
+    @Extension
+    public static final class S3DeletedItemListener extends ItemListener {
+        @Override
+        public void onDeleted(Item item) {
+            if (item instanceof Job<?, ?> job) {
+                handleJobDeletion(job);
+            } else if (item instanceof ItemGroup<?> itemGroup) {
+                handleItemGroupDeletion(itemGroup);
+            }
+        }
+
+        private void handleJobDeletion(Job<?, ?> job) {
+            for (Run<?, ?> run : job.getBuilds()) {
+                S3ArtifactsAction artifacts = run.getAction(S3ArtifactsAction.class);
+                if (artifacts != null) {
+                    S3Profile profile = S3BucketPublisher.getProfile(artifacts.getProfile());
+                    if (profile.isDeleteArtifactsRecursively()) {
+                        for (FingerprintRecord record : artifacts.getArtifacts()) {
+                            if (!record.isKeepForever()) {
+                                try {
+                                    profile.delete(run, record);
+                                } catch (Exception e) {
+                                    Logger.getLogger(S3DeletedItemListener.class.getName())
+                                            .log(Level.WARNING, "Failed to delete S3 artifact: " + record.getName(), e);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void handleItemGroupDeletion(ItemGroup<?> itemGroup) {
+            for (Item item : itemGroup.getItems()) {
+                if (item instanceof Job<?, ?> job) {
+                    handleJobDeletion(job);
+                } else if (item instanceof ItemGroup<?> childItemGroup) {
+                    handleItemGroupDeletion(childItemGroup);
+                }
+            }
+        }
     }
 
     @Extension
