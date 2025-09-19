@@ -48,6 +48,7 @@ public class ClientHelper {
         Region awsRegion = getRegionFromString(region);
         S3AsyncClientBuilder builder = S3AsyncClient.builder();//.overrideConfiguration(clientConfiguration);
         builder.region(awsRegion);
+        builder.multipartEnabled(true);
 
         if (!useRole) {
             builder = builder.credentialsProvider(() -> AwsBasicCredentials.create(accessKey, secretKey));
