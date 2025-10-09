@@ -1,8 +1,5 @@
 package hudson.plugins.s3;
 
-
-import org.htmlunit.WebAssert;
-import org.htmlunit.html.HtmlPage;
 import hudson.Functions;
 import hudson.model.Action;
 import hudson.model.FreeStyleBuild;
@@ -16,9 +13,11 @@ import hudson.tasks.Builder;
 import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Shell;
 import jenkins.model.Jenkins;
-import org.junit.Rule;
-import org.junit.Test;
+import org.htmlunit.WebAssert;
+import org.htmlunit.html.HtmlPage;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -28,20 +27,19 @@ import java.util.List;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class S3Test {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class S3Test {
 
     @Test
-    public void testConfigExists() throws Exception {
+    void testConfigExists(JenkinsRule j) throws Exception {
         HtmlPage page = j.createWebClient().goTo("configure");
         WebAssert.assertTextPresent(page, "S3 profiles");
     }
 
     @Test
-    public void testConfigContainsProfiles() throws Exception {
+    void testConfigContainsProfiles(JenkinsRule j) throws Exception {
         final S3Profile profile = new S3Profile("S3 profile random name", null, null, true, 0, "0", "0", "0", "0", true);
 
         replaceS3PluginProfile(profile);
@@ -51,13 +49,13 @@ public class S3Test {
     }
 
     @Test
-    public void multiplePublishersUseExistingActions() throws Exception {
+    void multiplePublishersUseExistingActions(JenkinsRule j) throws Exception {
         String profileName = "test profile";
         String fileName = "testFile";
         S3BucketPublisher publisher = new S3BucketPublisher(
                 profileName,
                 newArrayList(entryForFile(fileName)),
-                Collections.<MetadataPair>emptyList(),
+                Collections.emptyList(),
                 true,
                 "INFO",
                 "SUCCESS",
@@ -77,14 +75,14 @@ public class S3Test {
     }
 
     @Test
-    public void dontSetBuildResultTest() throws Exception {
+    void dontSetBuildResultTest(JenkinsRule j) throws Exception {
         String profileName = "test profile";
         String missingProfileName = "test profile missing";
         String fileName = "testFile";
         S3BucketPublisher missingPublisher = new S3BucketPublisher(
                 missingProfileName,
                 newArrayList(entryForFile(fileName)),
-                Collections.<MetadataPair>emptyList(),
+                Collections.emptyList(),
                 true,
                 "DEBUG",
                 "SUCCESS",
@@ -114,7 +112,7 @@ public class S3Test {
     }
 
     private void replaceS3PluginProfile(S3Profile s3Profile) {
-        final Jenkins instance = Jenkins.getInstance();
+        final Jenkins instance = Jenkins.get();
         final DescriptorImpl s3Plugin = (DescriptorImpl) instance.getDescriptor(S3BucketPublisher.class);
         s3Plugin.replaceProfiles(newArrayList(s3Profile));
     }

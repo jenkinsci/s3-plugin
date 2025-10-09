@@ -43,6 +43,9 @@
             <f:entry title="Use Path Style URL" help="/plugin/s3/help-pathStyle.html">
               <f:checkbox name="usePathStyle" checked="${profile.usePathStyle}"/>
             </f:entry>
+            <f:entry title="Delete Artifacts Recursively" help="/plugin/s3/help-deleteArtifactsRecursively.html">
+              <f:checkbox name="deleteArtifactsRecursively" checked="${profile.deleteArtifactsRecursively}"/>
+            </f:entry>
           </f:advanced>
 
           <f:entry title="">
