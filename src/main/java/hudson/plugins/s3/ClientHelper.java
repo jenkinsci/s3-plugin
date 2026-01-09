@@ -7,8 +7,6 @@ import io.netty.handler.ssl.SslProvider;
 import jenkins.model.Jenkins;
 import jenkins.util.JenkinsJVM;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
@@ -165,19 +163,26 @@ public class ClientHelper {
         return builder.build();
     }
 
-    private static boolean shouldUseProxy(ProxyConfiguration proxy, URI endpoint) {
+    /**
+     * Determines whether the proxy should be used for the given endpoint.
+     * When endpoint is null (standard AWS regions), defaults to using the proxy.
+     */
+    private static boolean shouldUseProxy(ProxyConfiguration proxy, @CheckForNull URI endpoint) {
         if (proxy == null) {
             return false;
         }
+        if (endpoint == null) {
+            return true;
+        }
         String hostname = endpoint.getHost();
-        boolean shouldProxy = true;
+        if (hostname == null) {
+            return true;
+        }
         for (Pattern p : proxy.getNoProxyHostPatterns()) {
             if (p.matcher(hostname).matches()) {
-                shouldProxy = false;
-                break;
+                return false;
             }
         }
-
-        return shouldProxy;
+        return true;
     }
 }
