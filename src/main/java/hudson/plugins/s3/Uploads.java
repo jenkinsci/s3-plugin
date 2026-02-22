@@ -14,8 +14,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -43,16 +46,24 @@ public final class Uploads {
         return upload;
     }
 
-    public void finishUploading(FilePath filePath) throws InterruptedException {
+    public void finishUploading(FilePath filePath) throws InterruptedException, IOException {
         final Upload upload = startedUploads.remove(filePath);
         if (upload == null) {
             LOGGER.info("File: " + filePath.getName() + " already was uploaded");
             return;
         }
         try {
-            upload.completionFuture().join();
-        }
-        finally {
+            upload.completionFuture().get(1, TimeUnit.HOURS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            upload.completionFuture().cancel(true); // cancel the upload
+            throw e;
+        } catch (ExecutionException e) {
+            throw new IOException("Upload failed for: " + filePath.getName(), e.getCause());
+        } catch (TimeoutException e) {
+            upload.completionFuture().cancel(true);
+            throw new IOException("Upload timed out for: " + filePath.getName(), e);
+        } finally {
             closeStream(filePath);
         }
     }

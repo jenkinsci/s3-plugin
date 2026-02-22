@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class S3Profile {
     private final String name;
@@ -275,15 +277,21 @@ public class S3Profile {
 
     private <T> T repeat(int maxRetries, int waitTime, Destination dest, Callable<T> func) throws IOException, InterruptedException {
         int retryCount = 0;
+        Logger LOGGER = Logger.getLogger(S3Profile.class.getName());
 
         while (true) {
             try {
                 return func.call();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw e;
             } catch (Exception e) {
                 retryCount++;
                 if(retryCount >= maxRetries){
                     throw new IOException("Call fails for " + dest + ": " + e + ":: Failed after " + retryCount + " tries.", e);
                 }
+                LOGGER.log(Level.WARNING, "Upload attempt {0}/{1} failed for {2}: {3}. Retrying in {4}s",
+                        new Object[]{retryCount, maxRetries, dest, e.getMessage(), waitTime});
                 Thread.sleep(TimeUnit.SECONDS.toMillis(waitTime));
             }
         }

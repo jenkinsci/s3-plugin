@@ -7,16 +7,17 @@ import jenkins.security.Roles;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.File;
+import java.io.IOException;
 
 public final class S3WaitUploadCallable implements MasterSlaveCallable<Void> {
     @Override
-    public Void invoke(File f, VirtualChannel channel) throws InterruptedException {
+    public Void invoke(File f, VirtualChannel channel) throws InterruptedException, IOException {
         invoke(new FilePath(f));
         return null;
     }
 
     @Override
-    public Void invoke(FilePath file) throws InterruptedException {
+    public Void invoke(FilePath file) throws InterruptedException, IOException {
         Uploads.getInstance().finishUploading(file);
         return null;
     }
