@@ -91,7 +91,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
      */
     private /*almost final*/ List<MetadataPair> userMetadata;
 
-
     @DataBoundConstructor
     public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
                              boolean dontWaitForConcurrentBuildCompletion, String consoleLogLevel, String pluginFailureResultConstraint,
@@ -254,7 +253,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.uploadTimeout = Math.max(uploadTimeout, Uploads.MIN_UPLOAD_TIMEOUT);
     }
 
-
     private void log(final PrintStream logger, final String message) {
         log(Level.INFO, logger, message);
     }
@@ -340,7 +338,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 final Map<String, String> escapedMetadata = buildMetadata(envVars, entry);
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
-                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles);
+                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles, uploadTimeout);
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);
