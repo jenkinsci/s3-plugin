@@ -41,6 +41,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -68,6 +69,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     private boolean dontWaitForConcurrentBuildCompletion;
     private boolean dontSetBuildResultOnFailure;
+    private int uploadTimeout = 30; // default 30 mins
 
     /**
      * In-memory representation of console log level.
@@ -88,6 +90,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
      * User metadata key/value pairs to tag the upload with.
      */
     private /*almost final*/ List<MetadataPair> userMetadata;
+
 
     @DataBoundConstructor
     public S3BucketPublisher(String profileName, List<Entry> entries, List<MetadataPair> userMetadata,
@@ -241,6 +244,16 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
         return ImmutableList.of(new S3ArtifactsProjectAction(project));
     }
+
+    public int getUploadTimeout() {
+        return uploadTimeout;
+    }
+
+    @DataBoundSetter
+    public void setUploadTimeout(int uploadTimeout) {
+        this.uploadTimeout = Math.max(uploadTimeout, Uploads.MIN_UPLOAD_TIMEOUT);
+    }
+
 
     private void log(final PrintStream logger, final String message) {
         log(Level.INFO, logger, message);

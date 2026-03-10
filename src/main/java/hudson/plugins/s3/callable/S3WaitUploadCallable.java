@@ -10,6 +10,13 @@ import java.io.File;
 import java.io.IOException;
 
 public final class S3WaitUploadCallable implements MasterSlaveCallable<Void> {
+
+    private final int uploadTimeout;
+
+    public S3WaitUploadCallable(int uploadTimeout) {
+        this.uploadTimeout = uploadTimeout;
+    }
+
     @Override
     public Void invoke(File f, VirtualChannel channel) throws InterruptedException, IOException {
         invoke(new FilePath(f));
@@ -18,7 +25,7 @@ public final class S3WaitUploadCallable implements MasterSlaveCallable<Void> {
 
     @Override
     public Void invoke(FilePath file) throws InterruptedException, IOException {
-        Uploads.getInstance().finishUploading(file);
+        Uploads.getInstance().finishUploading(file, uploadTimeout);
         return null;
     }
 
