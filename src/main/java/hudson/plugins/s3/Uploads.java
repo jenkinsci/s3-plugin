@@ -117,6 +117,10 @@ public final class Uploads {
         return instance;
     }
 
+    void injectUpload(FilePath file, Upload upload) {
+        startedUploads.put(file, upload);
+    }
+
     public static class Metadata {
         private Consumer<PutObjectRequest.Builder> builder;
         private final Map<String, String> metadata;
