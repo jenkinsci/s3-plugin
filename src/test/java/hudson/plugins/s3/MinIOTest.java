@@ -31,6 +31,7 @@ import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Label;
 import hudson.plugins.copyartifact.LastCompletedBuildSelector;
+import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -142,15 +143,13 @@ public class MinIOTest {
             r.jenkins.setNumExecutors(1);*/
             r.createOnlineSlave(Label.get("work"));
             createProfile();
-            createAndRunPublisher(r);
+            createAndRunPublisherWithCustomTimeout(r);
         });
     }
 
-    private static void createAndRunPublisher(final JenkinsRule r) throws Exception {
-        final FreeStyleProject job = r.createFreeStyleProject("publisherJob");
-        job.setAssignedLabel(Label.get("work"));
-        job.getBuildersList().add(new CreateFileBuilder("test.txt", FILE_CONTENT));
-        job.getPublishersList().add(new S3BucketPublisher("Local",
+    private static @NotNull S3BucketPublisher getS3BucketPublisher() {
+        return new S3BucketPublisher(
+                "Local",
                 Collections.singletonList(new Entry("test",
                         "test.txt",
                         "",
@@ -168,7 +167,17 @@ public class MinIOTest {
                 Collections.emptyList(),
                 true,
                 "FINE",
-                null, false));
+                null,
+                false);
+    }
+
+    private static void createAndRunPublisherWithCustomTimeout(final JenkinsRule r) throws Exception {
+        final FreeStyleProject job = r.createFreeStyleProject("publisherJob");
+        job.setAssignedLabel(Label.get("work"));
+        job.getBuildersList().add(new CreateFileBuilder("test.txt", FILE_CONTENT));
+        S3BucketPublisher publisher = getS3BucketPublisher();
+        publisher.setUploadTimeout(10);
+        job.getPublishersList().add(publisher);
         r.buildAndAssertSuccess(job);
     }
 
@@ -192,7 +201,7 @@ public class MinIOTest {
             r.createOnlineSlave(Label.get("copy"));
 
             createProfile();
-            createAndRunPublisher(r);
+            createAndRunPublisherWithCustomTimeout(r);
 
             FreeStyleProject job = r.createFreeStyleProject("copierJob");
             job.setAssignedLabel(Label.get("copy"));
