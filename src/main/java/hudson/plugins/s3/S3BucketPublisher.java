@@ -27,7 +27,6 @@ import hudson.tasks.Fingerprinter.FingerprintAction;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.CopyOnWriteList;
-import hudson.util.FormFillFailure;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
@@ -242,10 +241,6 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     @Override @NonNull
     public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
         return ImmutableList.of(new S3ArtifactsProjectAction(project));
-    }
-
-    public int getUploadTimeout() {
-        return uploadTimeout;
     }
 
     @DataBoundSetter

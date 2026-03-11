@@ -34,6 +34,7 @@ public final class Uploads {
     private final transient Map<FilePath, Upload> startedUploads = new ConcurrentHashMap<>();
     private final ExecutorService executors;
     // This creates a cached thread pool with an upper bound (5) on threads to be spawned on demand.
+    // TODO: S3 client could use Virtual threads when baseline is Java 21
     {
         ThreadPoolExecutor pool = new ThreadPoolExecutor(
             5, 5,

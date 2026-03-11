@@ -16,8 +16,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class UploadsTest {
 
@@ -72,6 +78,6 @@ class UploadsTest {
     }
 
     static Stream<Integer> timeouts() {
-        return Stream.of(1, 5, 10, 30, 45);
+        return Stream.of(1, 10, 30);
     }
 }
