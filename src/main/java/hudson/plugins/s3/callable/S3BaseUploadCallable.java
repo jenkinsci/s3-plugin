@@ -8,6 +8,7 @@ import hudson.plugins.s3.Destination;
 import hudson.remoting.VirtualChannel;
 import hudson.util.Secret;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,7 +58,7 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
                 metadata.storageClass(storageClass);
             }
             if (useServerSideEncryption) {
-                metadata.sseCustomerAlgorithm("AES256");
+                metadata.serverSideEncryption(ServerSideEncryption.AES256);
             }
         };
         Uploads.Metadata metadata = new Uploads.Metadata(builder);
