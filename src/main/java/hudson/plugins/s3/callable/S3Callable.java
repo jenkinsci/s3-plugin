@@ -14,8 +14,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 
-import static org.apache.commons.lang.StringUtils.isNotEmpty;
-
 abstract class S3Callable<T> implements FileCallable<T> {
     private static final long serialVersionUID = 1L;
 
@@ -50,7 +48,7 @@ abstract class S3Callable<T> implements FileCallable<T> {
                         useRole,
                         region,
                         proxy,
-                        isNotEmpty(customEndpoint) ? new URI(customEndpoint) : null,
+                        (customEndpoint != null && !customEndpoint.isEmpty()) ? new URI(customEndpoint) : null,
                         (long)Uploads.MULTIPART_UPLOAD_THRESHOLD,
                         usePathStyle);
                 transferManagers.put(uniqueKey, S3TransferManager.builder().s3Client(client).build());

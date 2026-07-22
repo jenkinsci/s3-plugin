@@ -34,7 +34,7 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
+import java.util.Objects;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -254,7 +254,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
 
     private void log(final Level level, final PrintStream logger, final String message) {
         if(level.intValue() >= consoleLogLevel.intValue()) {
-            logger.println(StringUtils.defaultString(getDescriptor().getDisplayName()) + ' ' + message);
+            logger.println(Objects.toString(getDescriptor().getDisplayName(), "") + ' ' + message);
         }
     }
 

@@ -21,8 +21,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.regex.Pattern;
 
-import static org.apache.commons.lang.StringUtils.isNotEmpty;
-
 public class ClientHelper {
     public final static String DEFAULT_AMAZON_S3_REGION_NAME = System.getProperty(
             "hudson.plugins.s3.DEFAULT_AMAZON_S3_REGION", Region.US_EAST_1.id());
@@ -31,7 +29,7 @@ public class ClientHelper {
 
     static {
         try {
-            ENDPOINT_URI = isNotEmpty(ENDPOINT) ? new URI(ENDPOINT) : null;
+            ENDPOINT_URI = (ENDPOINT != null && !ENDPOINT.isEmpty()) ? new URI(ENDPOINT) : null;
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -136,7 +134,7 @@ public class ClientHelper {
         if (shouldUseProxy(proxy, serviceEndpoint)) {
             software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
                     .endpoint(new URI("http", null, proxy.getName(), proxy.getPort(), null, null, null));
-            if (isNotEmpty(proxy.getUserName())) {
+            if (proxy.getUserName() != null && !proxy.getUserName().isEmpty()) {
                 proxyBuilder
                         .username(proxy.getUserName())
                         .password(proxy.getPassword());
@@ -154,7 +152,7 @@ public class ClientHelper {
         if (shouldUseProxy(proxy, serviceEndpoint)) {
             software.amazon.awssdk.http.nio.netty.ProxyConfiguration.Builder proxyBuilder = software.amazon.awssdk.http.nio.netty.ProxyConfiguration.builder()
                     .host(proxy.getName()).port(proxy.getPort());
-            if (isNotEmpty(proxy.getUserName())) {
+            if (proxy.getUserName() != null && !proxy.getUserName().isEmpty()) {
                 proxyBuilder
                         .username(proxy.getUserName())
                         .password(proxy.getPassword());
