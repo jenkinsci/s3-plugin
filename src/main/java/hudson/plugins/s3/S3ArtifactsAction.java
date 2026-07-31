@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
-import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 @ExportedBean
 public class S3ArtifactsAction implements RunAction2 {
