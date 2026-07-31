@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.mockito.Mockito;
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -133,6 +134,7 @@ class S3Test {
                 Mockito.anyBoolean(),
                 Mockito.anyBoolean(),
                 Mockito.anyBoolean(),
+                Mockito.any(ChecksumAlgorithm.class),
                 Mockito.anyInt()
         )).thenReturn(newArrayList(new FingerprintRecord(true, "bucket", "path", "eu-west-1", "xxxx")));
         return profile;

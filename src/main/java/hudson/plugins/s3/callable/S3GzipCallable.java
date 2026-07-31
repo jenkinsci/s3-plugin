@@ -8,6 +8,7 @@ import hudson.plugins.s3.MD5;
 import hudson.plugins.s3.Uploads;
 import hudson.util.Secret;
 import org.apache.commons.io.IOUtils;
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm;
 import software.amazon.awssdk.transfer.s3.model.Upload;
 import software.amazon.awssdk.transfer.s3.progress.TransferListener;
 
@@ -23,7 +24,11 @@ import java.util.zip.GZIPOutputStream;
 
 public final class S3GzipCallable extends S3BaseUploadCallable implements MasterSlaveCallable<String> {
     public S3GzipCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy, boolean usePathStyle) {
-        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy, usePathStyle);
+        this(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy, usePathStyle, null);
+    }
+
+    public S3GzipCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy, boolean usePathStyle, ChecksumAlgorithm checksumAlgorithm) {
+        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy, usePathStyle, checksumAlgorithm);
     }
 
     // Return a File containing the gzipped contents of the input file.

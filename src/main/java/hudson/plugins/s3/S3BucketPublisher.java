@@ -46,6 +46,7 @@ import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -69,6 +71,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
     private boolean dontWaitForConcurrentBuildCompletion;
     private boolean dontSetBuildResultOnFailure;
     private int uploadTimeout = 30; // default 30 mins
+    private ChecksumAlgorithm checksumAlgorithm = ChecksumAlgorithm.CRC32; // SDK's default
 
     /**
      * In-memory representation of console log level.
@@ -248,6 +251,23 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
         this.uploadTimeout = Math.max(uploadTimeout, Uploads.MIN_UPLOAD_TIMEOUT);
     }
 
+    @DataBoundSetter
+    public void setChecksumAlgorithm(String checksumAlgorithm) {
+        if (checksumAlgorithm == null || checksumAlgorithm.isBlank()) {
+            this.checksumAlgorithm = ChecksumAlgorithm.CRC32;
+            return;
+        }
+        String normalized = checksumAlgorithm.toUpperCase(Locale.ROOT);
+        ChecksumAlgorithm algo = ChecksumAlgorithm.fromValue(normalized);
+        if (algo == ChecksumAlgorithm.UNKNOWN_TO_SDK_VERSION) {
+            throw new IllegalArgumentException("Unsupported checksum algorithm: " + checksumAlgorithm);
+        } else if (algo == ChecksumAlgorithm.CRC64_NVME) {
+            throw new UnsupportedOperationException("Checksum algorithm '" + checksumAlgorithm + "' requires AWS CRT dependency, which is currently unavailable."
+                    + "\nUse another algorithm (CRC32, CRC32C, SHA1, SHA256).");
+        }
+        this.checksumAlgorithm = algo;
+    }
+
     private void log(final PrintStream logger, final String message) {
         log(Level.INFO, logger, message);
     }
@@ -333,7 +353,7 @@ public final class S3BucketPublisher extends Recorder implements SimpleBuildStep
                 final Map<String, String> escapedMetadata = buildMetadata(envVars, entry);
 
                 final List<FingerprintRecord> records = Lists.newArrayList();
-                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles, uploadTimeout);
+                final List<FingerprintRecord> fingerprints = profile.upload(run, bucket, paths, filenames, escapedMetadata, storageClass, selRegion, entry.uploadFromSlave, entry.managedArtifacts, entry.useServerSideEncryption, entry.gzipFiles, checksumAlgorithm, uploadTimeout);
 
                 for (FingerprintRecord fingerprintRecord : fingerprints) {
                     records.add(fingerprintRecord);

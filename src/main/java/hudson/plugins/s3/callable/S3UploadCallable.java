@@ -6,6 +6,7 @@ import hudson.plugins.s3.Destination;
 import hudson.plugins.s3.MD5;
 import hudson.plugins.s3.Uploads;
 import hudson.util.Secret;
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm;
 
 import java.io.IOException;
 import java.util.Map;
@@ -14,7 +15,11 @@ public final class S3UploadCallable extends S3BaseUploadCallable implements Mast
     private static final long serialVersionUID = 1L;
 
     public S3UploadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy, boolean usePathStyle) {
-        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy, usePathStyle);
+        this(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy, usePathStyle, null);
+    }
+
+    public S3UploadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, Map<String, String> userMetadata, String storageClass, String selregion, boolean useServerSideEncryption, ProxyConfiguration proxy, boolean usePathStyle, ChecksumAlgorithm checksumAlgorithm) {
+        super(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy, usePathStyle, checksumAlgorithm);
     }
 
     /**
