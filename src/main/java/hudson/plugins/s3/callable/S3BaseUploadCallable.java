@@ -7,6 +7,7 @@ import hudson.ProxyConfiguration;
 import hudson.plugins.s3.Destination;
 import hudson.remoting.VirtualChannel;
 import hudson.util.Secret;
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
@@ -16,6 +17,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public abstract class S3BaseUploadCallable extends S3Callable<String> {
@@ -24,16 +26,23 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
     private final String storageClass;
     private final Map<String, String> userMetadata;
     private final boolean useServerSideEncryption;
-
+    private final ChecksumAlgorithm checksumAlgorithm;
 
     public S3BaseUploadCallable(String accessKey, Secret secretKey, boolean useRole,
                                 Destination dest, Map<String, String> userMetadata, String storageClass, String selregion,
                                 boolean useServerSideEncryption, ProxyConfiguration proxy, boolean usePathStyle) {
+        this(accessKey, secretKey, useRole, dest, userMetadata, storageClass, selregion, useServerSideEncryption, proxy, usePathStyle, null);
+    }
+
+    public S3BaseUploadCallable(String accessKey, Secret secretKey, boolean useRole,
+                                Destination dest, Map<String, String> userMetadata, String storageClass, String selregion,
+                                boolean useServerSideEncryption, ProxyConfiguration proxy, boolean usePathStyle, ChecksumAlgorithm checksumAlgorithm) {
         super(accessKey, secretKey, useRole, selregion, proxy, usePathStyle);
         this.dest = dest;
         this.storageClass = storageClass;
         this.userMetadata = userMetadata;
         this.useServerSideEncryption = useServerSideEncryption;
+        this.checksumAlgorithm = checksumAlgorithm;
     }
 
     /**
@@ -60,6 +69,7 @@ public abstract class S3BaseUploadCallable extends S3Callable<String> {
             if (useServerSideEncryption) {
                 metadata.serverSideEncryption(ServerSideEncryption.AES256);
             }
+            metadata.checksumAlgorithm(Objects.requireNonNullElse(checksumAlgorithm, ChecksumAlgorithm.CRC32));
         };
         Uploads.Metadata metadata = new Uploads.Metadata(builder);
         metadata.setContentLength(contentLength);
