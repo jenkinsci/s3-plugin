@@ -31,6 +31,8 @@ import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Label;
 import hudson.plugins.copyartifact.LastCompletedBuildSelector;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -216,6 +218,42 @@ public class MinIOTest {
             ));
             job.getBuildersList().add(new VerifyFileBuilder());
             r.buildAndAssertSuccess(job);
+        });
+    }
+
+    @Test
+    public void testS3CopyArtifactPipelineIntoMissingSubfolder() throws Throwable {
+        rr.then(r -> {
+            r.createOnlineSlave(Label.get("work"));
+            r.createOnlineSlave(Label.get("copy"));
+            createProfile();
+
+            WorkflowJob producer = r.jenkins.createProject(WorkflowJob.class, "nestedProducerJob");
+            producer.setDefinition(new CpsFlowDefinition("""
+                    node('work') {
+                        dir('artifact/images') {
+                            writeFile file: 'test.txt', text: '%s'
+                        }
+                        s3Upload entries: [[
+                            bucket: 'test',
+                            sourceFile: 'artifact/images/test.txt',
+                            flatten: false,
+                            managedArtifacts: true
+                        ]], profileName: 'Local'
+                    }
+                    """.formatted(FILE_CONTENT), true));
+            r.buildAndAssertSuccess(producer);
+
+            WorkflowJob consumer = r.jenkins.createProject(WorkflowJob.class, "nestedConsumerJob");
+            consumer.setDefinition(new CpsFlowDefinition("""
+                    node('copy') {
+                        s3CopyArtifact projectName: 'nestedProducerJob', filter: '**/*.txt', flatten: false
+                    }
+                    """, true));
+
+            // The "copy" agent's workspace is fresh: artifact/images does not exist yet.
+            // s3CopyArtifact with flatten=false must create it before downloading into it.
+            r.buildAndAssertSuccess(consumer);
         });
     }
 
