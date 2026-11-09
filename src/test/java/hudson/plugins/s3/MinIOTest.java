@@ -31,6 +31,8 @@ import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Label;
 import hudson.plugins.copyartifact.LastCompletedBuildSelector;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -52,8 +54,11 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 
 import java.io.IOException;
@@ -217,6 +222,49 @@ public class MinIOTest {
             job.getBuildersList().add(new VerifyFileBuilder());
             r.buildAndAssertSuccess(job);
         });
+    }
+
+    @Test
+    public void testS3UploadPipelineWithoutFlattenKeepsFolderStructure() throws Throwable {
+        rr.then(r -> {
+            r.createOnlineSlave(Label.get("work"));
+            createProfile();
+
+            WorkflowJob job = r.jenkins.createProject(WorkflowJob.class, "pipelineNoFlattenJob");
+            job.setDefinition(new CpsFlowDefinition("""
+                    node('work') {
+                        dir('folder') {
+                            writeFile file: 'test.txt', text: '%s'
+                        }
+                        s3Upload consoleLogLevel: 'FINE', dontWaitForConcurrentBuildCompletion: true, entries: [[
+                            bucket: 'test',
+                            sourceFile: 'folder/test.txt',
+                            flatten: false
+                        ]], profileName: 'Local'
+                    }
+                    """.formatted(FILE_CONTENT), true));
+
+            try (S3Client client = createS3Client()) {
+                final ListObjectsV2Response objectsUnderFolder = client.listObjectsV2(
+                        ListObjectsV2Request.builder().bucket("test").prefix("folder/").build());
+                assertTrue("folder must not exist on S3 before the upload", objectsUnderFolder.contents().isEmpty());
+
+                r.buildAndAssertSuccess(job);
+
+                final String uploaded = client.getObjectAsBytes(
+                        GetObjectRequest.builder().bucket("test").key("folder/test.txt").build()).asUtf8String();
+                assertEquals(FILE_CONTENT, uploaded);
+            }
+        });
+    }
+
+    private static S3Client createS3Client() {
+        return S3Client.builder().credentialsProvider(new AwsCredentialsProvider() {
+            @Override
+            public AwsCredentials resolveCredentials() {
+                return AwsBasicCredentials.create(ACCESS_KEY, SECRET_KEY);
+            }
+        }).region(Region.US_EAST_1).endpointOverride(URI.create("http://" + minioServiceEndpoint)).forcePathStyle(true).build();
     }
 
     public static class VerifyFileBuilder extends TestBuilder {
