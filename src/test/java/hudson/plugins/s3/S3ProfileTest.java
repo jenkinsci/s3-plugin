@@ -70,7 +70,7 @@ class S3ProfileTest {
                 new FingerprintRecord(true, "bucket", "C:\\evil\\payload.txt", "us-east-1", "deadbeef"));
 
         IOException ex = assertThrows(IOException.class,
-                () -> profile.downloadAll(mockRun(), artifacts, "*.txt", "", targetDir, false));
+                () -> profile.downloadAll(mockRun(), artifacts, "**", "", targetDir, false));
         assertTrue(ex.getMessage().contains("escapes target directory"));
     }
 
