@@ -10,12 +10,13 @@ import software.amazon.awssdk.transfer.s3.model.FileDownload;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 public final class S3DownloadCallable extends S3Callable<String>
 {
     private static final long serialVersionUID = 1L;
     private final Destination dest;
-    
+
     public S3DownloadCallable(String accessKey, Secret secretKey, boolean useRole, Destination dest, String region, ProxyConfiguration proxy, boolean usePathStyle)
     {
         super(accessKey, secretKey, useRole, region, proxy, usePathStyle);
@@ -25,6 +26,11 @@ public final class S3DownloadCallable extends S3Callable<String>
     @Override
     public String invoke(File file, VirtualChannel channel) throws IOException, InterruptedException
     {
+        final File parent = file.getParentFile();
+        if (parent != null) {
+            Files.createDirectories(parent.toPath());
+        }
+
         final DownloadFileRequest req = DownloadFileRequest.builder()
                 .getObjectRequest(builder -> builder.bucket(dest.bucketName).key(dest.objectName))
                 .destination(file).build();
