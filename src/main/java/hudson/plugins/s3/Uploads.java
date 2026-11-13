@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -25,7 +26,14 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public final class Uploads {
-    private Uploads() {}
+    private Uploads() {
+        this(MAX_CONCURRENT_UPLOADS);
+    }
+
+    Uploads(int maxConcurrentUploads) {
+        this.uploadPermits = new Semaphore(maxConcurrentUploads);
+    }
+
     private static final Logger LOGGER = Logger.getLogger(Uploads.class.getName());
     public static final int MULTIPART_UPLOAD_THRESHOLD = 16*1024*1024; // 16 MB
 
@@ -45,12 +53,20 @@ public final class Uploads {
         pool.allowCoreThreadTimeOut(true);
         executors = pool;
     }
+    public static final int DEFAULT_MAX_CONCURRENT_UPLOADS = 10;
+    /**
+     * Upper bound of transfers in flight at once, to keep the HTTP connection pool from being exhausted.
+     * Override with {@code -Dhudson.plugins.s3.Uploads.maxConcurrentUploads=N}; read in the JVM doing the upload.
+     */
+    public static final int MAX_CONCURRENT_UPLOADS = Math.max(1,
+            Integer.getInteger(Uploads.class.getName() + ".maxConcurrentUploads", DEFAULT_MAX_CONCURRENT_UPLOADS));
     public static final int DEFAULT_UPLOAD_TIMEOUT = 30;
     public static final int MIN_UPLOAD_TIMEOUT = 5;
 
     private final transient Map<FilePath, InputStream> openedStreams = new ConcurrentHashMap<>();
+    private final transient Semaphore uploadPermits;
 
-    public Upload startUploading(S3TransferManager manager, FilePath file, InputStream inputStream, String bucketName, String objectName, Metadata metadata, TransferListener listener) {
+    public Upload startUploading(S3TransferManager manager, FilePath file, InputStream inputStream, String bucketName, String objectName, Metadata metadata, TransferListener listener) throws InterruptedException {
         UploadRequest.Builder request = UploadRequest.builder();
         request.putObjectRequest(metadata.builder.andThen(b -> b.bucket(bucketName).key(objectName).metadata(metadata.metadata)));
         request.requestBody(AsyncRequestBody.fromInputStream(inputStream, metadata.getContentLength(), executors));
@@ -58,7 +74,15 @@ public final class Uploads {
         if (listener != null) {
             request.addTransferListener(listener);
         }
-        final Upload upload = manager.upload(request.build());
+        uploadPermits.acquire();
+        final Upload upload;
+        try {
+            upload = manager.upload(request.build());
+        } catch (RuntimeException e) {
+            uploadPermits.release();
+            throw e;
+        }
+        upload.completionFuture().whenComplete((completed, failure) -> uploadPermits.release());
         startedUploads.put(file, upload);
         openedStreams.put(file, inputStream);
         return upload;
