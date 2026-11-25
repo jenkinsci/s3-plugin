@@ -12,6 +12,7 @@ import software.amazon.awssdk.utils.NamedThreadFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -31,7 +32,13 @@ public final class Uploads {
     }
 
     Uploads(int maxConcurrentUploads) {
+        this(maxConcurrentUploads, UPLOAD_SLOT_TIMEOUT, TimeUnit.MINUTES);
+    }
+
+    Uploads(int maxConcurrentUploads, long slotTimeout, TimeUnit slotTimeoutUnit) {
         this.uploadPermits = new Semaphore(maxConcurrentUploads);
+        this.slotTimeout = slotTimeout;
+        this.slotTimeoutUnit = slotTimeoutUnit;
     }
 
     private static final Logger LOGGER = Logger.getLogger(Uploads.class.getName());
@@ -63,10 +70,34 @@ public final class Uploads {
     public static final int DEFAULT_UPLOAD_TIMEOUT = 30;
     public static final int MIN_UPLOAD_TIMEOUT = 5;
 
+    public static final int DEFAULT_UPLOAD_SLOT_TIMEOUT = 30;
+    /**
+     * How long to wait for a free upload slot before failing the file, in minutes. Bounds the wait
+     * introduced by {@link #MAX_CONCURRENT_UPLOADS} so that uploads which never complete cannot
+     * block the caller indefinitely with no output. Override with
+     * {@code -Dhudson.plugins.s3.Uploads.uploadSlotTimeoutMinutes=N}; read in the JVM doing the upload.
+     */
+    public static final int UPLOAD_SLOT_TIMEOUT = Math.max(1,
+            Integer.getInteger(Uploads.class.getName() + ".uploadSlotTimeoutMinutes", DEFAULT_UPLOAD_SLOT_TIMEOUT));
+
     private final transient Map<FilePath, InputStream> openedStreams = new ConcurrentHashMap<>();
     private final transient Semaphore uploadPermits;
+    private final transient long slotTimeout;
+    private final transient TimeUnit slotTimeoutUnit;
 
-    public Upload startUploading(S3TransferManager manager, FilePath file, InputStream inputStream, String bucketName, String objectName, Metadata metadata, TransferListener listener) throws InterruptedException {
+    /**
+     * Thrown when no upload slot became free in time. Distinct from a failed upload because a
+     * retry cannot help: the slots are held by transfers that are not completing.
+     */
+    public static class UploadSlotTimeoutException extends IOException {
+        private static final long serialVersionUID = 1L;
+
+        public UploadSlotTimeoutException(String message) {
+            super(message);
+        }
+    }
+
+    public Upload startUploading(S3TransferManager manager, FilePath file, InputStream inputStream, String bucketName, String objectName, Metadata metadata, TransferListener listener) throws InterruptedException, IOException {
         UploadRequest.Builder request = UploadRequest.builder();
         request.putObjectRequest(metadata.builder.andThen(b -> b.bucket(bucketName).key(objectName).metadata(metadata.metadata)));
         request.requestBody(AsyncRequestBody.fromInputStream(inputStream, metadata.getContentLength(), executors));
@@ -74,12 +105,33 @@ public final class Uploads {
         if (listener != null) {
             request.addTransferListener(listener);
         }
-        uploadPermits.acquire();
+        // Bounded, not acquire(): a transfer whose completion future never fires would otherwise
+        // hold its permit forever, blocking here -- before waitUploads, which owns the only
+        // upload timeout -- so the build would hang with no exception and no log line.
+        // Until the stream is recorded in openedStreams it is this method's to close, so every
+        // path that leaves without starting a transfer has to close it.
+        final boolean acquired;
+        try {
+            acquired = uploadPermits.tryAcquire(slotTimeout, slotTimeoutUnit);
+        } catch (InterruptedException e) {
+            closeUnstarted(inputStream, e);
+            throw e;
+        }
+        if (!acquired) {
+            final UploadSlotTimeoutException timedOut = new UploadSlotTimeoutException("Timed out after "
+                    + slotTimeout + " " + slotTimeoutUnit.toString().toLowerCase(Locale.ROOT)
+                    + " waiting for a free upload slot for: " + file.getName() + ". " + MAX_CONCURRENT_UPLOADS
+                    + " upload(s) are in flight and none completed. Raise -D" + Uploads.class.getName()
+                    + ".maxConcurrentUploads or -D" + Uploads.class.getName() + ".uploadSlotTimeoutMinutes.");
+            closeUnstarted(inputStream, timedOut);
+            throw timedOut;
+        }
         final Upload upload;
         try {
             upload = manager.upload(request.build());
         } catch (RuntimeException e) {
             uploadPermits.release();
+            closeUnstarted(inputStream, e);
             throw e;
         }
         upload.completionFuture().whenComplete((completed, failure) -> uploadPermits.release());
@@ -116,8 +168,25 @@ public final class Uploads {
     }
 
     public void cleanup(FilePath filePath) {
-        startedUploads.remove(filePath);
+        final Upload upload = startedUploads.remove(filePath);
+        if (upload != null) {
+            // Cancelling completes the future, which runs the whenComplete hook in startUploading
+            // and releases the permit; without it an abandoned upload leaks one permanently.
+            upload.completionFuture().cancel(true);
+        }
         closeStream(filePath);
+    }
+
+    /**
+     * Closes a stream for an upload that never reached the transfer manager, so it was never
+     * recorded in {@code openedStreams} and nothing else will close it.
+     */
+    private static void closeUnstarted(InputStream inputStream, Throwable cause) {
+        try {
+            inputStream.close();
+        } catch (IOException e) {
+            cause.addSuppressed(e);
+        }
     }
 
     private void closeStream(FilePath filePath) {

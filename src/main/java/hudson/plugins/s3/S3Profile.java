@@ -297,6 +297,10 @@ public class S3Profile {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw e;
+            } catch (Uploads.UploadSlotTimeoutException e) {
+                // Terminal: another attempt would wait the same bounded time again, multiplying
+                // the delay by maxRetries.
+                throw e;
             } catch (Exception e) {
                 retryCount++;
                 if(retryCount >= maxRetries){

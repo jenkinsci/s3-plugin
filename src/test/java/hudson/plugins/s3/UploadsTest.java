@@ -17,7 +17,9 @@ import software.amazon.awssdk.transfer.s3.model.UploadRequest;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -98,7 +100,7 @@ class UploadsTest {
         final CompletableFuture<Upload> pending = CompletableFuture.supplyAsync(() -> {
             try {
                 return throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "second", metadata(), null);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 throw new IllegalStateException(e);
             }
         });
@@ -127,7 +129,7 @@ class UploadsTest {
         assertSame(second, CompletableFuture.supplyAsync(() -> {
             try {
                 return throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "second", metadata(), null);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 throw new IllegalStateException(e);
             }
         }).get(5, TimeUnit.SECONDS));
@@ -145,6 +147,70 @@ class UploadsTest {
                 throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "first", metadata(), null));
 
         assertSame(second, throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "second", metadata(), null));
+    }
+
+    @Test
+    void startUploading_failsInsteadOfBlockingForeverWhenNoSlotFrees() throws Exception {
+        final Uploads throttled = new Uploads(1, 100, TimeUnit.MILLISECONDS);
+        final S3TransferManager manager = mock(S3TransferManager.class);
+        final Upload stuck = mock(Upload.class);
+        // A future that never completes: the upload is started but neither succeeds nor fails,
+        // so its permit is never released by the whenComplete hook.
+        when(stuck.completionFuture()).thenReturn(new CompletableFuture<>());
+        when(manager.upload(any(UploadRequest.class))).thenReturn(stuck);
+
+        throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "first", metadata(), null);
+
+        final Uploads.UploadSlotTimeoutException ex = assertThrows(Uploads.UploadSlotTimeoutException.class, () ->
+                throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "second", metadata(), null));
+        assertTrue(ex.getMessage().contains("waiting for a free upload slot"), ex.getMessage());
+        // Only the first upload was ever handed to the transfer manager.
+        verify(manager, times(1)).upload(any(UploadRequest.class));
+    }
+
+    @Test
+    void startUploading_closesTheStreamWhenNoSlotFrees() throws Exception {
+        final Uploads throttled = new Uploads(1, 100, TimeUnit.MILLISECONDS);
+        final S3TransferManager manager = mock(S3TransferManager.class);
+        final Upload stuck = mock(Upload.class);
+        when(stuck.completionFuture()).thenReturn(new CompletableFuture<>());
+        when(manager.upload(any(UploadRequest.class))).thenReturn(stuck);
+
+        throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "first", metadata(), null);
+
+        // The stream only gets recorded in openedStreams once the transfer starts, so a slot
+        // timeout would otherwise leak the file handle for every file left in the batch.
+        final AtomicBoolean closed = new AtomicBoolean();
+        final InputStream tracked = new ByteArrayInputStream(new byte[0]) {
+            @Override
+            public void close() throws IOException {
+                closed.set(true);
+                super.close();
+            }
+        };
+
+        assertThrows(Uploads.UploadSlotTimeoutException.class, () ->
+                throttled.startUploading(manager, file, tracked, "bucket", "second", metadata(), null));
+        assertTrue(closed.get(), "the stream of an upload that never started must be closed");
+    }
+
+    @Test
+    void cleanup_releasesThePermitHeldByAStuckUpload() throws Exception {
+        final Uploads throttled = new Uploads(1, 100, TimeUnit.MILLISECONDS);
+        final S3TransferManager manager = mock(S3TransferManager.class);
+        final Upload stuck = mock(Upload.class);
+        final Upload later = mock(Upload.class);
+        when(stuck.completionFuture()).thenReturn(new CompletableFuture<>());
+        when(later.completionFuture()).thenReturn(new CompletableFuture<>());
+        when(manager.upload(any(UploadRequest.class))).thenReturn(stuck, later);
+
+        throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "first", metadata(), null);
+
+        // Abandoning the stuck upload must hand its permit back, otherwise the singleton's pool
+        // is permanently short one slot and every later build on this node is affected.
+        throttled.cleanup(file);
+
+        assertSame(later, throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "second", metadata(), null));
     }
 
     private static Uploads.Metadata metadata() {

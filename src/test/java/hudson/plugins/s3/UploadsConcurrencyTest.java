@@ -10,6 +10,7 @@ import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
@@ -91,6 +92,8 @@ class UploadsConcurrencyTest {
                     new ByteArrayInputStream(new byte[4]), "test-bucket", "file-" + index, metadata, null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 
