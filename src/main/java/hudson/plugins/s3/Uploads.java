@@ -40,6 +40,7 @@ public final class Uploads {
         // every concurrent build on the node, so an unfair semaphore lets a busy build barge
         // ahead repeatedly and time out a waiting one even while slots keep turning over.
         this.uploadPermits = new Semaphore(maxConcurrentUploads, true);
+        this.maxConcurrentUploads = maxConcurrentUploads;
         this.slotTimeout = slotTimeout;
         this.slotTimeoutUnit = slotTimeoutUnit;
     }
@@ -85,6 +86,7 @@ public final class Uploads {
 
     private final transient Map<FilePath, InputStream> openedStreams = new ConcurrentHashMap<>();
     private final transient Semaphore uploadPermits;
+    private final transient int maxConcurrentUploads;
     private final transient long slotTimeout;
     private final transient TimeUnit slotTimeoutUnit;
 
@@ -123,8 +125,9 @@ public final class Uploads {
         if (!acquired) {
             final UploadSlotTimeoutException timedOut = new UploadSlotTimeoutException("Timed out after "
                     + slotTimeout + " " + slotTimeoutUnit.toString().toLowerCase(Locale.ROOT)
-                    + " waiting for a free upload slot for: " + file.getName() + ". " + MAX_CONCURRENT_UPLOADS
-                    + " upload(s) are in flight and none completed. Raise -D" + Uploads.class.getName()
+                    + " waiting for a free upload slot for: " + file.getName()
+                    + ". The upload slot limit is " + maxConcurrentUploads
+                    + " and no slot became available. Raise -D" + Uploads.class.getName()
                     + ".maxConcurrentUploads or -D" + Uploads.class.getName() + ".uploadSlotTimeoutMinutes.");
             closeUnstarted(inputStream, timedOut);
             throw timedOut;

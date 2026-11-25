@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -161,8 +162,12 @@ class UploadsTest {
 
         throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "first", metadata(), null);
 
-        final Uploads.UploadSlotTimeoutException ex = assertThrows(Uploads.UploadSlotTimeoutException.class, () ->
-                throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "second", metadata(), null));
+        // Run off-thread with a bounded get, so a regression back to the unbounded acquire() fails
+        // this test instead of hanging the build.
+        final Throwable thrown = startUploadingAsync(throttled, manager,
+                new ByteArrayInputStream(new byte[0]), "second").get(5, TimeUnit.SECONDS);
+        final Uploads.UploadSlotTimeoutException ex =
+                assertInstanceOf(Uploads.UploadSlotTimeoutException.class, thrown);
         assertTrue(ex.getMessage().contains("waiting for a free upload slot"), ex.getMessage());
         // Only the first upload was ever handed to the transfer manager.
         verify(manager, times(1)).upload(any(UploadRequest.class));
@@ -189,9 +194,26 @@ class UploadsTest {
             }
         };
 
-        assertThrows(Uploads.UploadSlotTimeoutException.class, () ->
-                throttled.startUploading(manager, file, tracked, "bucket", "second", metadata(), null));
+        assertInstanceOf(Uploads.UploadSlotTimeoutException.class,
+                startUploadingAsync(throttled, manager, tracked, "second").get(5, TimeUnit.SECONDS));
         assertTrue(closed.get(), "the stream of an upload that never started must be closed");
+    }
+
+    /**
+     * Starts an upload on another thread and yields whatever it threw (or null), so a caller can
+     * bound how long it waits. A test that calls startUploading directly would hang rather than
+     * fail if the slot wait ever became unbounded again.
+     */
+    private CompletableFuture<Throwable> startUploadingAsync(
+            Uploads uploads, S3TransferManager manager, InputStream stream, String objectName) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                uploads.startUploading(manager, file, stream, "bucket", objectName, metadata(), null);
+                return null;
+            } catch (Throwable t) {
+                return t;
+            }
+        });
     }
 
     @Test
