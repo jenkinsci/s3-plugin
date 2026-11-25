@@ -3,11 +3,19 @@ package hudson.plugins.s3;
 import hudson.ProxyConfiguration;
 import org.junit.Test;
 
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
+
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for {@link ClientHelper}.
@@ -65,6 +73,65 @@ public class ClientHelperTest {
         URI uriWithNoHost = URI.create("/path/to/resource");
         boolean result = invokeShouldUseProxy(proxy, uriWithNoHost);
         assertTrue("Should return true when endpoint host is null", result);
+    }
+
+    /**
+     * The pool overrides are opt-in: with neither property set the SDK defaults must be left
+     * alone, so behaviour is unchanged for everyone who does not configure them.
+     */
+    @Test
+    public void connectionPoolOverrides_areNotAppliedWhenUnset() throws Exception {
+        System.clearProperty(ClientHelper.MAX_CONCURRENCY_PROPERTY);
+        System.clearProperty(ClientHelper.CONNECTION_ACQUISITION_TIMEOUT_PROPERTY);
+
+        NettyNioAsyncHttpClient.Builder builder = mock(NettyNioAsyncHttpClient.Builder.class);
+        invokeApplyConnectionPoolOverrides(builder);
+
+        verify(builder, never()).maxConcurrency(anyInt());
+        verify(builder, never()).connectionAcquisitionTimeout(any(Duration.class));
+    }
+
+    @Test
+    public void connectionPoolOverrides_areAppliedWhenSet() throws Exception {
+        System.setProperty(ClientHelper.MAX_CONCURRENCY_PROPERTY, "200");
+        System.setProperty(ClientHelper.CONNECTION_ACQUISITION_TIMEOUT_PROPERTY, "120");
+        try {
+            NettyNioAsyncHttpClient.Builder builder = mock(NettyNioAsyncHttpClient.Builder.class);
+            invokeApplyConnectionPoolOverrides(builder);
+
+            verify(builder).maxConcurrency(200);
+            verify(builder).connectionAcquisitionTimeout(Duration.ofSeconds(120));
+        } finally {
+            System.clearProperty(ClientHelper.MAX_CONCURRENCY_PROPERTY);
+            System.clearProperty(ClientHelper.CONNECTION_ACQUISITION_TIMEOUT_PROPERTY);
+        }
+    }
+
+    /**
+     * Non-positive values are ignored rather than passed through, since the SDK rejects them and
+     * a typo in a system property should not stop uploads working altogether.
+     */
+    @Test
+    public void connectionPoolOverrides_ignoreNonPositiveValues() throws Exception {
+        System.setProperty(ClientHelper.MAX_CONCURRENCY_PROPERTY, "0");
+        System.setProperty(ClientHelper.CONNECTION_ACQUISITION_TIMEOUT_PROPERTY, "-5");
+        try {
+            NettyNioAsyncHttpClient.Builder builder = mock(NettyNioAsyncHttpClient.Builder.class);
+            invokeApplyConnectionPoolOverrides(builder);
+
+            verify(builder, never()).maxConcurrency(anyInt());
+            verify(builder, never()).connectionAcquisitionTimeout(any(Duration.class));
+        } finally {
+            System.clearProperty(ClientHelper.MAX_CONCURRENCY_PROPERTY);
+            System.clearProperty(ClientHelper.CONNECTION_ACQUISITION_TIMEOUT_PROPERTY);
+        }
+    }
+
+    private void invokeApplyConnectionPoolOverrides(NettyNioAsyncHttpClient.Builder builder) throws Exception {
+        Method method = ClientHelper.class.getDeclaredMethod(
+                "applyConnectionPoolOverrides", NettyNioAsyncHttpClient.Builder.class);
+        method.setAccessible(true);
+        method.invoke(null, builder);
     }
 
     /**

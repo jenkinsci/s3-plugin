@@ -19,12 +19,19 @@ import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.regex.Pattern;
 
 public class ClientHelper {
     public final static String DEFAULT_AMAZON_S3_REGION_NAME = System.getProperty(
             "hudson.plugins.s3.DEFAULT_AMAZON_S3_REGION", Region.US_EAST_1.id());
     public static final String ENDPOINT = System.getProperty("hudson.plugins.s3.ENDPOINT", System.getenv("PLUGIN_S3_ENDPOINT"));
+
+    /** Overrides the Netty client's {@code maxConcurrency} (SDK default 50) when set to a positive value. */
+    public static final String MAX_CONCURRENCY_PROPERTY = ClientHelper.class.getName() + ".maxConcurrency";
+    /** Overrides the Netty client's {@code connectionAcquisitionTimeout} in seconds (SDK default 10) when set to a positive value. */
+    public static final String CONNECTION_ACQUISITION_TIMEOUT_PROPERTY =
+            ClientHelper.class.getName() + ".connectionAcquisitionTimeoutSeconds";
     public static final URI ENDPOINT_URI;
 
     static {
@@ -159,7 +166,29 @@ public class ClientHelper {
             }
             builder.proxyConfiguration(proxyBuilder.build());
         }
+        applyConnectionPoolOverrides(builder);
         return builder.build();
+    }
+
+    /**
+     * Applies the optional Netty connection-pool overrides. Unset by default, so the SDK's own
+     * defaults apply (maxConcurrency 50, connectionAcquisitionTimeout 10s). They are the escape
+     * hatch for environments where a batch of large multipart uploads keeps connections busy for
+     * longer than the acquisition timeout, which surfaces as
+     * {@code TimeoutException: Acquire operation took longer than 10000 milliseconds}.
+     *
+     * <p>Read per call, not captured in a static field like {@link #ENDPOINT}, which cannot be
+     * set once this class has been initialized.
+     */
+    private static void applyConnectionPoolOverrides(NettyNioAsyncHttpClient.Builder builder) {
+        final Integer maxConcurrency = Integer.getInteger(MAX_CONCURRENCY_PROPERTY);
+        if (maxConcurrency != null && maxConcurrency > 0) {
+            builder.maxConcurrency(maxConcurrency);
+        }
+        final Integer acquisitionTimeoutSeconds = Integer.getInteger(CONNECTION_ACQUISITION_TIMEOUT_PROPERTY);
+        if (acquisitionTimeoutSeconds != null && acquisitionTimeoutSeconds > 0) {
+            builder.connectionAcquisitionTimeout(Duration.ofSeconds(acquisitionTimeoutSeconds));
+        }
     }
 
     /**
