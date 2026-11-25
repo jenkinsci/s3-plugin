@@ -175,9 +175,11 @@ public final class Uploads {
 
     public void cleanup(FilePath filePath) {
         final Upload upload = startedUploads.remove(filePath);
-        if (upload != null) {
-            // Cancelling completes the future, which runs the whenComplete hook in startUploading
-            // and releases the permit; without it an abandoned upload leaks one permanently.
+        if (upload != null && !upload.completionFuture().isDone()) {
+            // Only an upload still in flight needs cancelling, and cancelling completes its future,
+            // which runs the whenComplete hook in startUploading and releases the permit. Without
+            // this an abandoned upload leaks one permanently. The isDone guard is belt and braces --
+            // cancel() on a completed future is already a no-op -- but it states the intent.
             upload.completionFuture().cancel(true);
         }
         closeStream(filePath);
