@@ -36,7 +36,10 @@ public final class Uploads {
     }
 
     Uploads(int maxConcurrentUploads, long slotTimeout, TimeUnit slotTimeoutUnit) {
-        this.uploadPermits = new Semaphore(maxConcurrentUploads);
+        // Fair, because the wait below is now bounded: this instance is a singleton shared by
+        // every concurrent build on the node, so an unfair semaphore lets a busy build barge
+        // ahead repeatedly and time out a waiting one even while slots keep turning over.
+        this.uploadPermits = new Semaphore(maxConcurrentUploads, true);
         this.slotTimeout = slotTimeout;
         this.slotTimeoutUnit = slotTimeoutUnit;
     }
