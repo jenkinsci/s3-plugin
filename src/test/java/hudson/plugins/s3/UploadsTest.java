@@ -23,7 +23,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -148,6 +150,35 @@ class UploadsTest {
                 throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "first", metadata(), null));
 
         assertSame(second, throttled.startUploading(manager, file, new ByteArrayInputStream(new byte[0]), "bucket", "second", metadata(), null));
+    }
+
+    @Test
+    void getInstance_startsUploadsWithTheConfiguredPermits() throws Exception {
+        // The production singleton reads MAX_CONCURRENT_UPLOADS from its constructor. Nothing else
+        // here exercises that path, so this pins it: a semaphore built with zero permits would make
+        // the very first upload wait out the slot timeout instead of starting.
+        assertEquals(Uploads.DEFAULT_MAX_CONCURRENT_UPLOADS, Uploads.MAX_CONCURRENT_UPLOADS);
+
+        final S3TransferManager manager = mock(S3TransferManager.class);
+        final CompletableFuture<CompletedUpload> done = new CompletableFuture<>();
+        final Upload started = mock(Upload.class);
+        when(started.completionFuture()).thenReturn(done);
+        when(manager.upload(any(UploadRequest.class))).thenReturn(started);
+
+        final Throwable thrown = CompletableFuture.supplyAsync(() -> {
+            try {
+                Uploads.getInstance().startUploading(manager, file,
+                        new ByteArrayInputStream(new byte[0]), "bucket", "singleton", metadata(), null);
+                return (Throwable) null;
+            } catch (Throwable t) {
+                return t;
+            }
+        }).get(5, TimeUnit.SECONDS);
+
+        assertNull(thrown, () -> "the singleton refused to start an upload: " + thrown);
+        // Hand the permit back so this test does not shrink the shared pool for any other.
+        done.complete(mock(CompletedUpload.class));
+        Uploads.getInstance().cleanup(file);
     }
 
     @Test
