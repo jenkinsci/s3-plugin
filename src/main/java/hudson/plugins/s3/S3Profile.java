@@ -16,6 +16,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ChecksumAlgorithm;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -163,6 +164,23 @@ public class S3Profile {
                                     final boolean useServerSideEncryption,
                                     final boolean gzipFiles,
                                     final int uploadTimeout) throws IOException, InterruptedException {
+        return upload(run, bucketName, filePaths, fileNames, userMetadata, storageClass, selregion,
+                uploadFromSlave, managedArtifacts, useServerSideEncryption, gzipFiles, null, uploadTimeout);
+    }
+
+    public List<FingerprintRecord> upload(Run<?, ?> run,
+                                          final String bucketName,
+                                          final List<FilePath> filePaths,
+                                          final List<String> fileNames,
+                                          final Map<String, String> userMetadata,
+                                          final String storageClass,
+                                          final String selregion,
+                                          final boolean uploadFromSlave,
+                                          final boolean managedArtifacts,
+                                          final boolean useServerSideEncryption,
+                                          final boolean gzipFiles,
+                                          final ChecksumAlgorithm checksumAlgorithm,
+                                          final int uploadTimeout) throws IOException, InterruptedException {
         final List<FingerprintRecord> fingerprints = new ArrayList<>(fileNames.size());
 
         try {
@@ -183,10 +201,10 @@ public class S3Profile {
                 final MasterSlaveCallable<String> upload;
                 if (gzipFiles) {
                     upload = new S3GzipCallable(accessKey, secretKey, useRole, dest, userMetadata,
-                            storageClass, selregion, useServerSideEncryption, getProxy(), usePathStyle);
+                            storageClass, selregion, useServerSideEncryption, getProxy(), usePathStyle, checksumAlgorithm);
                 } else {
                     upload = new S3UploadCallable(accessKey, secretKey, useRole, dest, userMetadata,
-                            storageClass, selregion, useServerSideEncryption, getProxy(), usePathStyle);
+                            storageClass, selregion, useServerSideEncryption, getProxy(), usePathStyle, checksumAlgorithm);
                 }
 
                 final FingerprintRecord fingerprintRecord = repeat(maxUploadRetries, uploadRetryTime, dest, () -> {
