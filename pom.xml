@@ -8,7 +8,7 @@
 
     <artifactId>s3</artifactId>
     <packaging>hpi</packaging>
-    <version>${changelist}</version>
+    <version>521.${changelist}</version>
     <name>Jenkins S3 publisher plugin</name>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
 
