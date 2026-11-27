@@ -272,9 +272,9 @@ public class S3Profile {
           for(final FingerprintRecord record : artifacts) {
               final S3Artifact artifact = record.getArtifact();
               final Destination dest = Destination.newFromRun(build, artifact);
-              final FilePath target = getFilePath(targetDir, flatten, artifact.getName());
 
               if (FileHelper.selected(includeFilter, excludeFilter, artifact.getName())) {
+                  final FilePath target = getFilePath(targetDir, flatten, artifact.getName());
                   fingerprints.add(repeat(maxDownloadRetries, downloadRetryTime, dest, new Callable<FingerprintRecord>() {
                       @Override
                       public FingerprintRecord call() throws IOException, InterruptedException {
@@ -309,12 +309,16 @@ public class S3Profile {
         }
     }
 
-    private FilePath getFilePath(FilePath targetDir, boolean flatten, String fullName) {
+    FilePath getFilePath(FilePath targetDir, boolean flatten, String fullName) throws IOException {
         if (flatten) {
             return new FilePath(targetDir, FilenameUtils.getName(fullName));
         }
         else  {
-            return new FilePath(targetDir, fullName);
+            final String normalized = FilenameUtils.normalize(fullName, true);
+            if (normalized == null || FilenameUtils.getPrefixLength(normalized) != 0) {
+                throw new IOException("Artifact name escapes target directory: " + fullName);
+            }
+            return new FilePath(targetDir, normalized);
         }
     }
 
