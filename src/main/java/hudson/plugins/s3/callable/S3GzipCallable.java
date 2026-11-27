@@ -54,15 +54,18 @@ public final class S3GzipCallable extends S3BaseUploadCallable implements Master
 
         @Override
         public void transferComplete(Context.TransferComplete context) {
-            done(context);
+            done();
         }
 
         @Override
         public void transferFailed(Context.TransferFailed context) {
             TransferListener.super.transferFailed(context);
+            // A failed or cancelled transfer leaves the temp file behind otherwise, and invoke()'s
+            // own finally only deletes it when the upload is already done at that point.
+            done();
         }
 
-        public void done(Context.TransferComplete context) {
+        private void done() {
             if (localFile.delete()) {
                 Logger.getLogger(S3GzipCallable.class.getName()).fine(() -> "Removed temporary file " + localFile.getName());
             } else {
